@@ -10,10 +10,11 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
 
-struct MemBlockHeader {
-  size_t user_size;
+struct MemoryBlock {
+  MemoryBlock* next;
+  MemoryBlock* prev;
   size_t total_size;
-  void* memblock;
+  bool used = false; // TODO: experiment with bitflags here
 };
 
 struct Entity {
@@ -21,29 +22,25 @@ struct Entity {
   char* body;
 };
 
-struct ListHeader {
-  ListHeader* next = NULL;
-  ListHeader* prev = NULL;
-  size_t total_size = 0;
-};
-
-void list_insert(ListHeader* item, ListHeader* after) {
+void list_insert(MemoryBlock* item, MemoryBlock* after) {
   item->next = after->next;
   after->next->prev = item;
   item->prev = after;
   after->next = item;
 }
-void list_remove(ListHeader* item) {
+
+void list_remove(MemoryBlock* item) {
   item->next->prev = item->prev;
   item->prev->next = item->next;
 }
-void list_init(ListHeader* first) {
+
+void list_init(MemoryBlock* first) {
   first->next = first;
   first->prev = first;
 }
 
-void list_print_sizes(ListHeader* from) {
-  ListHeader* itm = from->next;
+void list_print_sizes(MemoryBlock* from) {
+  MemoryBlock* itm = from->next;
   u64 i = 0;
   while (itm != from) {
     std::cout << "element #" << i << " size=" <<  itm->total_size << std::endl;
@@ -54,113 +51,92 @@ void list_print_sizes(ListHeader* from) {
 
 class GeneralPurposeAllocator {
 public:
-  void* rootblock;
-  ListHeader* free_list_root;
-  ListHeader* used_list_root;
+  MemoryBlock* blocks;
   size_t max_size;
-  size_t list_size;
-  size_t memblock_minsize;
+  size_t min_block_size;
+  size_t num_blocks;
 
   GeneralPurposeAllocator(size_t max_size) {
     this->max_size = max_size;
-    this->memblock_minsize = sizeof(ListHeader);
+    this->min_block_size = 2 * sizeof(MemoryBlock);
 
-    this->free_list_root = (ListHeader*) calloc(max_size + 2 * sizeof(ListHeader), 1);
-    list_init(this->free_list_root);
-    this->used_list_root = this->free_list_root + sizeof(ListHeader);
-    list_init(this->used_list_root);
-    this->rootblock = this->free_list_root + 2 * sizeof(ListHeader);
+    this->blocks = (MemoryBlock*) calloc(max_size, 1);
 
-    ListHeader* first = (ListHeader*) this->rootblock;
-    first->total_size = this->max_size;
-    list_insert((ListHeader*) first, this->free_list_root);
-    this->list_size = 2;
+    this->blocks->total_size = this->max_size;
+    this->blocks->used = false;
+    list_init(this->blocks);
+    this->num_blocks = 1;
   }
   ~GeneralPurposeAllocator() {
-    free(rootblock);
+    std::free(this->blocks);
   }
 
   void* alloc(size_t size) {
     void* memloc = NULL;
-    size_t block_size = size + sizeof(MemBlockHeader);
 
-    ListHeader* at = this->free_list_root;
+    const size_t alloc_size = size + sizeof(MemoryBlock);
+
+    MemoryBlock* at = this->blocks;
     u32 idx = 0;
-    size_t freeblock_size;
-    while (idx < this->list_size) {
-      freeblock_size = at->total_size;
-      if (freeblock_size >= block_size) {
+    size_t free_size;
+    while (idx < this->num_blocks) {
 
-        if (freeblock_size > block_size + this->memblock_minsize) {
-          ListHeader* remains_free = (ListHeader*) ((u8*) at + block_size);
-          remains_free->total_size = freeblock_size - block_size;
-          list_insert(remains_free, at);
-          this->list_size++;
+      if (at->used == false) {
+        free_size = at->total_size;
+        if (free_size >= alloc_size) {
+
+          if (free_size > alloc_size + this->min_block_size) {
+            MemoryBlock* remainder = (MemoryBlock*) ((u8*) at + alloc_size); // TODO: truncate somehow to align with a MemoryBlock array
+            remainder->total_size = free_size - alloc_size;
+            remainder->used = false;
+            list_insert(remainder, at);
+            this->num_blocks++;
+          }
+
+          memloc = at;
+          at->total_size = alloc_size; // TODO: fix, this is not always correct
+          at->used = true;
+
+          return (u8*) at + sizeof(MemoryBlock);
         }
-
-        memloc = (MemBlockHeader*) at;
-        list_remove(at);
-        this->list_size--;
-        memset(at, sizeof(ListHeader), 0);
-
-        break;
       }
 
       at = at->next;
       ++idx;
     }
 
-    assert(memloc != NULL);
-
-    MemBlockHeader* memblock_header = (MemBlockHeader*) memloc;
-    memblock_header->user_size = size;
-    memblock_header->total_size = size + sizeof(MemBlockHeader);
-    memblock_header->memblock = (u8*) memloc + sizeof(MemBlockHeader);
-    return memblock_header->memblock;
+    // TODO: out of memory case / impl. eviction strategy
+    // for now we crash
+    assert(1==0);
   }
 
-  void insert_free_block(size_t size, ListHeader* block, ListHeader* after) {
-    list_insert(block, after);
-    this->list_size++;
-    block->total_size = size;
-  }
-  size_t get_memblock_total_size_and_memset(void* addr) {
-    MemBlockHeader* memblock_header = (MemBlockHeader*) (u8*) addr - sizeof(MemBlockHeader);
-    size_t total_size = memblock_header->total_size;
-    memset(addr, sizeof(MemBlockHeader), 0);
-    return total_size;
+  void merge_adjacent_blocks(MemoryBlock* first, MemoryBlock* second) {
+    assert(first->used == false);
+    assert(second->used == false);
+    assert(second->prev == first);
+    assert(first->next == second);
+
+    first->total_size += second->total_size;
+    list_remove(second);
+    this->num_blocks--;
   }
 
   void free(void* addr) {
-    size_t rel_loc = (u8*) addr - (u8*) this->rootblock;
-    assert(rel_loc >= 0);
-    assert(rel_loc < this->max_size);
+    // guards
+    size_t relative_location = (u8*) addr - (u8*) this->blocks;
+    assert(relative_location >= 0);
+    assert(relative_location < this->max_size);
 
-    // free block header
-    size_t size = this->get_memblock_total_size_and_memset(addr);
-    ListHeader* freed = (ListHeader*) addr;
-    freed->total_size = size;
+    MemoryBlock* at = (MemoryBlock*) (u8*) addr - sizeof(MemoryBlock);
+    at->used = false;
 
-    // where to insert freed
-    ListHeader* insert_after = this->free_list_root;
-    ListHeader* at = this->free_list_root;
-    u32 idx = 0;
-    while (idx < this->list_size) {
-      size_t diff = ((u8*) at - (u8*) this->rootblock) - rel_loc;
-
-      if (diff > 0) {
-        size = diff;
-        insert_after = at->prev;
-        break;
-      }
-
-      at = at->next;
-      ++idx;
+    // TODO: merge with prev / next blocks
+    if (at->prev->used == false) {
+      this->merge_adjacent_blocks(at->prev, at);
     }
-    list_insert((ListHeader*) freed, insert_after);
-    this->list_size++;
-
-    // TODO: merge with prev and / or next block
+    if (at->next->used == false) {
+      this->merge_adjacent_blocks(at, at->next);
+    }
   }
 };
 
@@ -176,7 +152,7 @@ void test(GeneralPurposeAllocator* alloc) {
 
   my_entity.body = (char*) alloc->alloc(strlen(s02));
 
-  list_print_sizes(alloc->free_list_root);
+  list_print_sizes(alloc->blocks);
   
   strcpy(my_entity.name, s01);
   strcpy(my_entity.body, s02);
