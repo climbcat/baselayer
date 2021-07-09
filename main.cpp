@@ -141,28 +141,25 @@ public:
 };
 
 
-void test(GeneralPurposeAllocator* alloc) {
+void test() {
+  GeneralPurposeAllocator alloc(10000);
 
-  const char* s01 = "en spændende test string";
+  const char* s01 = "en spændende test streng";
   const char* s02 = "entity test string body indhold...";
 
   Entity my_entity;
-  my_entity.name = (char*) alloc->alloc(strlen(s01));
+  my_entity.name = (char*) alloc.alloc(strlen(s01));
+  my_entity.body = (char*) alloc.alloc(strlen(s02));
 
+  list_print_sizes(alloc.blocks);
 
-  my_entity.body = (char*) alloc->alloc(strlen(s02));
-
-  list_print_sizes(alloc->blocks);
-  
   strcpy(my_entity.name, s01);
   strcpy(my_entity.body, s02);
 }
 
 int main (int argc, char **argv) {
-  GeneralPurposeAllocator alloc(10000);
 
-
-  test(&alloc);
+  test();
 
   return 0;
 }
