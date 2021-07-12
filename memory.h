@@ -21,24 +21,24 @@ struct Entity {
   char* body;
 };
 
-void list_insert(MemoryBlock* item, MemoryBlock* after) {
+void ListInsert(MemoryBlock* item, MemoryBlock* after) {
   item->next = after->next;
   after->next->prev = item;
   item->prev = after;
   after->next = item;
 }
 
-void list_remove(MemoryBlock* item) {
+void ListRemove(MemoryBlock* item) {
   item->next->prev = item->prev;
   item->prev->next = item->next;
 }
 
-void list_init(MemoryBlock* first) {
+void ListInit(MemoryBlock* first) {
   first->next = first;
   first->prev = first;
 }
 
-void list_print_sizes(MemoryBlock* from) {
+void ListPrintSizes(MemoryBlock* from) {
   MemoryBlock* itm = from->next;
   u64 i = 0;
   while (itm != from) {
@@ -66,14 +66,14 @@ public:
 
     this->blocks->total_size = this->max_size;
     this->blocks->used = false;
-    list_init(this->blocks);
+    ListInit(this->blocks);
     this->num_blocks = 1;
   }
   ~GeneralPurposeAllocator() {
     std::free(this->blocks);
   }
 
-  void* alloc(size_t size) {
+  void* Alloc(size_t size) {
     void* memloc = NULL;
     const size_t alloc_size = size + sizeof(MemoryBlock);
 
@@ -90,7 +90,7 @@ public:
             MemoryBlock* remainder = (MemoryBlock*) ((u8*) at + alloc_size); // TODO: truncate somehow to align with a MemoryBlock array
             remainder->total_size = free_size - alloc_size;
             remainder->used = false;
-            list_insert(remainder, at);
+            ListInsert(remainder, at);
             this->num_blocks++;
           }
 
@@ -112,7 +112,7 @@ public:
     assert(1==0);
   }
 
-  bool try_merge_adjacent_blocks(MemoryBlock* a, MemoryBlock* b) {
+  bool _TryMergeAdjacentBlocks(MemoryBlock* a, MemoryBlock* b) {
     if (a->used != false && b->used != false)
         return false;
 
@@ -122,13 +122,13 @@ public:
 
     // a sits right before b
     a->total_size += b->total_size;
-    list_remove(b);
+    ListRemove(b);
     this->num_blocks--;
     this->blocks_merged++;
     return true;
   }
 
-  bool free(void* addr) {
+  bool Free(void* addr) {
     // guards
     size_t relative_location = (u8*) addr - (u8*) this->blocks;
     assert(relative_location >= 0);
@@ -143,7 +143,7 @@ public:
     this->load -= at->total_size;
     at->used = false;
 
-    this->try_merge_adjacent_blocks(at->prev, at);
+    this->_TryMergeAdjacentBlocks(at->prev, at);
 
     return true;
   }
