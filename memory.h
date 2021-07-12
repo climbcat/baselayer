@@ -1,3 +1,7 @@
+#ifndef __MEMORY_H__
+#define __MEMORY_H__
+
+
 #include <cstdlib>
 #include <assert.h>
 #include <iostream>
@@ -51,6 +55,9 @@ public:
   size_t min_block_size;
   size_t num_blocks;
 
+  unsigned long blocks_merged = 0;
+  unsigned long load = 0;
+
   GeneralPurposeAllocator(size_t max_size) {
     this->max_size = max_size;
     this->min_block_size = 2 * sizeof(MemoryBlock);
@@ -68,7 +75,6 @@ public:
 
   void* alloc(size_t size) {
     void* memloc = NULL;
-
     const size_t alloc_size = size + sizeof(MemoryBlock);
 
     MemoryBlock* at = this->blocks;
@@ -92,6 +98,7 @@ public:
           at->total_size = alloc_size; // TODO: fix, this is not always correct
           at->used = true;
 
+          this->load += at->total_size;
           return (u8*) at + sizeof(MemoryBlock);
         }
       }
@@ -105,32 +112,41 @@ public:
     assert(1==0);
   }
 
-  void merge_adjacent_blocks(MemoryBlock* first, MemoryBlock* second) {
-    assert(first->used == false);
-    assert(second->used == false);
-    assert(second->prev == first);
-    assert(first->next == second);
+  bool try_merge_adjacent_blocks(MemoryBlock* a, MemoryBlock* b) {
+    if (a->used != false && b->used != false)
+        return false;
 
-    first->total_size += second->total_size;
-    list_remove(second);
+    MemoryBlock* tmp;
+    if (b->next == a) { tmp = a; a = b; b = tmp; }
+    else if (a->next != b) return false;
+
+    // a sits right before b
+    a->total_size += b->total_size;
+    list_remove(b);
     this->num_blocks--;
+    this->blocks_merged++;
+    return true;
   }
 
-  void free(void* addr) {
+  bool free(void* addr) {
     // guards
     size_t relative_location = (u8*) addr - (u8*) this->blocks;
     assert(relative_location >= 0);
     assert(relative_location < this->max_size);
 
-    MemoryBlock* at = (MemoryBlock*) (u8*) addr - sizeof(MemoryBlock);
+    MemoryBlock* at = (MemoryBlock*) (((u8*) addr) - sizeof(MemoryBlock));
+    if (at->used == false)
+      return false;
+
+    assert(this->load > at->total_size);
+
+    this->load -= at->total_size;
     at->used = false;
 
-    // TODO: merge with prev / next blocks
-    if (at->prev->used == false) {
-      this->merge_adjacent_blocks(at->prev, at);
-    }
-    if (at->next->used == false) {
-      this->merge_adjacent_blocks(at, at->next);
-    }
+    this->try_merge_adjacent_blocks(at->prev, at);
+
+    return true;
   }
 };
+
+#endif

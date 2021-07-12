@@ -5,6 +5,7 @@
 #include "types.h"
 #include "memory.h"
 #include "random.h"
+#include "stuff.h"
 
 
 void TestFOpen(char* filename) {
@@ -32,56 +33,57 @@ void TestFOpen(char* filename) {
 }
 
 void TestRandGen() {
-  rand_init();
+  RandInit();
 
   std::cout << "rand01():" << std::endl;
   for (int i = 0; i<20; i++) {
-    std::cout << rand01() << " ";
+    std::cout << Rand01() << " ";
   }
   std::cout << std::endl << std::endl;
 
   std::cout << "randpm1():" << std::endl;
   for (int i = 0; i<20; i++) {
-    std::cout << randpm1() << " ";
+    std::cout << RandPM1() << " ";
   }
   std::cout << std::endl << std::endl;
 
   std::cout << "rand0max(10):" << std::endl;
   for (int i = 0; i<20; i++) {
-    std::cout << rand0max(10) << " ";
+    std::cout << Rand0Max(10) << " ";
   }
   std::cout << std::endl << std::endl;
 
   std::cout << "randminmax(100, 200):" << std::endl;
   for (int i = 0; i<20; i++) {
-    std::cout << randminmax(100, 200) << " ";
+    std::cout << RandMinMax(100, 200) << " ";
   }
   std::cout << std::endl << std::endl;
 
   std::cout << "randtriangle():" << std::endl;
   for (int i = 0; i<20; i++) {
-    std::cout << randtriangle() << " ";
+    std::cout << RandTriangle() << " ";
   }
   std::cout << std::endl << std::endl;
 
   std::cout << "randnorm():" << std::endl;
   for (int i = 0; i<20; i++) {
-    std::cout << randnorm() << " ";
+    std::cout << RandNorm() << " ";
   }
   std::cout << std::endl << std::endl;
 
   std::cout << "gaussian_double():" << std::endl;
   for (int i = 0; i<20; i++) {
-    std::cout << gaussian_double() << " ";
+    std::cout << RandGaussianDouble() << " ";
   }
   std::cout << std::endl << std::endl;
 
   std::cout << "randminmax_i(10, 20):" << std::endl;
   for (int i = 0; i<20; i++) {
-    std::cout << randminmax_i(10, 20) << " ";
+    std::cout << RandMinMaxI(10, 20) << " ";
   }
   std::cout << std::endl << std::endl;
 }
+
 
 void TestGPAlloc() {
   GeneralPurposeAllocator alloc( 1024 * 1024 );
@@ -99,11 +101,51 @@ void TestGPAlloc() {
   strcpy(my_entity.body, s02);
 }
 
+void TestWriteChars() {
+  GeneralPurposeAllocator alloc( 1024 * 1024 );
+  RandInit();
+
+  int num_lines = 150;
+  char* lines[num_lines];
+  int line_len;
+
+  int accum_totlen = 0;
+
+  // fill up string locations
+  for (int i = 0; i < num_lines; i++) {
+    line_len = RandMinMaxI(50, 250);
+    char* dest = (char*) alloc.alloc(line_len + 1);
+    WriteRandomHexStr(dest, line_len);
+    lines[i] = dest;
+
+    std::cout << dest << std::endl;
+  }
+
+  std::cout << std::endl;
+
+  // free some of the lines
+  int num_tofree = 60;
+  int idx;
+  for (int i = 0; i < num_tofree; i++) {
+
+    idx = RandMinMaxI(0, num_lines - 1);
+    //std::cout << idx << ": " << lines[idx] << std::endl;
+    std::cout << idx << " load: " << alloc.load << std::endl;
+
+    bool success = alloc.free(lines[idx]);
+  }
+  std::cout << std::endl << "total blocks merged:" << alloc.blocks_merged << std::endl;
+
+
+  // TODO: rather visualize allocator output than typing to the terminal (pref. graphics)
+}
+
 int main (int argc, char **argv) {
 
   //TestFOpen();
   //TestGPAlloc();
-  TestRandGen();
+  //TestRandGen();
+  TestWriteChars();
 
   return 0;
 }
