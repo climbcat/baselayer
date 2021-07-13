@@ -16,10 +16,6 @@ struct MemoryBlock {
   bool used = false; // TODO: experiment with bitflags here
 };
 
-struct Entity {
-  char* name;
-  char* body;
-};
 
 void ListInsert(MemoryBlock* item, MemoryBlock* after) {
   item->next = after->next;
@@ -31,6 +27,8 @@ void ListInsert(MemoryBlock* item, MemoryBlock* after) {
 void ListRemove(MemoryBlock* item) {
   item->next->prev = item->prev;
   item->prev->next = item->next;
+  item->prev = NULL;
+  item->next = NULL;
 }
 
 void ListInit(MemoryBlock* first) {
@@ -47,6 +45,7 @@ void ListPrintSizes(MemoryBlock* from) {
     ++i;
   }
 }
+
 
 class GeneralPurposeAllocator {
 public:
@@ -74,6 +73,8 @@ public:
   }
 
   void* Alloc(size_t size) {
+    assert(size <= this->max_size - this->load * sizeof(MemoryBlock));
+
     void* memloc = NULL;
     const size_t alloc_size = size + sizeof(MemoryBlock);
 
@@ -148,5 +149,127 @@ public:
     return true;
   }
 };
+
+
+class PoolAllocator {
+public:
+  void* root;
+  MemoryBlock* blocks;
+  size_t block_size;
+  size_t pool_size;
+  size_t min_block_size;
+
+  unsigned long load = 0;
+  PoolAllocator(size_t block_size, size_t pool_size) {
+    this->min_block_size = sizeof(MemoryBlock);
+    assert(block_size >= this->min_block_size);
+
+    this->block_size = block_size;
+    this->pool_size = pool_size;
+
+    this->blocks = (MemoryBlock*) calloc(block_size * pool_size, 1);
+    this->blocks->used = false;
+    this->blocks->total_size = this->block_size;
+    ListInit(this->blocks);
+
+    // record for destructor
+    this->root = this->blocks;
+
+    // build the free list
+    MemoryBlock* prev = this->blocks;
+    MemoryBlock* next;
+    for (int i = 1; i < this->pool_size; i++) {
+      next = this->blocks + i;
+      next->total_size = this->block_size;
+      next->used = false;
+
+      ListInsert(next, prev);
+      prev = next;
+    }
+  }
+  ~PoolAllocator() {
+    free(this->root);
+  }
+  void* Alloc() {
+    if (this->blocks == NULL) {
+      assert(this->load == this->pool_size);
+      return NULL;
+    }
+
+    this->load++;
+    MemoryBlock* toalloc = this->blocks;
+    if (this->blocks->next != this->blocks) {
+      this->blocks = toalloc->next;
+      ListRemove(toalloc);
+    }
+    else {
+      // list is now full
+      assert(this->load == this->pool_size);
+      this->blocks = NULL;
+    }
+
+    // clear header bytes
+    memset(toalloc, sizeof(MemoryBlock), 0);
+    return toalloc;
+  }
+  bool Free(void* addr) {
+    size_t relative_location = (u8*) addr - (u8*) this->root;
+    assert(relative_location >= 0); // location lower bound
+    assert(relative_location < this->pool_size * this->block_size); // location upper bound
+    assert(relative_location % this->block_size == 0); // alignment
+
+    if (this-load == 0)
+      return false;
+
+    MemoryBlock* addrblock = (MemoryBlock*) addr;
+    addrblock->total_size = this->block_size;
+    addrblock->used = false;
+
+    if (this->blocks != NULL) {
+      ListInsert(this->blocks, addrblock);
+    }
+    else {
+      // first free element after full
+      assert(this->load == this->pool_size);
+      this->blocks = (MemoryBlock*) addr;
+    }
+
+    this->load--;
+    return true;
+  }
+};
+
+
+class StackAllocator {
+public:
+  void* root;
+  size_t total_size;
+  size_t used;
+  StackAllocator(size_t total_size) {
+    this->total_size = total_size;
+    this->root = calloc(this->total_size, 1);
+  }
+  ~StackAllocator() {
+    free(this->root);
+  }
+  void* Alloc(size_t size) {
+    assert(size <= this->total_size - this->used);
+
+    return (u8*) this->root - this->used - size;
+    this->used += size;
+  }
+  bool Free(void* addr) {
+    size_t relative_location = (u8*) addr - (u8*) this->root;
+    assert(relative_location >= 0);
+    assert(relative_location < this->total_size);
+
+    if (relative_location >= this->used)
+      return false;
+
+    this->used = relative_location;
+    return true;
+  }
+};
+
 
 #endif

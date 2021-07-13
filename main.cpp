@@ -84,6 +84,10 @@ void TestRandGen() {
   std::cout << std::endl << std::endl;
 }
 
+struct Entity {
+  char* name;
+  char* body;
+};
 
 void TestGPAlloc() {
   GeneralPurposeAllocator alloc( 1024 * 1024 );
@@ -92,10 +96,10 @@ void TestGPAlloc() {
   const char* s02 = "entity test string body indhold...";
 
   Entity my_entity;
-  my_entity.name = (char*) alloc.alloc(strlen(s01));
-  my_entity.body = (char*) alloc.alloc(strlen(s02));
+  my_entity.name = (char*) alloc.Alloc(strlen(s01));
+  my_entity.body = (char*) alloc.Alloc(strlen(s02));
 
-  list_print_sizes(alloc.blocks);
+  ListPrintSizes(alloc.blocks);
 
   strcpy(my_entity.name, s01);
   strcpy(my_entity.body, s02);
@@ -114,7 +118,7 @@ void TestWriteChars() {
   // fill up string locations
   for (int i = 0; i < num_lines; i++) {
     line_len = RandMinMaxI(50, 250);
-    char* dest = (char*) alloc.alloc(line_len + 1);
+    char* dest = (char*) alloc.Alloc(line_len + 1);
     WriteRandomHexStr(dest, line_len);
     lines[i] = dest;
 
@@ -129,10 +133,9 @@ void TestWriteChars() {
   for (int i = 0; i < num_tofree; i++) {
 
     idx = RandMinMaxI(0, num_lines - 1);
-    //std::cout << idx << ": " << lines[idx] << std::endl;
     std::cout << idx << " load: " << alloc.load << std::endl;
 
-    bool success = alloc.free(lines[idx]);
+    bool success = alloc.Free(lines[idx]);
   }
   std::cout << std::endl << "total blocks merged:" << alloc.blocks_merged << std::endl;
 

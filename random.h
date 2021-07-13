@@ -97,9 +97,9 @@ double RandMinMax(double min, double max) {
 double RandTriangle() {
   double randnum = Rand01();
   if (randnum>0.5)
-    return(1-sqrt(2*(randnum-0.5)));
+    return(1 - sqrt(2 * (randnum - 0.5)));
   else
-    return(sqrt(2*randnum)-1);
+    return(sqrt(2 * randnum) - 1);
 }
 // from normal law
 double RandNorm()
