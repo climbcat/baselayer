@@ -19,9 +19,15 @@ struct MemoryBlock {
 
 void ListInsert(MemoryBlock* item, MemoryBlock* after) {
   item->next = after->next;
-  after->next->prev = item;
   item->prev = after;
+  after->next->prev = item;
   after->next = item;
+}
+void ListInsertBefore(MemoryBlock* item, MemoryBlock* before) {
+  item->next = before->next;
+  item->prev = before;
+  before->prev->next = item;
+  before->prev = item;
 }
 
 void ListRemove(MemoryBlock* item) {
@@ -179,7 +185,7 @@ public:
     MemoryBlock* prev = this->blocks;
     MemoryBlock* next;
     for (int i = 1; i < this->pool_size; i++) {
-      next = this->blocks + i;
+      next = (MemoryBlock*) ((u8*) this->blocks + (i * this->block_size));
       next->total_size = this->block_size;
       next->used = false;
 
@@ -216,6 +222,7 @@ public:
     size_t relative_location = (u8*) addr - (u8*) this->root;
     assert(relative_location >= 0); // location lower bound
     assert(relative_location < this->pool_size * this->block_size); // location upper bound
+    size_t mysterious_num = relative_location % this->block_size;
     assert(relative_location % this->block_size == 0); // alignment
 
     if (this-load == 0)
@@ -226,12 +233,13 @@ public:
     addrblock->used = false;
 
     if (this->blocks != NULL) {
-      ListInsert(this->blocks, addrblock);
+      ListInsertBefore(addrblock, this->blocks);
     }
     else {
       // first free element after full
       assert(this->load == this->pool_size);
       this->blocks = (MemoryBlock*) addr;
+      ListInit(this->blocks);
     }
 
     this->load--;

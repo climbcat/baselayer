@@ -61,6 +61,7 @@ void TestRandGen() {
   std::cout << std::endl << std::endl;
 }
 
+
 struct Entity {
   char* name;
   char* body;
@@ -82,7 +83,8 @@ void TestGPAlloc() {
   strcpy(my_entity.body, s02);
 }
 
-void TestWriteChars() {
+
+void TestGPAlloc2WriteChars() {
   GeneralPurposeAllocator alloc( 1024 * 1024 );
   RandInit();
 
@@ -120,6 +122,56 @@ void TestWriteChars() {
   // TODO: rather visualize allocator output than typing to the terminal (pref. graphics)
 }
 
+
+struct PoolAllocTestStruct {
+  int some_num;
+  char some_word[35];
+};
+
+void TestPoolAlloc() {
+  int batch_size = 10;
+  PoolAllocator palloc(sizeof(PoolAllocTestStruct), batch_size);
+
+  void* ptrs[batch_size];
+  std::cout << "pool load: " << palloc.load << " element size: " << sizeof(PoolAllocTestStruct) << std::endl;
+
+  // allocate items
+  for (int i = 0; i < batch_size; i++) {
+    ptrs[i] = palloc.Alloc();
+    int relloc = (u8*) ptrs[i] - (u8*) palloc.root;
+    std::cout << "pool load: " << palloc.load << " - relloc: " << relloc << std::endl;
+  }
+
+  // free four items at stride 2
+  for (int i = 0; i < batch_size - 2; i += 2) {
+    palloc.Free(ptrs[i]);
+    std::cout << "pool load: " << palloc.load << std::endl;
+  }
+
+  // put them back in
+  for (int i = 0; i < batch_size - 2; i += 2) {
+    ptrs[i] = palloc.Alloc();
+    std::cout << "pool load: " << palloc.load << std::endl;
+  }
+
+  // it is full now
+  assert(palloc.Alloc() == NULL);
+
+  palloc.Free(ptrs[4]);
+  std::cout << "pool load: " << palloc.load << std::endl;
+  palloc.Free(ptrs[5]);
+  std::cout << "pool load: " << palloc.load << std::endl;
+
+  ptrs[5] = palloc.Alloc();
+  std::cout << "pool load: " << palloc.load << std::endl;
+
+  ptrs[4] = palloc.Alloc();
+  std::cout << "pool load: " << palloc.load << std::endl;
+
+  assert(palloc.Alloc() == NULL);
+}
+
+
 void TestLoadFile() {
   char* filename = "/home/jaga/documents/gpalloc.c";
   char* text = LoadFile(filename);
@@ -129,11 +181,7 @@ void TestLoadFile() {
 
 #include "frametimer.h"
 
-
-
-
 #define RGB_DEEP_BLUE 20, 50, 150
-
 struct Color {
   u8 r = 20;
   u8 g = 50;
@@ -248,11 +296,13 @@ void TestOpenWindow() {
 
 
 int main (int argc, char **argv) {
-  //TestFOpen();
-  //TestGPAlloc();
   //TestRandGen();
-  //TestWriteChars();
   //TestLoadFile();
 
-  TestOpenWindow();
+  //TestGPAlloc();
+  //TestGPAlloc2WriteChars();
+  TestPoolAlloc();
+  //TestStackAlloc();
+
+  //TestOpenWindow();
 }
