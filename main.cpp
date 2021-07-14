@@ -172,6 +172,54 @@ void TestPoolAlloc() {
 }
 
 
+#define SIXTEEN_K 16 * 1024
+void TestStackAlloc() {
+  StackAllocator arena(SIXTEEN_K);
+  std::cout << "initial arena used: " << arena.used << std::endl;
+
+  char* strings[1000];
+  int sidx = 0;
+
+  // allocate a bunch of strings
+  char* dest;
+  int len = 0;
+  RandInit();
+  while (arena.total_size - arena.used > len) {
+    std::cout << "used: " << arena.used << " total: " << arena.total_size <<  std::endl;
+
+    dest = (char*) arena.Alloc(len);
+    WriteRandomHexStr(dest, len);
+    strings[sidx] = dest;
+    sidx++;
+
+    len = RandMinMaxI(50, 350);
+  }
+
+  std::cout << std::endl << "now printing all of those allocated strings:" << std::endl;;
+
+  // print those strings
+  for (int i = 0; i < sidx; i++) {
+    std::cout << strings[i] << std::endl;
+  }
+
+  std::cout << std::endl << "unraveling down to the five first strings..." << std::endl;;
+
+  // unravel the stack from the top, almost all of the way down (Free will actually memset to zero)
+  for (int i = sidx - 1; i >= 5; i--) {
+    arena.Free(strings[i]);
+  }
+
+  std::cout << std::endl << "printing those five strings:" << std::endl;;
+
+  // print those strings
+  for (int i = 0; i < 5; i++) {
+    std::cout << strings[i] << std::endl;
+  }
+
+  std::cout << std::endl << "done." << std::endl;;
+}
+
+
 void TestLoadFile() {
   char* filename = "/home/jaga/documents/gpalloc.c";
   char* text = LoadFile(filename);
@@ -301,8 +349,8 @@ int main (int argc, char **argv) {
 
   //TestGPAlloc();
   //TestGPAlloc2WriteChars();
-  TestPoolAlloc();
-  //TestStackAlloc();
+  //TestPoolAlloc();
+  TestStackAlloc();
 
   //TestOpenWindow();
 }

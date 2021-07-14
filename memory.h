@@ -255,6 +255,7 @@ public:
   size_t used;
   StackAllocator(size_t total_size) {
     this->total_size = total_size;
+    this->used = 0;
     this->root = calloc(this->total_size, 1);
   }
   ~StackAllocator() {
@@ -263,8 +264,8 @@ public:
   void* Alloc(size_t size) {
     assert(size <= this->total_size - this->used);
 
-    return (u8*) this->root - this->used - size;
     this->used += size;
+    return (u8*) this->root + this->used;
   }
   bool Free(void* addr) {
     size_t relative_location = (u8*) addr - (u8*) this->root;
@@ -273,6 +274,8 @@ public:
 
     if (relative_location >= this->used)
       return false;
+
+    memset((u8*) this->root + relative_location, this->used - relative_location, 0);
 
     this->used = relative_location;
     return true;
