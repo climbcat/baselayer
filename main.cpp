@@ -206,6 +206,12 @@ void DoRender(SDL_Renderer* renderer) {
   SDL_RenderPresent(renderer);
 }
 
+void QuitApp(SDL_Window* window, SDL_Renderer* renderer) {
+  SDL_DestroyRenderer(renderer);
+  SDL_DestroyWindow(window);
+  SDL_Quit();
+  exit(0);
+}
 
 void TestOpenWindow() {
   SDL_Init(SDL_INIT_VIDEO);
@@ -220,16 +226,13 @@ void TestOpenWindow() {
 
   // renderer
   SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
- 
+
   FrameTimer frame_tm(1/60);
   bool terminated = false;
   while (terminated != true) {
     // TODO: do input
     if (DoInput() == -1) {
-      SDL_DestroyRenderer(renderer);
-      SDL_DestroyWindow(window);
-      SDL_Quit();
-      exit(0);
+      terminated = true;
     }
 
     // TODO: do logics
@@ -240,26 +243,16 @@ void TestOpenWindow() {
     frame_tm.wait_for_frame();
   }
 
-  // Close and destroy the window
-  SDL_DestroyWindow(window);
-
-  // Clean up
-  SDL_Quit();
+  QuitApp(window, renderer);
 }
 
 
 int main (int argc, char **argv) {
-
   //TestFOpen();
   //TestGPAlloc();
   //TestRandGen();
   //TestWriteChars();
   //TestLoadFile();
 
-
-
   TestOpenWindow();
-
-  
-  return 0;
 }
