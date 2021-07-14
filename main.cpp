@@ -139,7 +139,8 @@ struct Color {
   u8 g = 50;
   u8 b = 150;
 };
-Color g_color;
+Color g_bckgrnd_color;
+Color g_rect_color { 0, 255, 0 };
 
 int MaxI(int a, int b) {
   if (a >= b)
@@ -170,12 +171,12 @@ int DoInput(void)
         if(event.key.keysym.scancode == SDL_SCANCODE_Q)
           return -1;
         if (event.key.keysym.scancode == SDL_SCANCODE_DOWN) {
-          g_color.b = (u8) MaxI(g_color.b - 10, 0);
-          std::cout << (int) g_color.b << std::endl;
+          g_bckgrnd_color.b = (u8) MaxI(g_bckgrnd_color.b - 10, 0);
+          std::cout << (int) g_bckgrnd_color.b << std::endl;
         }
         if (event.key.keysym.scancode == SDL_SCANCODE_UP) {
-          g_color.b = (u8) MinI(g_color.b + 10, 255);
-          std::cout << (int) g_color.b << std::endl;
+          g_bckgrnd_color.b = (u8) MinI(g_bckgrnd_color.b + 10, 255);
+          std::cout << (int) g_bckgrnd_color.b << std::endl;
         }
 				break;
 			case SDL_KEYUP:
@@ -189,8 +190,19 @@ int DoInput(void)
 }
 
 void DoRender(SDL_Renderer* renderer) {
-  SDL_SetRenderDrawColor(renderer, g_color.r, g_color.g, g_color.b, 255);
+  SDL_SetRenderDrawColor(renderer, g_bckgrnd_color.r, g_bckgrnd_color.g, g_bckgrnd_color.b, 255);
 	SDL_RenderClear(renderer);
+
+  SDL_Rect rect;
+  rect.x = 250;
+  rect.y = 150;
+  rect.w = 200;
+  rect.h = 200;
+
+  SDL_SetRenderDrawColor(renderer, g_rect_color.r, g_rect_color.g, g_rect_color.b, 255);
+  //SDL_RenderDrawRect(renderer, &rect);
+  SDL_RenderFillRect(renderer, &rect);
+
   SDL_RenderPresent(renderer);
 }
 
@@ -208,11 +220,7 @@ void TestOpenWindow() {
 
   // renderer
   SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
-  // ...
-  SDL_SetRenderDrawColor(renderer, RGB_DEEP_BLUE, 255);
-	SDL_RenderClear(renderer);
-  SDL_RenderPresent(renderer);
-
+ 
   FrameTimer frame_tm(1/60);
   bool terminated = false;
   while (terminated != true) {
