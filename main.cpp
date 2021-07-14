@@ -6,31 +6,8 @@
 #include "memory.h"
 #include "random.h"
 #include "stuff.h"
+#include "SDL.h"
 
-
-void TestFOpen(char* filename) {
-  char * buffer = 0;
-  long length;
-  FILE * f = fopen (filename, "rb");
-
-  if (f)
-  {
-    fseek (f, 0, SEEK_END);
-    length = ftell (f);
-    fseek (f, 0, SEEK_SET);
-    buffer = (char*) malloc (length);
-    if (buffer)
-    {
-      fread (buffer, 1, length, f);
-    }
-    fclose (f);
-  }
-
-  if (buffer)
-  {
-    // start to process your data / extract strings here...
-  }
-}
 
 void TestRandGen() {
   RandInit();
@@ -143,12 +120,138 @@ void TestWriteChars() {
   // TODO: rather visualize allocator output than typing to the terminal (pref. graphics)
 }
 
+void TestLoadFile() {
+  char* filename = "/home/jaga/documents/gpalloc.c";
+  char* text = LoadFile(filename);
+
+  std::cout << text << std::endl;
+}
+
+#include "frametimer.h"
+
+
+
+
+#define RGB_DEEP_BLUE 20, 50, 150
+
+struct Color {
+  u8 r = 20;
+  u8 g = 50;
+  u8 b = 150;
+};
+Color g_color;
+
+int MaxI(int a, int b) {
+  if (a >= b)
+    return a;
+  else
+    return b;
+}
+int MinI(int a, int b) {
+  if (a <= b)
+    return a;
+  else
+    return b;
+}
+
+int DoInput(void)
+{
+	SDL_Event event;
+	
+	while (SDL_PollEvent(&event))
+	{
+		switch (event.type)
+		{
+			case SDL_QUIT:
+				exit(0);
+				break;
+				
+			case SDL_KEYDOWN:
+        if(event.key.keysym.scancode == SDL_SCANCODE_Q)
+          return -1;
+        if (event.key.keysym.scancode == SDL_SCANCODE_DOWN) {
+          g_color.b = (u8) MaxI(g_color.b - 10, 0);
+          std::cout << (int) g_color.b << std::endl;
+        }
+        if (event.key.keysym.scancode == SDL_SCANCODE_UP) {
+          g_color.b = (u8) MinI(g_color.b + 10, 255);
+          std::cout << (int) g_color.b << std::endl;
+        }
+				break;
+			case SDL_KEYUP:
+				break;
+
+			default:
+				break;
+		}
+	}
+  return 0;
+}
+
+void DoRender(SDL_Renderer* renderer) {
+  SDL_SetRenderDrawColor(renderer, g_color.r, g_color.g, g_color.b, 255);
+	SDL_RenderClear(renderer);
+  SDL_RenderPresent(renderer);
+}
+
+
+void TestOpenWindow() {
+  SDL_Init(SDL_INIT_VIDEO);
+
+  // window
+  SDL_Window* window = SDL_CreateWindow(
+    "Mimic",
+    SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+    640, 480,
+    0
+  );
+
+  // renderer
+  SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
+  // ...
+  SDL_SetRenderDrawColor(renderer, RGB_DEEP_BLUE, 255);
+	SDL_RenderClear(renderer);
+  SDL_RenderPresent(renderer);
+
+  FrameTimer frame_tm(1/60);
+  bool terminated = false;
+  while (terminated != true) {
+    // TODO: do input
+    if (DoInput() == -1) {
+      SDL_DestroyRenderer(renderer);
+      SDL_DestroyWindow(window);
+      SDL_Quit();
+      exit(0);
+    }
+
+    // TODO: do logics
+
+    // TODO: do rendering
+    DoRender(renderer);
+
+    frame_tm.wait_for_frame();
+  }
+
+  // Close and destroy the window
+  SDL_DestroyWindow(window);
+
+  // Clean up
+  SDL_Quit();
+}
+
+
 int main (int argc, char **argv) {
 
   //TestFOpen();
   //TestGPAlloc();
   //TestRandGen();
-  TestWriteChars();
+  //TestWriteChars();
+  //TestLoadFile();
 
+
+
+  TestOpenWindow();
+
+  
   return 0;
 }
