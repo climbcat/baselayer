@@ -72,7 +72,7 @@ double Rand01() {
 // return a random number between 1 and -1
 double RandPM1() {
   double randnum;
-  randnum = (double) random();
+  randnum = (double) Random();
   randnum /= ((double) ULONG_MAX + 1) / 2;
   randnum -= 1;
   return randnum;
@@ -80,13 +80,13 @@ double RandPM1() {
 // return a random number between 0 and max
 double Rand0Max(double max) {
   double randnum;
-  randnum = (double) random();
+  randnum = (double) Random();
   randnum /= ((double) ULONG_MAX + 1) / max;
   return randnum;
 }
 int RandMinMaxI(int min, int max) {
   assert(max > min);
-  return random() % (max - min + 1) + min;
+  return Random() % (max - min + 1) + min;
 }
 
 // return a random number between min and max
