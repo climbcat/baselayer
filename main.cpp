@@ -6,7 +6,7 @@
 #include "memory.h"
 #include "random.h"
 #include "stuff.h"
-#include "SDL.h"
+#include "SDL2/SDL.h"
 
 
 void TestRandGen() {
