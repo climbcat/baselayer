@@ -130,15 +130,21 @@ public:
   }
 
   bool _TryMergeAdjacentBlocks(MemoryBlock* a, MemoryBlock* b) {
-    if (a->used != false && b->used != false)
-        return false;
+    if (a->used == true || b->used == true || b == this->blocks)
+      return false;
 
     MemoryBlock* tmp;
-    if (b->next == a) { tmp = a; a = b; b = tmp; }
-    else if (a->next != b) return false;
+    if (b->next == a) {
+      tmp = a;
+      a = b;
+      b = tmp;
+    }
+    else if (a->next != b)
+      return false;
 
     // a sits right before b
     a->total_size += b->total_size;
+
     ListRemove(b);
     this->num_blocks--;
     this->blocks_merged++;
