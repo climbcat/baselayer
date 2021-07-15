@@ -362,11 +362,11 @@ public:
   u32 element_size;
   u32 len;
   StackAllocator* stack;
-  ArrayListStackClose(StackAllocator* stack, u32 element_size, u32 current_len = 0) {
+  ArrayListStackClose(StackAllocator* stack, u32 element_size) {
     this->stack = stack;
     this->lst = stack->AllocOpenEnded();
     this->element_size = element_size;
-    this->len = current_len;
+    this->len = 0;
   }
   ~ArrayListStackClose() {
     this->stack->CloseOpenEnded(this->len);
