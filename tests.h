@@ -147,10 +147,10 @@ void TestGPAOccupancy() {
   RandInit();
 
   // TODO: compress such temp allocation into convenient memetic form
-  u32 stack_size = MEGABYTE / 50 * sizeof(char**);
+  u32 stack_size = MEGABYTE / 50 * sizeof(char*); // some upper bound
   StackAllocator stack( stack_size );
   char** lines = (char**) stack.Alloc( stack_size );
-  u32 lines_idx = 0;
+  u32 idx = 0;
 
   // fill up the GPA
   u32 line_len = 101;
@@ -158,25 +158,21 @@ void TestGPAOccupancy() {
   do {
     WriteRandomHexStr(dest, line_len);
 
-    std::cout
-      << lines_idx << " load: " << alloc.load
-      << " len: " << ListLen(alloc.blocks)
-      << std::endl;
-    
+    //std::cout
+    //  << idx << " load: " << alloc.load
+    //  << " len: " << ListLen(alloc.blocks)
+    //  << std::endl;
 
     // TODO: compress such vector usage into convenient memetic form
-    *(lines + lines_idx) = dest;
-    lines_idx++;
-
-    if (lines_idx == 22)
-      std::cout << std::endl;
+    lines[idx] = dest;
+    idx++;
 
     line_len = RandMinMaxI(74, 75);
     dest = (char*) alloc.Alloc(line_len + 1);
   } while (dest != NULL);
 
 
-  std::cout << "total items allocated: " << lines_idx << std::endl;
+  std::cout << "total items allocated: " << idx << std::endl;
 }
 
 
