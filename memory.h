@@ -22,26 +22,22 @@ void ListInsert(MemoryBlock* item, MemoryBlock* after) {
   after->next->prev = item;
   after->next = item;
 }
-
 void ListInsertBefore(MemoryBlock* item, MemoryBlock* before) {
   item->next = before;
   item->prev = before->prev;
   before->prev->next = item;
   before->prev = item;
 }
-
 void ListRemove(MemoryBlock* item) {
   item->next->prev = item->prev;
   item->prev->next = item->next;
   item->prev = NULL;
   item->next = NULL;
 }
-
 void ListInit(MemoryBlock* first) {
   first->next = first;
   first->prev = first;
 }
-
 void ListPrintSizes(MemoryBlock* from) {
   MemoryBlock* itm = from->next;
   u64 i = 0;
@@ -307,9 +303,88 @@ public:
     this->used = relative_location;
     return true;
   }
-
-  // TODO: impl. a "lock" mechanism, enabling open-ended allocation with the size being determined later (unlock by supplying size)
 };
+
+
+inline void ArrayPut(void* lst, u32 element_size, u32 array_len, u32 at_idx, void* item) {
+  assert(at_idx <= array_len);
+
+  u8* dest = (u8*) lst + at_idx * element_size;
+  memcpy(dest, item, element_size);
+}
+inline void ArrayShift(void* lst, u32 element_size, u32 array_len, u32 at_idx, u32 slots_delta) {
+  assert(at_idx + slots_delta >= 0);
+  assert(at_idx + slots_delta < array_len);
+
+  u8* src = (u8*) lst + at_idx * element_size;
+  memmove(src + slots_delta * element_size, src, (array_len - at_idx) * element_size);
+}
+
+
+class ArrayList {
+public:
+  void* lst;
+  u32 element_size;
+  u32 len;
+  ArrayList(void* list, u32 element_size, u32 current_len = 0) {
+    this->lst = list;
+    this->element_size = element_size;
+    this->len = current_len;
+  }
+  void Add(void* item) {
+    this->len++;
+    ArrayPut(this->lst, this->element_size, this->len, this->len - 1, item);
+  }
+  void Insert(void* item, u32 at_idx) {
+    ArrayShift(this->lst, this->element_size, this->len, at_idx, 1);
+    this->len++;
+    ArrayPut(this->lst, this->element_size, this->len, at_idx, item);
+  }
+  void Remove(u32 at_idx) {
+    ArrayShift(this->lst, this->element_size, this->len, at_idx, -1);
+    this->len--;
+  }
+
+  // TODO: consider adding max_len
+  // TODO: consider adding overwrite, multi-insert and multi-delete
+};
+
+
+class ArrayListStackClose {
+public:
+  void* lst;
+  u32 element_size;
+  u32 len;
+  StackAllocator* stack;
+  ArrayListStackClose(StackAllocator* stack, u32 element_size, u32 current_len = 0) {
+    this->stack = stack;
+    this->lst = stack->AllocOpenEnded();
+    this->element_size = element_size;
+    this->len = current_len;
+  }
+  ~ArrayListStackClose() {
+    this->stack->CloseOpenEnded(this->len);
+  }
+  void Add(void* item) {
+    this->len++;
+    ArrayPut(this->lst, this->element_size, this->len, this->len - 1, item);
+  }
+  void Insert(void* item, u32 at_idx) {
+    ArrayShift(this->lst, this->element_size, this->len, at_idx, 1);
+    this->len++;
+    ArrayPut(this->lst, this->element_size, this->len, at_idx, item);
+  }
+  void Remove(u32 at_idx) {
+    ArrayShift(this->lst, this->element_size, this->len, at_idx, -1);
+    this->len--;
+  }
+
+  // TODO: consider adding max_len
+  // TODO: consider adding overwrite, multi-insert and multi-delete
+};
+
+
+// TODO: consider adding ArrayListJanitor doing Alloc on a GPA and Free @ destruction
 
 
 #endif
