@@ -318,12 +318,24 @@ inline void ArrayPut(void* lst, u32 element_size, u32 array_len, u32 at_idx, voi
   u8* dest = (u8*) lst + at_idx * element_size;
   memcpy(dest, item, element_size);
 }
-inline void ArrayShift(void* lst, u32 element_size, u32 array_len, u32 at_idx, u32 slots_delta) {
-  assert(at_idx + slots_delta >= 0);
-  assert(at_idx + slots_delta < array_len);
+inline void ArrayShift(void* lst, int element_size, u32 array_len, int at_idx, int offset) {
+  // TODO: go back to using u32! (args were converted to int to enable arithmetics)
+  assert(at_idx >= 0);
 
   u8* src = (u8*) lst + at_idx * element_size;
-  memmove(src + slots_delta * element_size, src, (array_len - at_idx) * element_size);
+  u8* dest = (u8*) lst + (at_idx + offset) * element_size;
+  if (at_idx + offset < 0) {
+    dest = (u8*) lst;
+    src = (u8*) lst + abs(offset) * element_size;
+  }
+
+  assert(src - (u8*) lst > 0);
+  assert(dest - (u8*) lst >= 0);
+  assert(src - (u8*) lst <= array_len * element_size);
+  assert(dest - (u8*) lst < array_len * element_size);
+  assert(array_len - at_idx > 0);
+
+  memmove(dest, src, (array_len - at_idx) * element_size);
 }
 
 

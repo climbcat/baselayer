@@ -158,11 +158,6 @@ void TestGPAOccupancy() {
   do {
     WriteRandomHexStr(dest, line_len);
 
-    //std::cout
-    //  << idx << " load: " << alloc.load
-    //  << " len: " << ListLen(alloc.blocks)
-    //  << std::endl;
-
     // TODO: compress such vector usage into convenient memetic form
     lines[idx] = dest;
     idx++;
@@ -278,6 +273,57 @@ void TestLoadFile() {
 }
 
 
+struct ArrayListTestStruct {
+  u32 id;
+  char name[10];
+  u8* next;
+};
+
+
+void TestArrayList() {
+  StackAllocator alloc( KILOBYTE );
+  ArrayList list(alloc.AllocOpenEnded(), sizeof(ArrayListTestStruct));
+
+  // put some elements into the list
+  ArrayListTestStruct s1;
+  for (int i = 0; i < 10; i++) {
+    s1.id = i;
+    strcpy(s1.name, "hest");
+    s1.next = NULL;
+
+    list.Add(&s1);
+  }
+
+  auto lst = (ArrayListTestStruct*) list.lst; // we could do with a templated version ... but not C compatible !
+
+  // print all
+  std::cout << std::endl;
+  for (int i = 0; i < list.len; i++)
+    std::cout << lst[i].id << ": " << lst[i].name << std::endl;
+
+  strcpy(s1.name, "test");
+  s1.id = 1000;
+  list.Insert(&s1, 4);
+  list.Insert(&s1, 4);
+  list.Insert(&s1, 4);
+
+  // print all
+  std::cout << std::endl;
+  for (int i = 0; i < list.len; i++)
+    std::cout << lst[i].id << ": " << lst[i].name << std::endl;
+
+  list.Remove(0);
+  list.Remove(1);
+  list.Remove(3);
+  list.Remove(6);
+
+  // print all
+  std::cout << std::endl;
+  for (int i = 0; i < list.len; i++)
+    std::cout << lst[i].id << ": " << lst[i].name << std::endl;
+}
+
+
 void RunTests() {
   //TestRandGen();
   //TestLoadFile();
@@ -286,7 +332,10 @@ void RunTests() {
   //TestStackAlloc();
   //TestGPAlloc();
   //TestGPAlloc2WriteChars();
-  TestGPAOccupancy();
+  //TestGPAOccupancy();
+
+  TestArrayList();
 }
+
 
 #endif
