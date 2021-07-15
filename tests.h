@@ -103,15 +103,10 @@ void TestIterateAndDisplayGPAList(GeneralPurposeAllocator* alloc) {
   } while (lst != alloc->blocks);
 }
 
+
 void TestGPAlloc2WriteChars() {
-  GeneralPurposeAllocator alloc( 1024 * 1024 );
+  GeneralPurposeAllocator alloc( MEGABYTE );
   RandInit();
-
-  for (int i = 0; i < 10; i++) {
-    std::cout << RandMinMaxI(0, 10) << std::endl;
-  }
-
-  exit(0);
 
   int num_lines = 150;
   char* lines[num_lines];
@@ -147,6 +142,44 @@ void TestGPAlloc2WriteChars() {
 }
 
 
+void TestGPAOccupancy() {
+  GeneralPurposeAllocator alloc( MEGABYTE );
+  RandInit();
+
+  // TODO: compress such temp allocation into convenient memetic form
+  u32 stack_size = MEGABYTE / 50 * sizeof(char**);
+  StackAllocator stack( stack_size );
+  char** lines = (char**) stack.Alloc( stack_size );
+  u32 lines_idx = 0;
+
+  // fill up the GPA
+  u32 line_len = 101;
+  char* dest = (char*) alloc.Alloc(line_len);
+  do {
+    WriteRandomHexStr(dest, line_len);
+
+    std::cout
+      << lines_idx << " load: " << alloc.load
+      << " len: " << ListLen(alloc.blocks)
+      << std::endl;
+    
+
+    // TODO: compress such vector usage into convenient memetic form
+    *(lines + lines_idx) = dest;
+    lines_idx++;
+
+    if (lines_idx == 22)
+      std::cout << std::endl;
+
+    line_len = RandMinMaxI(74, 75);
+    dest = (char*) alloc.Alloc(line_len + 1);
+  } while (dest != NULL);
+
+
+  std::cout << "total items allocated: " << lines_idx << std::endl;
+}
+
+
 struct PoolAllocTestStruct {
   int some_num;
   char some_word[35];
@@ -161,38 +194,38 @@ void TestPoolAlloc() {
 
   // allocate items
   for (int i = 0; i < batch_size; i++) {
-    ptrs[i] = palloc.Alloc();
+    ptrs[i] = palloc.Get();
     int relloc = (u8*) ptrs[i] - (u8*) palloc.root;
     std::cout << "pool load: " << palloc.load << " - relloc: " << relloc << std::endl;
   }
 
   // free four items at stride 2
   for (int i = 0; i < batch_size - 2; i += 2) {
-    palloc.Free(ptrs[i]);
+    palloc.Release(ptrs[i]);
     std::cout << "pool load: " << palloc.load << std::endl;
   }
 
   // put them back in
   for (int i = 0; i < batch_size - 2; i += 2) {
-    ptrs[i] = palloc.Alloc();
+    ptrs[i] = palloc.Get();
     std::cout << "pool load: " << palloc.load << std::endl;
   }
 
   // it is full now
-  assert(palloc.Alloc() == NULL);
+  assert(palloc.Get() == NULL);
 
-  palloc.Free(ptrs[4]);
+  palloc.Release(ptrs[4]);
   std::cout << "pool load: " << palloc.load << std::endl;
-  palloc.Free(ptrs[5]);
-  std::cout << "pool load: " << palloc.load << std::endl;
-
-  ptrs[5] = palloc.Alloc();
+  palloc.Release(ptrs[5]);
   std::cout << "pool load: " << palloc.load << std::endl;
 
-  ptrs[4] = palloc.Alloc();
+  ptrs[5] = palloc.Get();
   std::cout << "pool load: " << palloc.load << std::endl;
 
-  assert(palloc.Alloc() == NULL);
+  ptrs[4] = palloc.Get();
+  std::cout << "pool load: " << palloc.load << std::endl;
+
+  assert(palloc.Get() == NULL);
 }
 
 void TestStackAlloc() {
@@ -241,7 +274,6 @@ void TestStackAlloc() {
   std::cout << std::endl << "done." << std::endl;;
 }
 
-
 void TestLoadFile() {
   char* filename = (char*) "memory.h";
   char* text = LoadFile(filename, true);
@@ -252,12 +284,13 @@ void TestLoadFile() {
 
 void RunTests() {
   //TestRandGen();
-  TestLoadFile();
+  //TestLoadFile();
 
-  //TestGPAlloc();
-  //TestGPAlloc2WriteChars();
   //TestPoolAlloc();
   //TestStackAlloc();
+  //TestGPAlloc();
+  //TestGPAlloc2WriteChars();
+  TestGPAOccupancy();
 }
 
 #endif

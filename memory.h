@@ -12,7 +12,7 @@
 struct MemoryBlock {
   MemoryBlock* next;
   MemoryBlock* prev;
-  size_t total_size;
+  u32 total_size;
   bool used = false; // TODO: experiment with bitflags here
 };
 
@@ -23,9 +23,10 @@ void ListInsert(MemoryBlock* item, MemoryBlock* after) {
   after->next->prev = item;
   after->next = item;
 }
+
 void ListInsertBefore(MemoryBlock* item, MemoryBlock* before) {
-  item->next = before->next;
-  item->prev = before;
+  item->next = before;
+  item->prev = before->prev;
   before->prev->next = item;
   before->prev = item;
 }
@@ -52,20 +53,32 @@ void ListPrintSizes(MemoryBlock* from) {
   }
 }
 
+u32 ListLen(MemoryBlock* from) {
+  MemoryBlock* itm = from->next;
+  u64 i = 0;
+  while (itm != from) {
+    ++i;
+    itm = itm->next;
+  }
+  return i;
+}
+
 
 class GeneralPurposeAllocator {
 public:
   MemoryBlock* blocks;
-  size_t max_size;
-  size_t min_block_size;
-  size_t num_blocks;
+  u32 max_size;
+  u32 min_block_size;
+  u32 num_blocks;
+  u32 header_size;
 
-  unsigned long blocks_merged = 0;
-  unsigned long load = 0;
+  u32 blocks_merged = 0;
+  u32 load = 0;
 
-  GeneralPurposeAllocator(size_t max_size) {
+  GeneralPurposeAllocator(u32 max_size) {
     this->max_size = max_size;
-    this->min_block_size = 2 * sizeof(MemoryBlock);
+    this->header_size = sizeof(MemoryBlock);
+    this->min_block_size = 2 * this->header_size;
 
     this->blocks = (MemoryBlock*) calloc(max_size, 1);
 
@@ -78,23 +91,28 @@ public:
     std::free(this->blocks);
   }
 
-  void* Alloc(size_t size) {
-    assert(size <= this->max_size - this->load * sizeof(MemoryBlock));
-
+  void* Alloc(u32 size) {
     void* memloc = NULL;
-    const size_t alloc_size = size + sizeof(MemoryBlock);
+    const u32 alloc_stride = (u32) size / this->header_size + 2;
+    const u32 alloc_size = alloc_stride * this->header_size;
+    assert(alloc_size <= this->max_size - this->load);
 
     MemoryBlock* at = this->blocks;
     u32 idx = 0;
-    size_t free_size;
+    u32 free_size;
     while (idx < this->num_blocks) {
+
+      if (ListLen(at) == 21) {
+        for (int j = 0; j < 21; j++)
+          at = at->next;
+      }
 
       if (at->used == false) {
         free_size = at->total_size;
         if (free_size >= alloc_size) {
 
           if (free_size > alloc_size + this->min_block_size) {
-            MemoryBlock* remainder = (MemoryBlock*) ((u8*) at + alloc_size); // TODO: truncate somehow to align with a MemoryBlock array
+            MemoryBlock* remainder = at + alloc_stride;
             remainder->total_size = free_size - alloc_size;
             remainder->used = false;
             ListInsert(remainder, at);
@@ -106,7 +124,7 @@ public:
           at->used = true;
 
           this->load += at->total_size;
-          return (u8*) at + sizeof(MemoryBlock);
+          return at + 1;
         }
       }
 
@@ -115,7 +133,7 @@ public:
     }
 
     // TODO: out of memory / eviction strategy
-    assert(1==0);
+    return NULL;
   }
 
   bool _TryMergeAdjacentBlocks(MemoryBlock* a, MemoryBlock* b) {
@@ -195,7 +213,7 @@ public:
   ~PoolAllocator() {
     free(this->root);
   }
-  void* Alloc() {
+  void* Get() {
     if (this->blocks == NULL) {
       assert(this->load == this->pool_size);
       return NULL;
@@ -213,15 +231,13 @@ public:
       this->blocks = NULL;
     }
 
-    // clear header bytes
     memset(toalloc, sizeof(MemoryBlock), 0);
     return toalloc;
   }
-  bool Free(void* addr) {
+  bool Release(void* addr) {
     size_t relative_location = (u8*) addr - (u8*) this->root;
-    assert(relative_location >= 0); // location lower bound
-    assert(relative_location < this->pool_size * this->block_size); // location upper bound
-    size_t mysterious_num = relative_location % this->block_size;
+    assert(relative_location >= 0);
+    assert(relative_location < this->pool_size * this->block_size);
     assert(relative_location % this->block_size == 0); // alignment
 
     if (this-load == 0)
@@ -279,6 +295,8 @@ public:
     this->used = relative_location;
     return true;
   }
+
+  // TODO: impl. a "lock" mechanism, enabling open-ended allocation with the size being determined later (unlock by supplying size)
 };
 
 
