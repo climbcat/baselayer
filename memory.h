@@ -16,7 +16,6 @@ struct MemoryBlock {
   bool used = false; // TODO: experiment with bitflags here
 };
 
-
 void ListInsert(MemoryBlock* item, MemoryBlock* after) {
   item->next = after->next;
   item->prev = after;
@@ -266,6 +265,7 @@ public:
   void* root;
   u32 total_size;
   u32 used;
+  bool locked = false;
   StackAllocator(u32 total_size) {
     this->total_size = total_size;
     this->used = 0;
@@ -276,10 +276,23 @@ public:
   }
   void* Alloc(u32 size) {
     assert(size <= this->total_size - this->used);
+    assert(this->locked == false);
 
     void* retval = (u8*) this->root + this->used;
     this->used += size;
     return retval;
+  }
+  void* AllocOpenEnded() {
+    assert(this->locked == false);
+
+    this->locked = true;
+    return (u8*) this->root + this->used;
+  }
+  void CloseOpenEnded(u32 final_size) {
+    assert(this->locked == true);
+
+    this->locked == false;
+    this->Alloc(final_size);
   }
   bool Free(void* addr) {
     u32 relative_location = (u8*) addr - (u8*) this->root;
