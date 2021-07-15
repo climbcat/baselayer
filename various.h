@@ -1,8 +1,10 @@
-#ifndef __STUFF_H__
-#define __STUFF_H__
+#ifndef __VARIOUS_H__
+#define __VARIOUS_H__
 
+#include <unistd.h>
 
 #include "random.h"
+
 
 void WriteRandomHexStr(char* dest, int len) {
   RandInit();
@@ -31,10 +33,12 @@ void WriteRandomHexStr(char* dest, int len) {
   *dest = '\0';
 }
 
-char* LoadFile(char* filename) {
+
+
+char* LoadFilePath(char* filepath) {
   char * buffer = NULL;
   long length;
-  FILE * f = fopen(filename, "rb");
+  FILE * f = fopen(filepath, "rb");
 
   if (f)
   {
@@ -43,13 +47,28 @@ char* LoadFile(char* filename) {
     fseek (f, 0, SEEK_SET);
     buffer = (char*) malloc (length);
     if (buffer)
-    {
       fread (buffer, 1, length, f);
-    }
     fclose (f);
   }
 
   return buffer;
+}
+
+
+char* LoadFile(char* filename, bool use_cwd = false) {
+  if (use_cwd) {
+    char cwd[KILOBYTE];
+    if (getcwd(cwd, sizeof(cwd)) != NULL) {
+      strcat(cwd, "/");
+      strcat(cwd, filename);
+      filename = (char*) cwd;
+
+      return LoadFilePath(filename);
+    }
+    return NULL;
+  }
+  else
+    return LoadFilePath(filename);
 }
 
 

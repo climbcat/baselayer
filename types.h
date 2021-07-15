@@ -10,4 +10,10 @@ typedef uint32_t u32;
 typedef uint64_t u64;
 
 
+#define KILOBYTE 1024
+#define MEGABYTE 1024 * 1024
+
+#define SIXTEEN_K 16 * 1024
+
+
 #endif
