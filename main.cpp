@@ -242,7 +242,7 @@ void TestStackAlloc() {
 
 
 void TestLoadFile() {
-  char* filename = "/home/jaga/documents/gpalloc.c";
+  char* filename = "memory.c";
   char* text = LoadFile(filename);
 
   std::cout << text << std::endl;
