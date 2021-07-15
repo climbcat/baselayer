@@ -92,7 +92,6 @@ public:
   }
 
   void* Alloc(u32 size) {
-    void* memloc = NULL;
     const u32 alloc_stride = (u32) size / this->header_size + 2;
     const u32 alloc_size = alloc_stride * this->header_size;
     assert(alloc_size <= this->max_size - this->load);
@@ -119,7 +118,6 @@ public:
             this->num_blocks++;
           }
 
-          memloc = at;
           at->total_size = alloc_size; // TODO: fix, this is not always correct
           at->used = true;
 
@@ -266,9 +264,9 @@ public:
 class StackAllocator {
 public:
   void* root;
-  size_t total_size;
-  size_t used;
-  StackAllocator(size_t total_size) {
+  u32 total_size;
+  u32 used;
+  StackAllocator(u32 total_size) {
     this->total_size = total_size;
     this->used = 0;
     this->root = calloc(this->total_size, 1);
@@ -276,14 +274,15 @@ public:
   ~StackAllocator() {
     free(this->root);
   }
-  void* Alloc(size_t size) {
+  void* Alloc(u32 size) {
     assert(size <= this->total_size - this->used);
 
+    void* retval = (u8*) this->root + this->used;
     this->used += size;
-    return (u8*) this->root + this->used;
+    return retval;
   }
   bool Free(void* addr) {
-    size_t relative_location = (u8*) addr - (u8*) this->root;
+    u32 relative_location = (u8*) addr - (u8*) this->root;
     assert(relative_location >= 0);
     assert(relative_location < this->total_size);
 
