@@ -114,8 +114,7 @@ public:
       ++idx;
     }
 
-    // TODO: out of memory case / impl. eviction strategy
-    // for now we crash
+    // TODO: out of memory / eviction strategy
     assert(1==0);
   }
 

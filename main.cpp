@@ -84,9 +84,31 @@ void TestGPAlloc() {
 }
 
 
+void TestIterateAndDisplayGPAList(GeneralPurposeAllocator* alloc) {
+  MemoryBlock* lst = alloc->blocks;
+  int idx = 0;
+  do {
+    std::cout << idx << " size: " << lst->total_size;
+
+    if (lst->used == true)
+      std::cout << " used" << std::endl;
+    else
+      std::cout << " not used" << std::endl;
+
+    idx++;
+    lst = lst->next;
+  } while (lst != alloc->blocks);
+}
+
 void TestGPAlloc2WriteChars() {
   GeneralPurposeAllocator alloc( 1024 * 1024 );
   RandInit();
+
+  for (int i = 0; i < 10; i++) {
+    std::cout << RandMinMaxI(0, 10) << std::endl;
+  }
+
+  exit(0);
 
   int num_lines = 150;
   char* lines[num_lines];
@@ -118,8 +140,7 @@ void TestGPAlloc2WriteChars() {
   }
   std::cout << std::endl << "total blocks merged:" << alloc.blocks_merged << std::endl;
 
-
-  // TODO: rather visualize allocator output than typing to the terminal (pref. graphics)
+  TestIterateAndDisplayGPAList(&alloc);
 }
 
 
@@ -302,12 +323,8 @@ void DoRender(SDL_Renderer* renderer) {
   SDL_RenderPresent(renderer);
 }
 
-void QuitApp(SDL_Window* window, SDL_Renderer* renderer) {
-  SDL_DestroyRenderer(renderer);
-  SDL_DestroyWindow(window);
-  SDL_Quit();
-  exit(0);
-}
+#define WINDOW_WIDTH 640
+#define WINDOW_HEIGHT 480
 
 void TestOpenWindow() {
   SDL_Init(SDL_INIT_VIDEO);
@@ -316,20 +333,17 @@ void TestOpenWindow() {
   SDL_Window* window = SDL_CreateWindow(
     "Mimic",
     SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-    640, 480,
-    0
+    WINDOW_WIDTH, WINDOW_HEIGHT,
+    SDL_WINDOW_OPENGL
   );
 
   // renderer
-  SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
+  SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
   FrameTimer frame_tm(1/60);
   bool terminated = false;
   while (terminated != true) {
-    // TODO: do input
-    if (DoInput() == -1) {
-      terminated = true;
-    }
+    if (DoInput() == -1) terminated = true;
 
     // TODO: do logics
 
@@ -339,7 +353,9 @@ void TestOpenWindow() {
     frame_tm.wait_for_frame();
   }
 
-  QuitApp(window, renderer);
+  SDL_DestroyRenderer(renderer);
+  SDL_DestroyWindow(window);
+  SDL_Quit();
 }
 
 
@@ -348,9 +364,9 @@ int main (int argc, char **argv) {
   //TestLoadFile();
 
   //TestGPAlloc();
-  //TestGPAlloc2WriteChars();
+  TestGPAlloc2WriteChars();
   //TestPoolAlloc();
-  TestStackAlloc();
+  //TestStackAlloc();
 
   //TestOpenWindow();
 }
