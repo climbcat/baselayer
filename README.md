@@ -11,3 +11,5 @@ g++ main.cpp
 - A wrapper for random number generation found on the web (see random.h for details).
 
 These are intended as light-weight alternatives: Compact, understandable and modifiable.
+
+The CMakeLists.txt file serves as the vscode project file, and as such it simply builds main.cpp.
