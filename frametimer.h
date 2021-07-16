@@ -9,13 +9,7 @@ using std::chrono::steady_clock;
 
 
 /**
-* @class FrameTimer
-*
-* @brief Includes wait_for_frame() with a sleep and reset, and a frame_elapsed()
-* time check since last reset (with optional reset if affirmative).
-*
-* @author  Jakob Garde
-* @date    210224
+* Use to tick the frame/event loop.
 */
 class FrameTimer {
   int interval_ms;
