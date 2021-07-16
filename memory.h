@@ -89,7 +89,10 @@ public:
   void* Alloc(u32 size) {
     const u32 alloc_stride = (u32) size / this->header_size + 2;
     const u32 alloc_size = alloc_stride * this->header_size;
-    assert(alloc_size <= this->max_size - this->load);
+
+    if (alloc_size > this->max_size - this->load)
+      // TODO: out of memory / eviction strategy
+      return NULL;
 
     MemoryBlock* at = this->blocks;
     u32 idx = 0;
@@ -125,8 +128,7 @@ public:
       ++idx;
     }
 
-    // TODO: out of memory / eviction strategy
-    return NULL;
+    assert(1 == 0);
   }
 
   bool _TryMergeAdjacentBlocks(MemoryBlock* a, MemoryBlock* b) {
