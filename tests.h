@@ -10,6 +10,7 @@
 #include "memory.h"
 #include "random.h"
 #include "various.h"
+#include "perftimer.h"
 
 
 void TestRandGen() {
@@ -324,9 +325,23 @@ void TestArrayList() {
 }
 
 
+void TestPerfTimer() {
+  StartTimer();
+  Sleep(300);
+  std::cout << "method 1: " << StopTimer() << " µs" << std::endl;
+
+  PerfTimerScoped tm; // <-- the simplest way with scoped timer
+  Sleep(300);
+  std::cout << "method 2: " << tm.GetTimeMicroS() << " µs" << std::endl;
+
+  std::cout << "method 3: ";
+}
+
+
 void RunTests() {
   //TestRandGen();
   //TestLoadFile();
+  TestPerfTimer();
 
   //TestPoolAlloc();
   //TestStackAlloc();
@@ -334,7 +349,7 @@ void RunTests() {
   //TestGPAlloc2WriteChars();
   //TestGPAOccupancy();
 
-  TestArrayList();
+  //TestArrayList();
 }
 
 

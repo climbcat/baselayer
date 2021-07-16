@@ -1,8 +1,25 @@
 #ifndef __PERFTIMER_H__
 #define __PERFTIMER_H__
 
+
 #include <chrono>
 #include <iostream>
+
+
+/** 
+* Function based convenient, but inaccurate, perftimer and sleep.
+*/
+void Sleep(u32 ms) {
+  usleep(1000 * ms);
+}
+std::chrono::steady_clock::time_point g_tick;
+void StartTimer() {
+  g_tick = std::chrono::steady_clock::now();
+}
+u32 StopTimer() {
+  return ((std::chrono::steady_clock::now() - g_tick).count()) / 1000.0;
+}
+
 
 /** 
 * A convenient, but inaccurate, timer usable for many performance tasks.
@@ -23,8 +40,5 @@ public:
   }
 };
 
-void Sleep(u32 ms) {
-  usleep(1000 * ms);
-}
 
 #endif // FRAMETIMER_H
