@@ -270,7 +270,7 @@ void TestGPAOccupancy() {
     dest = (char*) alloc.Alloc(next_line_len + 1);
   } while (dest != NULL);
 
-  std::cout << "total items allocated: " << idx << std::endl;
+  std::cout << "total items allocated: " << alloc.num_blocks << std::endl;
 }
 
 void TestArrayList() {
