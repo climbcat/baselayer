@@ -143,35 +143,6 @@ void TestGPAlloc2WriteChars() {
 }
 
 
-void TestGPAOccupancy() {
-  GeneralPurposeAllocator alloc( MEGABYTE );
-  RandInit();
-
-  // TODO: compress such temp allocation into convenient memetic form
-  u32 stack_size = MEGABYTE / 50 * sizeof(char*); // some upper bound
-  StackAllocator stack( stack_size );
-  char** lines = (char**) stack.Alloc( stack_size );
-  u32 idx = 0;
-
-  // fill up the GPA
-  u32 line_len = 101;
-  char* dest = (char*) alloc.Alloc(line_len);
-  do {
-    WriteRandomHexStr(dest, line_len);
-
-    // TODO: compress such vector usage into convenient memetic form
-    lines[idx] = dest;
-    idx++;
-
-    line_len = RandMinMaxI(74, 75);
-    dest = (char*) alloc.Alloc(line_len + 1);
-  } while (dest != NULL);
-
-
-  std::cout << "total items allocated: " << idx << std::endl;
-}
-
-
 struct PoolAllocTestStruct {
   int some_num;
   char some_word[35];
@@ -280,6 +251,27 @@ struct ArrayListTestStruct {
   u8* next;
 };
 
+void TestGPAOccupancy() {
+  GeneralPurposeAllocator alloc( SIXTEEN_K );
+  RandInit();
+
+  // TODO: compress such temp allocation into convenient memetic form
+  StackAllocator stack( KILOBYTE );
+  ArrayList list(stack.AllocOpenEnded(), sizeof(char*));
+
+  // fill up the GPA
+  u32 next_line_len = 101;
+  char* dest = (char*) alloc.Alloc(next_line_len + 1);
+  do {
+    WriteRandomHexStr(dest, next_line_len);
+    list.Add(&dest);
+
+    next_line_len = RandMinMaxI(75, 150);
+    dest = (char*) alloc.Alloc(next_line_len + 1);
+  } while (dest != NULL);
+
+  std::cout << "total items allocated: " << idx << std::endl;
+}
 
 void TestArrayList() {
   StackAllocator alloc( KILOBYTE );
@@ -338,16 +330,25 @@ void TestPerfTimer() {
 }
 
 
+void TestWriteRandomStr() {
+  char word[5];
+  WriteRandomHexStr(word, 4, true);
+  // should output 4 chars:
+  std::cout << word << std::endl;
+}
+
+
 void RunTests() {
   //TestRandGen();
   //TestLoadFile();
-  TestPerfTimer();
+  //TestPerfTimer();
+  //TestWriteRandomStr();
 
   //TestPoolAlloc();
   //TestStackAlloc();
   //TestGPAlloc();
   //TestGPAlloc2WriteChars();
-  //TestGPAOccupancy();
+  TestGPAOccupancy();
 
   //TestArrayList();
 }

@@ -5,10 +5,14 @@
 
 #include "random.h"
 
+/**
+* NOTE: Does not count the null char in strlen (just like the C function).
+**/
+void WriteRandomHexStr(char* dest, int strlen, bool put_nullchar = true, bool do_randinit = false) {
+  if (do_randinit)
+    RandInit();
 
-void WriteRandomHexStr(char* dest, int len) {
-  RandInit();
-  for (int i = 0; i < len; i++) {
+  for (int i = 0; i < strlen ; i++) {
     switch (RandMinMaxI(0, 15)) {
       case 0: { *dest = '0'; break; }
       case 1: { *dest = '1'; break; }
@@ -30,7 +34,9 @@ void WriteRandomHexStr(char* dest, int len) {
     };
     dest++;
   }
-  *dest = '\0';
+
+  if (put_nullchar)
+    *dest = '\0';
 }
 
 
