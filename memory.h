@@ -163,7 +163,7 @@ public:
     if (at->used == false)
       return false;
 
-    assert(this->load > at->total_size);
+    assert(this->load >= at->total_size);
 
     this->load -= at->total_size;
     at->used = false;
@@ -268,10 +268,13 @@ class StackAllocator {
 public:
   void* root;
   u32 total_size;
+  u32 max_size;
+  u32 num_blocks;
   u32 used;
   bool locked = false;
   StackAllocator(u32 total_size) {
     this->total_size = total_size;
+    this->max_size = total_size;
     this->used = 0;
     this->root = calloc(this->total_size, 1);
   }
@@ -279,11 +282,14 @@ public:
     free(this->root);
   }
   void* Alloc(u32 size) {
-    assert(size <= this->total_size - this->used);
     assert(this->locked == false);
+
+    if (size > this->total_size - this->used)
+      return NULL;
 
     void* retval = (u8*) this->root + this->used;
     this->used += size;
+    this->num_blocks++;
     return retval;
   }
   void* AllocOpenEnded() {
@@ -309,6 +315,7 @@ public:
     memset((u8*) this->root + relative_location, this->used - relative_location, 0);
 
     this->used = relative_location;
+    this->num_blocks--;
     return true;
   }
 };

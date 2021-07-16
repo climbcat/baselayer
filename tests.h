@@ -245,33 +245,83 @@ void TestLoadFile() {
 }
 
 
+void TestGPAOccupancy() {
+  #define ALLOCATOR_METHOD 0
+  u32 total_alloc = SIXTEEN_M;
+  //u32 total_alloc = MEGABYTE;
+  //u32 total_alloc = SIXTEEN_K;
+  //u32 total_alloc = SIXTYFOUR_K;
+
+
+  #if ALLOCATOR_METHOD == 1
+  StackAllocator alloc( total_alloc );
+  #endif
+  #if ALLOCATOR_METHOD == 2
+  GeneralPurposeAllocator alloc( total_alloc );
+  #endif
+
+  RandInit();
+  StackAllocator stack( total_alloc / 50 * sizeof(char*) );
+  ArrayList list(stack.AllocOpenEnded(), sizeof(char*));
+
+  // time it
+  StartTimer();
+
+  // fill up the allocator
+  u32 next_line_len = 101;
+
+  #if ALLOCATOR_METHOD == 0
+  char* dest = (char*) malloc(next_line_len + 1);
+  #else
+  char* dest = (char*) alloc.Alloc(next_line_len + 1);
+  #endif
+
+  u32 accum = 0;
+  u32 num_blocks = 0;
+  do {
+    //WriteRandomHexStr(dest, next_line_len);
+    list.Add(&dest);
+
+    next_line_len = RandMinMaxI(110, 111);
+    accum += next_line_len;
+    num_blocks++;
+
+    #if ALLOCATOR_METHOD == 0
+    // malloc block
+    dest = (char*) malloc(next_line_len + 1);
+    if (accum > total_alloc)
+      dest = NULL;
+    #else
+    dest = (char*) alloc.Alloc(next_line_len + 1);
+    #endif
+
+  } while (dest != NULL);
+
+  StopTimer(true);
+  StartTimer();
+
+  std::cout << "freeing ... " << std::endl;
+  for (int i = list.len - 1; i >= 0; i--)
+    #if ALLOCATOR_METHOD == 0
+    free(((char**) list.lst)[i]);
+    #else
+    alloc.Free(((char**) list.lst)[i]);
+    #endif
+
+  StopTimer(true);
+
+  #if ALLOCATOR_METHOD != 0
+  std::cout << "total items allocated: " << num_blocks << std::endl;
+  #endif
+}
+
+
 struct ArrayListTestStruct {
   u32 id;
   char name[10];
   u8* next;
 };
 
-void TestGPAOccupancy() {
-  GeneralPurposeAllocator alloc( SIXTEEN_K );
-  RandInit();
-
-  // TODO: compress such temp allocation into convenient memetic form
-  StackAllocator stack( KILOBYTE );
-  ArrayList list(stack.AllocOpenEnded(), sizeof(char*));
-
-  // fill up the GPA
-  u32 next_line_len = 101;
-  char* dest = (char*) alloc.Alloc(next_line_len + 1);
-  do {
-    WriteRandomHexStr(dest, next_line_len);
-    list.Add(&dest);
-
-    next_line_len = RandMinMaxI(75, 150);
-    dest = (char*) alloc.Alloc(next_line_len + 1);
-  } while (dest != NULL);
-
-  std::cout << "total items allocated: " << alloc.num_blocks << std::endl;
-}
 
 void TestArrayList() {
   StackAllocator alloc( KILOBYTE );

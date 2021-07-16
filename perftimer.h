@@ -16,8 +16,17 @@ std::chrono::steady_clock::time_point g_tick;
 void StartTimer() {
   g_tick = std::chrono::steady_clock::now();
 }
-u32 StopTimer() {
-  return ((std::chrono::steady_clock::now() - g_tick).count()) / 1000.0;
+u32 StopTimer(bool print = false, bool highres = false) {
+  double res = 1000000.0;
+  char* unit = (char*) " ms";
+  if (highres == true) {
+    res = 1000.0;
+    unit = (char*) " µs";
+  }
+  auto retval = ((std::chrono::steady_clock::now() - g_tick).count()) / res;
+  if (print == true)
+    std::cout << retval << unit << std::endl;
+  return retval;
 }
 
 
