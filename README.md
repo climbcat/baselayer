@@ -6,8 +6,8 @@ Hosts a few home-grown utilities, including:
 
 - Basic memory management structures: General purpose, pool and stack allocators.
 
-- An array wrapper which add support for Add() Insert() and Remove() to C-style arrays.
+- An array wrapper to C-style arrays, holding the length parameter and adding support for Add(), Insert() and Remove().
 
-- A wrapper for RNGs found on the web (see random.h for details).
+- A wrapper for random number generation found on the web (see random.h for details).
 
-These are all not meant as end-all solutions, and intended as light-weight alternatives: Compact, understandable and therefore modifiable.
+Neither are meant to be end-all solutions, but intended as light-weight alternatives: Compact, understandable and therefore modifiable.
