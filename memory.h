@@ -9,13 +9,15 @@
 #include "types.h"
 
 
+/**
+* Linked list supporting mainly the GPA.
+*/
 struct MemoryBlock {
   MemoryBlock* next;
   MemoryBlock* prev;
   u32 total_size;
   bool used = false; // TODO: experiment with bitflags here
 };
-
 void ListInsert(MemoryBlock* item, MemoryBlock* after) {
   item->next = after->next;
   item->prev = after;
@@ -47,7 +49,6 @@ void ListPrintSizes(MemoryBlock* from) {
     ++i;
   }
 }
-
 u32 ListLen(MemoryBlock* from) {
   MemoryBlock* itm = from->next;
   u64 i = 0;
@@ -59,6 +60,13 @@ u32 ListLen(MemoryBlock* from) {
 }
 
 
+/**
+* General memory management, can manage memory blocks of different sizes.
+* Use to keep a fixed memory footprint with full memory freedom.
+*
+* Note that the current linked-list based impl. is quite slow, when used with a
+* significant amount of blocks/elements.
+*/
 class GeneralPurposeAllocator {
 public:
   MemoryBlock* blocks;
@@ -175,6 +183,11 @@ public:
 };
 
 
+/**
+* Allocates and frees same-sized blocks of memory.
+* Use to keep a fixed memory footprint with full memory freedom
+* with equally (or similarly) sized objects.
+*/
 class PoolAllocator {
 public:
   void* root;
@@ -184,6 +197,7 @@ public:
   size_t min_block_size;
 
   unsigned long load = 0;
+
   PoolAllocator(size_t block_size, size_t pool_size) {
     this->min_block_size = sizeof(MemoryBlock);
     assert(block_size >= this->min_block_size);
@@ -214,6 +228,7 @@ public:
   ~PoolAllocator() {
     free(this->root);
   }
+
   void* Get() {
     if (this->blocks == NULL) {
       assert(this->load == this->pool_size);
@@ -235,6 +250,7 @@ public:
     memset(toalloc, sizeof(MemoryBlock), 0);
     return toalloc;
   }
+
   bool Release(void* addr) {
     size_t relative_location = (u8*) addr - (u8*) this->root;
     assert(relative_location >= 0);
@@ -264,6 +280,12 @@ public:
 };
 
 
+/**
+* Stack allocation is very fast, but must be unwinded in reverse order (twice as fast as 
+* malloc for allocation and unwinding). Allocation pointer can be kept open-ended, which locks
+* the thing until released, enabling users to not have to predict sizes in advance. Combines
+* well with ArrayList.
+*/
 class StackAllocator {
 public:
   void* root;
@@ -272,6 +294,7 @@ public:
   u32 num_blocks;
   u32 used;
   bool locked = false;
+
   StackAllocator(u32 total_size) {
     this->total_size = total_size;
     this->max_size = total_size;
@@ -281,6 +304,7 @@ public:
   ~StackAllocator() {
     free(this->root);
   }
+
   void* Alloc(u32 size) {
     assert(this->locked == false);
 
@@ -292,18 +316,21 @@ public:
     this->num_blocks++;
     return retval;
   }
+
   void* AllocOpenEnded() {
     assert(this->locked == false);
 
     this->locked = true;
     return (u8*) this->root + this->used;
   }
+
   void CloseOpenEnded(u32 final_size) {
     assert(this->locked == true);
 
     this->locked == false;
     this->Alloc(final_size);
   }
+
   bool Free(void* addr) {
     u32 relative_location = (u8*) addr - (u8*) this->root;
     assert(relative_location >= 0);
@@ -321,6 +348,9 @@ public:
 };
 
 
+/**
+* ArrayList base functions.
+*/
 inline void ArrayPut(void* lst, u32 element_size, u32 array_len, u32 at_idx, void* item) {
   assert(at_idx <= array_len);
 
@@ -348,6 +378,11 @@ inline void ArrayShift(void* lst, int element_size, u32 array_len, int at_idx, i
 }
 
 
+/**
+* ArrayList is basically a header with an array pointer and a lenth, which
+* provides Add(), Insert() and Remove() functionality to arrays, but no max length.
+* Use to hanlde arrays as though they were expanding lists, almost.
+*/
 class ArrayList {
 public:
   void* lst;
@@ -377,6 +412,9 @@ public:
 };
 
 
+/**
+* ArrayList which locks a stack allocator and closes it at the right length @ destruction.
+*/
 class ArrayListStackClose {
 public:
   void* lst;
@@ -411,7 +449,7 @@ public:
 };
 
 
-// TODO: consider adding ArrayListJanitor doing Alloc on a GPA and Free @ destruction
+// TODO: consider adding ArrayList<T> and TempArrayList, which will Free @ destruction.
 
 
 #endif
