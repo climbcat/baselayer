@@ -11,6 +11,7 @@
 #include "random.h"
 #include "various.h"
 #include "perftimer.h"
+#include "token.h"
 
 
 void TestRandGen() {
@@ -398,9 +399,10 @@ void RunTests() {
   //TestStackAlloc();
   //TestGPAlloc();
   //TestGPAlloc2WriteChars();
-  TestGPAOccupancy();
+  //TestGPAOccupancy();
 
   //TestArrayList();
+  TestTokenizer();
 }
 
 

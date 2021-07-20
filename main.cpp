@@ -8,6 +8,7 @@
 #include "frametimer.h"
 #include "various.h"
 #include "tests.h"
+#include "token.h"
 
 int main (int argc, char **argv) {
   RunTests();

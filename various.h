@@ -7,7 +7,8 @@
 
 /**
 * NOTE: Does not count the null char in strlen (just like the C function).
-**/
+*/
+
 void WriteRandomHexStr(char* dest, int strlen, bool put_nullchar = true, bool do_randinit = false) {
   if (do_randinit)
     RandInit();

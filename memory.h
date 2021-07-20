@@ -1,7 +1,6 @@
 #ifndef __MEMORY_H__
 #define __MEMORY_H__
 
-
 #include <cstdlib>
 #include <assert.h>
 #include <iostream>
@@ -281,7 +280,7 @@ public:
 
 
 /**
-* Stack allocation is very fast, but must be unwinded in reverse order (twice as fast as 
+* Stack allocation is very fast, but must be unwinded in reverse order (twice as fast as
 * malloc for allocation and unwinding). Allocation pointer can be kept open-ended, which locks
 * the thing until released, enabling users to not have to predict sizes in advance. Combines
 * well with ArrayList.
