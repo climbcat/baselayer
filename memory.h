@@ -384,9 +384,9 @@ inline void ArrayShift(void* lst, int element_size, u32 array_len, int at_idx, i
 */
 class ArrayList {
 public:
-  void* lst;
+  void* lst = NULL;
   u32 element_size;
-  u32 len;
+  u32 len = 0;
   ArrayList(void* list, u32 element_size, u32 current_len = 0) {
     this->lst = list;
     this->element_size = element_size;

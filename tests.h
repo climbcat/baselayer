@@ -402,7 +402,8 @@ void RunTests() {
   //TestGPAOccupancy();
 
   //TestArrayList();
-  TestTokenizer();
+  //TestTokenizer();
+  TestParseConfig();
 }
 
 

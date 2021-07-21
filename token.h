@@ -8,6 +8,8 @@
 
 #include "types.h"
 #include "various.h"
+#include "memory.h"
+
 
 /**
 * Light-weight, multi-purpose Tokenizer code meant for copy-paste and modification.
@@ -87,7 +89,6 @@ bool IsAlphaOrUnderscore(char c) {
 }
 
 void EatCppStyleComment(Tokenizer* tokenizer) {
-  tokenizer->at += 2; // assuming at = "// ... \n"
   for(;;) {
     if (tokenizer->at[0] == '\0')
       return;
@@ -134,10 +135,10 @@ void EatWhiteSpacesAndComments(Tokenizer* tokenizer) {
 
     else if (tokenizer->at[0] == '/') {
       if (tokenizer->at[1]) {
-        if (tokenizer->at[1] == '/') {
+        if (tokenizer->at[1] == '/') { // C++-style comment
           EatCppStyleComment(tokenizer);
         }
-        else if (tokenizer->at[1] == '*') {
+        else if (tokenizer->at[1] == '*') { // C-style comment
           EatCStyleComment(tokenizer);
         }
         else {
@@ -152,17 +153,25 @@ void EatWhiteSpacesAndComments(Tokenizer* tokenizer) {
       }
     }
 
+    else if (tokenizer->at[0] == '#') { // pythonic | matlabish comment
+      EatCppStyleComment(tokenizer);
+    }
+
     else {
       break;
     }
   }
 }
 
-bool IsTokenEqualTo(Token* tok, char* word) {
-  for (char* at = tok->text; at < tok->text + tok->len; tok++, word++) {
-    if (*at != *word)
+// meant to be used with static strings, e.g. TokenEquals(tok, "hest")
+bool TokenEquals(Token* token, char* match) { 
+  char* at = match;
+  for (int idx = 0; idx < token->len; idx++, at++) {
+    if (token->text[idx] != *at) {
       return false;
+    }
   }
+  bool result = (*at == 0);
   return true;
 }
 
@@ -267,6 +276,338 @@ Token GetToken(Tokenizer* tokenizer) {
 
   }
   return token;
+}
+
+// TODO: if this fails, wouldn't tokenizer be in an undefined state, from the parser perspective?
+bool RequireToken(Tokenizer* tokenizer, TokenType desired_type) {
+  Token token = GetToken(tokenizer);
+  bool result =  token.type == desired_type;
+  return result;
+}
+
+
+struct Node {
+  char* name;
+  u8 id;
+  u8 clock_prio;
+  char* ip_0;
+  char* ip_1;
+  char* port_loc;
+  char* port_lan;
+};
+
+typedef char** StringList;
+
+struct App {
+  char* name;
+  StringList nodes;
+  char* state;
+};
+
+void AllocStringField(char** dest, Token* token, StackAllocator* stack) {
+  *dest = (char*) stack->Alloc(token->len - 1);
+  memcpy(*dest, token->text + 1, token->len - 2);
+  (*dest)[token->len - 2] = NULL;
+}
+
+void AllocIdentifierField(char** dest, Token* token, StackAllocator* stack) {
+  *dest = (char*) stack->Alloc(token->len + 1);
+  memcpy(*dest, token->text, token->len);
+  (*dest)[token->len] = NULL;
+}
+
+void ParseAllocListOfStrings(StringList* lst, Tokenizer* tokenizer, StackAllocator* stack) {
+  char* start = tokenizer->at;
+
+  u32 list_len = 0;
+  bool counting = true;
+  while (counting) {
+    Token token = GetToken(tokenizer);
+
+    switch (token.type)
+    {
+      case TOK_COMMA: {
+      } break;
+
+      case TOK_IDENTIFIER: {
+        ++list_len;
+      } break;
+
+      case TOK_STRING: {
+        ++list_len;
+      } break;
+
+      case TOK_NUMERIC: {
+        assert( 1 == 0 );
+      } break;
+
+      case TOK_DOT: {
+        // TODO: extend the tokenizer - this could be a float 
+        assert( 1 == 0 );
+      } break;
+
+      default: {
+        counting = false;
+      } break;
+    }
+  }
+
+  // now we can assign list length
+  *lst = (StringList) stack->Alloc(list_len * sizeof(StringList));
+
+  // reset 
+  u32 idx = 0;
+  tokenizer->at = start;
+  while (idx < list_len) {
+    Token token = GetToken(tokenizer);
+
+    switch (token.type)
+    {
+      case TOK_COMMA: {
+      } break;
+
+      case TOK_IDENTIFIER: {
+        AllocIdentifierField(&(*lst)[idx], &token, stack);
+
+        ++idx;
+      } break;
+
+      case TOK_STRING: {
+        AllocStringField(&(*lst)[idx], &token, stack);
+
+        ++idx;
+      } break;
+
+      default: {
+        counting = false;
+      } break;
+    }
+  }
+}
+
+Node ParseNode(Tokenizer* tokenizer, StackAllocator* stack) {
+  Token token;
+  Node node = {};
+
+  u8 fields_parsed = 0;
+  bool pcheck = false;
+  bool parsing = true;
+  while (fields_parsed < 7) {
+    token = GetToken(tokenizer);
+
+    if (TokenEquals(&token, "Name")) {
+      pcheck = RequireToken(tokenizer, TOK_COLON);
+      assert(pcheck == true);
+
+      token = GetToken(tokenizer);
+      AllocStringField(&node.name, &token, stack);
+
+      ++fields_parsed;
+    } else 
+    if (TokenEquals(&token, "ID")) {
+      pcheck = RequireToken(tokenizer, TOK_COLON);
+      assert(pcheck == true);
+
+      // NOTE: assuming the format 0xab for hex number ab ..
+      token = GetToken(tokenizer);
+      node.id = strtol(token.text, NULL, 16);
+
+      ++fields_parsed;
+    } else 
+    if (TokenEquals(&token, "clock_prio")) {
+      pcheck = RequireToken(tokenizer, TOK_COLON);
+      assert(pcheck == true);
+
+      token = GetToken(tokenizer);
+      node.clock_prio = (u8) atoi(token.text);
+
+      ++fields_parsed;
+    } else 
+    if (TokenEquals(&token, "network_address_0")) {
+      pcheck = RequireToken(tokenizer, TOK_COLON);
+      assert(pcheck == true);
+
+      token = GetToken(tokenizer);
+      AllocStringField(&node.ip_0, &token, stack);
+
+      ++fields_parsed;
+    } else 
+    if (TokenEquals(&token, "network_address_1")) {
+      pcheck = RequireToken(tokenizer, TOK_COLON);
+      assert(pcheck == true);
+
+      token = GetToken(tokenizer);
+      AllocStringField(&node.ip_1, &token, stack);
+
+      ++fields_parsed;
+    } else 
+    if (TokenEquals(&token, "port_loc")) {
+      pcheck = RequireToken(tokenizer, TOK_COLON);
+      assert(pcheck == true);
+
+      token = GetToken(tokenizer);
+      AllocStringField(&node.port_loc, &token, stack);
+
+      ++fields_parsed;
+    } else 
+    if (TokenEquals(&token, "port_lan")) {
+      pcheck = RequireToken(tokenizer, TOK_COLON);
+      assert(pcheck == true);
+
+      token = GetToken(tokenizer);
+      AllocStringField(&node.port_lan, &token, stack);
+
+      ++fields_parsed;
+    }
+  }
+
+  return node;
+}
+
+App ParseApp(Tokenizer* tokenizer, StackAllocator* stack) {
+  Token token;
+  App app = {};
+
+  u8 fields_parsed = 0;
+  bool pcheck = false;
+  bool parsing = true;
+  while (fields_parsed < 3) {
+    token = GetToken(tokenizer);
+
+    if (TokenEquals(&token, "Name")) {
+      pcheck = RequireToken(tokenizer, TOK_COLON);
+      assert(pcheck == true);
+
+      token = GetToken(tokenizer);
+      AllocStringField(&app.name, &token, stack);
+
+      ++fields_parsed;
+    } else 
+    if (TokenEquals(&token, "Node")) {
+      pcheck = RequireToken(tokenizer, TOK_COLON);
+      assert(pcheck == true);
+      pcheck = RequireToken(tokenizer, TOK_LSBRACK);
+      assert(pcheck == true);
+
+      ParseAllocListOfStrings(&app.nodes, tokenizer, stack);
+
+      pcheck = RequireToken(tokenizer, TOK_RSBRACK);
+      assert(pcheck == true);
+
+      ++fields_parsed;
+    } else 
+    if (TokenEquals(&token, "State")) {
+      pcheck = RequireToken(tokenizer, TOK_COLON);
+      assert(pcheck == true);
+      pcheck = RequireToken(tokenizer, TOK_LSBRACK);
+      assert(pcheck == true);
+
+      token = GetToken(tokenizer);
+      AllocStringField(&app.state, &token, stack);
+
+      pcheck = RequireToken(tokenizer, TOK_RSBRACK);
+      assert(pcheck == true);
+
+      ++fields_parsed;
+    }
+  }
+
+  return app;
+}
+
+enum ParseMode {
+  IDLE,
+  NODES,
+  APPS
+};
+
+void TestParseConfig() {
+  char* text = LoadFile("config.yaml", true);
+  if (text == NULL) {
+    printf("could not load file");
+    exit(1);
+  }
+
+  Tokenizer tokenizer = {};
+  ParseMode parsing_mode;
+
+  // read the number of nodes / apps present
+  u8 num_nodes = 0;
+  u8 num_apps = 0;
+
+  tokenizer.at = text;
+  parsing_mode = IDLE;
+  bool parsing = true;
+  while (parsing) {
+    Token token = GetToken(&tokenizer);
+    switch ( token.type ) {
+      case TOK_ENDOFSTREAM: {
+        parsing = false;
+      } break;
+
+      case TOK_DASH: {
+        if (parsing_mode == NODES) {
+          ++num_nodes;
+        } else
+        if (parsing_mode == APPS) {
+          ++num_apps;
+        }
+      } break;
+
+      case TOK_IDENTIFIER: {
+        if (TokenEquals(&token, "NODE") && RequireToken(&tokenizer, TOK_COLON)) {
+          parsing_mode = NODES;
+        } else 
+        if (TokenEquals(&token, "APP") && RequireToken(&tokenizer, TOK_COLON)) {
+          parsing_mode = APPS;
+        }
+      } break;
+
+      default: {
+      } break;
+    }
+  }
+
+  StackAllocator stack(SIXTEEN_K);
+  ArrayList nodes(stack.Alloc(sizeof(Node) * num_nodes), sizeof(Node));
+  ArrayList apps(stack.Alloc(sizeof(App) * num_apps), sizeof(App));
+
+  tokenizer.at = text;
+  parsing_mode = IDLE;
+  parsing = true;
+  while (parsing) {
+    Token token = GetToken(&tokenizer);
+
+    switch ( token.type ) {
+      case TOK_ENDOFSTREAM: {
+        parsing = false;
+      } break;
+
+      case TOK_DASH: {
+        if (parsing_mode == NODES) {
+          Node node = ParseNode(&tokenizer, &stack);
+          nodes.Add(&node);
+        } else
+        if (parsing_mode == APPS) {
+          App app = ParseApp(&tokenizer, &stack);
+          apps.Add(&app);
+        }
+
+      } break;
+
+      case TOK_IDENTIFIER: {
+        if (TokenEquals(&token, "NODE") && RequireToken(&tokenizer, TOK_COLON)) {
+          parsing_mode = NODES;
+        } else 
+        if (TokenEquals(&token, "APP") && RequireToken(&tokenizer, TOK_COLON)) {
+          parsing_mode = APPS;
+        }
+      } break;
+
+      default: {
+      } break;
+    }
+  }
 }
 
 
