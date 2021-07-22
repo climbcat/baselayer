@@ -12,6 +12,7 @@
 #include "various.h"
 #include "perftimer.h"
 #include "token.h"
+#include "parsers.h"
 
 
 void TestRandGen() {
@@ -71,6 +72,7 @@ struct Entity {
   char* name;
   char* body;
 };
+
 
 void TestGPAlloc() {
   GeneralPurposeAllocator alloc( MEGABYTE );
@@ -149,6 +151,7 @@ struct PoolAllocTestStruct {
   char some_word[35];
 };
 
+
 void TestPoolAlloc() {
   int batch_size = 10;
   PoolAllocator palloc(sizeof(PoolAllocTestStruct), batch_size);
@@ -191,6 +194,7 @@ void TestPoolAlloc() {
 
   assert(palloc.Get() == NULL);
 }
+
 
 void TestStackAlloc() {
   StackAllocator arena(SIXTEEN_K);
@@ -237,6 +241,7 @@ void TestStackAlloc() {
 
   std::cout << std::endl << "done." << std::endl;;
 }
+
 
 void TestLoadFile() {
   char* filename = (char*) "memory.h";
@@ -386,6 +391,68 @@ void TestWriteRandomStr() {
   WriteRandomHexStr(word, 4, true);
   // should output 4 chars:
   std::cout << word << std::endl;
+}
+
+
+void TestTokenizer() {
+  char* filename = (char*) "token.h";
+  char* text = LoadFile(filename, true);
+  if (text == NULL) {
+    printf("could not load file");
+    exit(1);
+  }
+
+  Tokenizer tokenizer = {};
+  tokenizer.at = text;
+
+  u32 DB_idx = 0;
+
+  bool parsing = true;
+  while (parsing) {
+    Token token = GetToken(&tokenizer);
+
+    switch ( token.type ) {
+      case TOK_ENDOFSTREAM: {
+        printf("%d TOK_ENDOFSTREAM\n", DB_idx);
+
+        parsing = false;
+      } break;
+
+      case TOK_UNKNOWN: {
+        printf("%d TOK_UNKNOWN: %.1s\n", DB_idx, token.text);
+
+        // skip this token
+      } break;
+
+      case TOK_IDENTIFIER: {
+        printf("%d TOK_IDENTIFIER: %.*s\n", DB_idx, token.len, token.text);
+
+        // action code here
+      } break;
+
+      case TOK_NUMERIC: {
+        //printf("%d TOK_NUMERIC: %.*s\n", db_idx, token.len, token.text);
+
+        // action code here
+      } break;
+
+      case TOK_STRING: {
+        printf("%d TOK_STRING: %.*s\n", DB_idx, token.len, token.text);
+
+        // action code here
+      } break;
+
+      case TOK_CHAR: {
+        printf("%d TOK_CHAR: %.*s\n", DB_idx, token.len, token.text);
+
+        // action code here
+      } break;
+
+      // etc. ...
+    }
+
+    ++DB_idx;
+  }
 }
 
 
