@@ -290,13 +290,13 @@ typedef char** StringList;
 void AllocStringField(char** dest, Token* token, StackAllocator* stack) {
   *dest = (char*) stack->Alloc(token->len - 1);
   memcpy(*dest, token->text + 1, token->len - 2);
-  (*dest)[token->len - 2] = NULL;
+  (*dest)[token->len - 2] = '\0';
 }
 
 void AllocIdentifierField(char** dest, Token* token, StackAllocator* stack) {
   *dest = (char*) stack->Alloc(token->len + 1);
   memcpy(*dest, token->text, token->len);
-  (*dest)[token->len] = NULL;
+  (*dest)[token->len] = '\0';
 }
 
 void ParseAllocListOfStrings(StringList* lst, Tokenizer* tokenizer, StackAllocator* stack) {

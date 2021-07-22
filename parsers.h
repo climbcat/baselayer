@@ -29,7 +29,7 @@ Node ParseNode(Tokenizer* tokenizer, StackAllocator* stack) {
   while (fields_parsed < 7) {
     token = GetToken(tokenizer);
 
-    if (TokenEquals(&token, "Name")) {
+    if (TokenEquals(&token, (char*) "Name")) {
       pcheck = RequireToken(tokenizer, TOK_COLON);
       assert(pcheck == true);
 
@@ -38,7 +38,7 @@ Node ParseNode(Tokenizer* tokenizer, StackAllocator* stack) {
 
       ++fields_parsed;
     } else 
-    if (TokenEquals(&token, "ID")) {
+    if (TokenEquals(&token, (char*) "ID")) {
       pcheck = RequireToken(tokenizer, TOK_COLON);
       assert(pcheck == true);
 
@@ -48,7 +48,7 @@ Node ParseNode(Tokenizer* tokenizer, StackAllocator* stack) {
 
       ++fields_parsed;
     } else 
-    if (TokenEquals(&token, "clock_prio")) {
+    if (TokenEquals(&token, (char*) "clock_prio")) {
       pcheck = RequireToken(tokenizer, TOK_COLON);
       assert(pcheck == true);
 
@@ -57,7 +57,7 @@ Node ParseNode(Tokenizer* tokenizer, StackAllocator* stack) {
 
       ++fields_parsed;
     } else 
-    if (TokenEquals(&token, "network_address_0")) {
+    if (TokenEquals(&token, (char*) "network_address_0")) {
       pcheck = RequireToken(tokenizer, TOK_COLON);
       assert(pcheck == true);
 
@@ -66,7 +66,7 @@ Node ParseNode(Tokenizer* tokenizer, StackAllocator* stack) {
 
       ++fields_parsed;
     } else 
-    if (TokenEquals(&token, "network_address_1")) {
+    if (TokenEquals(&token, (char*) "network_address_1")) {
       pcheck = RequireToken(tokenizer, TOK_COLON);
       assert(pcheck == true);
 
@@ -75,7 +75,7 @@ Node ParseNode(Tokenizer* tokenizer, StackAllocator* stack) {
 
       ++fields_parsed;
     } else 
-    if (TokenEquals(&token, "port_loc")) {
+    if (TokenEquals(&token, (char*) "port_loc")) {
       pcheck = RequireToken(tokenizer, TOK_COLON);
       assert(pcheck == true);
 
@@ -84,7 +84,7 @@ Node ParseNode(Tokenizer* tokenizer, StackAllocator* stack) {
 
       ++fields_parsed;
     } else 
-    if (TokenEquals(&token, "port_lan")) {
+    if (TokenEquals(&token, (char*) "port_lan")) {
       pcheck = RequireToken(tokenizer, TOK_COLON);
       assert(pcheck == true);
 
@@ -108,7 +108,7 @@ App ParseApp(Tokenizer* tokenizer, StackAllocator* stack) {
   while (fields_parsed < 3) {
     token = GetToken(tokenizer);
 
-    if (TokenEquals(&token, "Name")) {
+    if (TokenEquals(&token, (char*) "Name")) {
       pcheck = RequireToken(tokenizer, TOK_COLON);
       assert(pcheck == true);
 
@@ -117,7 +117,7 @@ App ParseApp(Tokenizer* tokenizer, StackAllocator* stack) {
 
       ++fields_parsed;
     } else 
-    if (TokenEquals(&token, "Node")) {
+    if (TokenEquals(&token, (char*) "Node")) {
       pcheck = RequireToken(tokenizer, TOK_COLON);
       assert(pcheck == true);
       pcheck = RequireToken(tokenizer, TOK_LSBRACK);
@@ -130,7 +130,7 @@ App ParseApp(Tokenizer* tokenizer, StackAllocator* stack) {
 
       ++fields_parsed;
     } else 
-    if (TokenEquals(&token, "State")) {
+    if (TokenEquals(&token, (char*) "State")) {
       pcheck = RequireToken(tokenizer, TOK_COLON);
       assert(pcheck == true);
       pcheck = RequireToken(tokenizer, TOK_LSBRACK);
@@ -156,7 +156,7 @@ enum ParseMode {
 };
 
 void TestParseConfig() {
-  char* text = LoadFile("config.yaml", true);
+  char* text = LoadFile((char*) "config.yaml", true);
   if (text == NULL) {
     printf("could not load file");
     exit(1);
@@ -189,10 +189,10 @@ void TestParseConfig() {
       } break;
 
       case TOK_IDENTIFIER: {
-        if (TokenEquals(&token, "NODE") && RequireToken(&tokenizer, TOK_COLON)) {
+        if (TokenEquals(&token, (char*) "NODE") && RequireToken(&tokenizer, TOK_COLON)) {
           parsing_mode = NODES;
         } else 
-        if (TokenEquals(&token, "APP") && RequireToken(&tokenizer, TOK_COLON)) {
+        if (TokenEquals(&token, (char*) "APP") && RequireToken(&tokenizer, TOK_COLON)) {
           parsing_mode = APPS;
         }
       } break;
@@ -230,10 +230,10 @@ void TestParseConfig() {
       } break;
 
       case TOK_IDENTIFIER: {
-        if (TokenEquals(&token, "NODE") && RequireToken(&tokenizer, TOK_COLON)) {
+        if (TokenEquals(&token, (char*) "NODE") && RequireToken(&tokenizer, TOK_COLON)) {
           parsing_mode = NODES;
         } else 
-        if (TokenEquals(&token, "APP") && RequireToken(&tokenizer, TOK_COLON)) {
+        if (TokenEquals(&token, (char*) "APP") && RequireToken(&tokenizer, TOK_COLON)) {
           parsing_mode = APPS;
         }
       } break;
