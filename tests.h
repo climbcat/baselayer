@@ -430,7 +430,7 @@ void TestTokenizer() {
         // action code here
       } break;
 
-      case TOK_NUMERIC: {
+      case TOK_INT: {
         //printf("%d TOK_NUMERIC: %.*s\n", db_idx, token.len, token.text);
 
         // action code here
@@ -456,6 +456,37 @@ void TestTokenizer() {
 }
 
 
+void TestParseNumerics() {
+
+  Tokenizer tokenizer = {};
+  tokenizer.at = "1.222\n666\n1e49\n5E1\n45.6353573573573\n32123.23245.2\n3562346.123123e0908\0\0";
+  // should output: float, int, sci, sci, float, (float, dot, int), sci
+ 
+  bool parsing = true;
+  while (parsing) {
+    Token token = GetToken(&tokenizer);
+    PrintTokenType(token.type, false);
+    printf(" --- %.*s\n", token.len, token.text);
+
+    switch ( token.type ) {
+      case TOK_ENDOFSTREAM: {
+        parsing = false;
+      } break;
+
+      case TOK_DASH: {
+      } break;
+
+      case TOK_IDENTIFIER: {
+      } break;
+
+      default: {
+      } break;
+    }
+  }
+
+}
+
+
 void RunTests() {
   //TestRandGen();
   //TestLoadFile();
@@ -470,7 +501,8 @@ void RunTests() {
 
   //TestArrayList();
   //TestTokenizer();
-  TestParseConfig();
+  //TestParseConfig();
+  TestParseNumerics();
 }
 
 

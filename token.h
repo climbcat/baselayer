@@ -44,14 +44,61 @@ enum TokenType {
 
   TOK_CHAR,
   TOK_STRING,
-  TOK_INT,
-  TOK_FLOAT,
+  TOK_INT, // 123
+  TOK_FLOAT, // 24.5748
   TOK_SCI, // 2.4e21 
-  TOK_NUMERIC,
   TOK_IDENTIFIER,
 
   TOK_ENDOFSTREAM,
 };
+
+void PrintTokenType(TokenType tpe, bool newline = true) {
+  switch (tpe)
+  {
+      case TOK_UNKNOWN: printf("TOK_UNKNOWN"); break;
+
+      case TOK_LBRACK: printf("TOK_LBRACK"); break;
+      case TOK_RBRACK: printf("TOK_RBRACK"); break;
+      case TOK_LBRACE: printf("TOK_LBRACE"); break;
+      case TOK_RBRACE: printf("TOK_RBRACE"); break;
+      case TOK_LSBRACK: printf("TOK_LSBRACK"); break;
+      case TOK_RSBRACK: printf("TOK_RSBRACK"); break;
+      case TOK_LEDGE: printf("TOK_LEDGE"); break;
+      case TOK_REDGE: printf("TOK_REDGE"); break;
+      case TOK_POUND: printf("TOK_POUND"); break;
+      case TOK_ASTERISK: printf("TOK_ASTERISK"); break;
+      case TOK_COMMA: printf("TOK_COMMA"); break;
+      case TOK_DOT: printf("TOK_DOT"); break;
+      case TOK_SLASH: printf("TOK_SLASH"); break;
+      case TOK_DASH: printf("TOK_DASH"); break;
+      case TOK_PLUS: printf("TOK_PLUS"); break;
+      case TOK_COLON: printf("TOK_COLON"); break;
+      case TOK_SEMICOLON: printf("TOK_SEMICOLON"); break;
+      case TOK_ASSIGN: printf("TOK_ASSIGN"); break;
+      case TOK_EXCLAMATION: printf("TOK_EXCLAMATION"); break;
+      case TOK_TILDE: printf("TOK_TILDE"); break;
+      case TOK_OR: printf("TOK_OR"); break;
+      case TOK_AND: printf("TOK_AND"); break;
+      case TOK_PERCENT: printf("TOK_PERCENT"); break;
+
+      case TOK_CHAR: printf("TOK_CHAR"); break;
+      case TOK_STRING: printf("TOK_STRING"); break;
+      case TOK_INT: printf("TOK_INT"); break;
+      case TOK_FLOAT: printf("TOK_FLOAT"); break;
+      case TOK_SCI: printf("TOK_SCI"); break;
+      case TOK_IDENTIFIER: printf("TOK_IDENTIFIER"); break;
+
+      case TOK_ENDOFSTREAM: printf("TOK_ENDOFSTREAM"); break;
+
+      default: printf("PrintTokenType__default"); break;
+  }
+
+  if (newline) {
+    printf("\n");
+  }
+}
+
+
 
 struct Tokenizer {
   char* at;
@@ -80,7 +127,14 @@ bool IsWhitespace(char c) {
 
 inline
 bool IsNumeric(char c) {
-  return (c >= '0') && (c <= '9');
+  bool isnum = (c >= '0') && (c <= '9');
+  return isnum;
+}
+
+inline
+bool IsNumericSymbol(char c) {
+  bool issymb = ((c == '.') || (c == 'e') || (c == 'E'));
+  return issymb;
 }
 
 inline
@@ -262,9 +316,40 @@ Token GetToken(Tokenizer* tokenizer) {
         token.len = tokenizer->at - token.text;
       }
       else if (IsNumeric(c)) {
-        token.type = TOK_NUMERIC;
+        token.type = TOK_INT;
 
-        while (tokenizer->at[0] != '\0' && IsNumeric(tokenizer->at[0])) {
+        while (true) {
+          if (tokenizer->at[0] != 0
+              && !IsNumeric(tokenizer->at[0])
+              && !IsNumericSymbol(tokenizer->at[0]))
+          {
+            break;
+          }
+          else if (tokenizer->at[1] != 0
+              && tokenizer->at[2] != 0
+              && IsNumericSymbol(tokenizer->at[1])
+              && !IsNumeric(tokenizer->at[2]))
+          {
+            break;
+          }
+
+          if (tokenizer->at[0] == '.'
+              && tokenizer->at[1] != 0
+              && IsNumeric(tokenizer->at[1]))
+          {
+            if (token.type != TOK_INT)
+              break;
+            token.type = TOK_FLOAT;
+          }
+          else if ((tokenizer->at[0] == 'e' || tokenizer->at[0] == 'E')
+              && tokenizer->at[1] != 0
+              && IsNumeric(tokenizer->at[1]))
+          {
+            if (token.type != TOK_INT && token.type != TOK_FLOAT)
+              break;
+            token.type = TOK_SCI;
+          }
+
           ++tokenizer->at;
         }
 
@@ -321,7 +406,7 @@ void ParseAllocListOfStrings(StringList* lst, Tokenizer* tokenizer, StackAllocat
         ++list_len;
       } break;
 
-      case TOK_NUMERIC: {
+      case TOK_INT: {
         assert( 1 == 0 );
       } break;
 
