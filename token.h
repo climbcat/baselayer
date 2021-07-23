@@ -12,8 +12,7 @@
 
 
 /**
-* Light-weight, multi-purpose Tokenizer code meant for copy-paste and modification.
-* Implementation roughly following handmade hero.
+* Light-weight, multi-purpose Tokenizer code. Implementation roughly follows handmade hero.
 */
 
 enum TokenType {
@@ -25,26 +24,29 @@ enum TokenType {
   TOK_RBRACE,
   TOK_LSBRACK, // [
   TOK_RSBRACK,
-  TOK_LEDGE,
+  TOK_LEDGE, // <
   TOK_REDGE,
-  TOK_POUND,
+  TOK_POUND, // #
   TOK_ASTERISK,
   TOK_COMMA,
   TOK_DOT,
-  TOK_SLASH,
-  TOK_DASH,
+  TOK_SLASH, // /
+  TOK_DASH, // -
   TOK_PLUS,
   TOK_COLON,
   TOK_SEMICOLON,
-  TOK_ASSIGN,
+  TOK_ASSIGN, // =
   TOK_EXCLAMATION,
   TOK_TILDE,
-  TOK_OR,
-  TOK_AND,
+  TOK_OR, // |
+  TOK_AND, // &
   TOK_PERCENT,
 
   TOK_CHAR,
   TOK_STRING,
+  TOK_INT,
+  TOK_FLOAT,
+  TOK_SCI, // 2.4e21 
   TOK_NUMERIC,
   TOK_IDENTIFIER,
 
@@ -163,9 +165,8 @@ void EatWhiteSpacesAndComments(Tokenizer* tokenizer) {
   }
 }
 
-// meant to be used with static strings, e.g. TokenEquals(tok, "hest")
-bool TokenEquals(Token* token, char* match) { 
-  char* at = match;
+bool TokenEquals(Token* token, const char* match) { 
+  char* at = (char*) match;
   for (int idx = 0; idx < token->len; idx++, at++) {
     if (token->text[idx] != *at) {
       return false;
