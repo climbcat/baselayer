@@ -230,6 +230,19 @@ bool TokenEquals(Token* token, const char* match) {
   return true;
 }
 
+inline
+void TokenValueTo(Token *token, char **dest, StackAllocator *stack) {
+  *dest = (char*) stack->Alloc(token->len + 1);
+  strncpy(*dest, token->text, token->len);
+  (*dest)[token->len] = '\0';
+}
+
+inline
+void TokenValueToAssertType(Token *token, TokenType type_assert, char **dest, StackAllocator *stack) {
+  assert( token->type == type_assert );
+  TokenValueTo(token, dest, stack);
+}
+
 Token GetToken(Tokenizer* tokenizer) {
   EatWhiteSpacesAndComments(tokenizer);
 
@@ -364,10 +377,60 @@ Token GetToken(Tokenizer* tokenizer) {
   return token;
 }
 
-// TODO: if this fails, wouldn't tokenizer be in an undefined state, from the parser perspective?
-bool RequireToken(Tokenizer* tokenizer, TokenType desired_type) {
+u32 LookAheadTokenCountOR(Tokenizer *tokenizer, TokenType desired_type, TokenType desired_type_or = TOK_UNKNOWN) {
+  char* at = tokenizer->at;
+
+  u32 steps = 0;
+  Token token;
+  while (true) {
+    ++steps;
+    token = GetToken(tokenizer);
+    if (token.type == TOK_ENDOFSTREAM) {
+      return 0;
+    }
+    else if (token.type == desired_type) {
+      break;
+    }
+    else if (token.type == desired_type_or) {
+      break;
+    }
+  }
+  tokenizer->at = at;
+  return steps;
+}
+
+u32 LookAheadTokenCountNOT(Tokenizer *tokenizer, TokenType desired_type, TokenType avoid_type = TOK_UNKNOWN) {
+  char* at = tokenizer->at;
+
+  u32 steps = 0;
+  Token token;
+  while (true) {
+    ++steps;
+    token = GetToken(tokenizer);
+    if (token.type == TOK_ENDOFSTREAM || token.type == avoid_type) {
+      return 0;
+    }
+    if (token.type == desired_type) {
+      break;
+    }
+  }
+  tokenizer->at = at;
+  return steps;
+}
+
+// will inc tokenizer ONLY IF token requirement is satisfied
+bool RequireToken(Tokenizer* tokenizer, TokenType desired_type, const char *desired_value = NULL) {
+  char* at = tokenizer->at;
+
   Token token = GetToken(tokenizer);
   bool result =  token.type == desired_type;
+  if (desired_value != NULL) {
+    result = result && TokenEquals(&token, desired_value);
+  }
+
+  if (result == false) {
+    tokenizer->at = at;
+  }
   return result;
 }
 
