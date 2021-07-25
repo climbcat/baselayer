@@ -411,6 +411,38 @@ public:
 };
 
 
+template<class T>
+class ArrayListT {
+public:
+  T* lst = NULL;
+  u32 element_size;
+  u32 len = 0;
+  ArrayListT(void* memloc) {
+    this->lst = (T*) memloc;
+    this->element_size = sizeof(T);
+  }
+  void Add(void* item) {
+    this->len++;
+    ArrayPut(this->lst, this->element_size, this->len, this->len - 1, item);
+  }
+  void Insert(void* item, u32 at_idx) {
+    ArrayShift(this->lst, this->element_size, this->len, at_idx, 1);
+    this->len++;
+    ArrayPut(this->lst, this->element_size, this->len, at_idx, item);
+  }
+  void Remove(u32 at_idx) {
+    ArrayShift(this->lst, this->element_size, this->len, at_idx, -1);
+    this->len--;
+  }
+  T* At(u32 idx) {
+    return this->lst + idx;
+  }
+
+  // TODO: consider adding max_len
+  // TODO: consider adding overwrite, multi-insert and multi-delete
+};
+
+
 /**
 * ArrayList which locks a stack allocator and closes it at the right length @ destruction.
 */
