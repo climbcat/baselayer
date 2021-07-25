@@ -2,6 +2,7 @@
 #define __VARIOUS_H__
 
 #include <unistd.h>
+#include <assert.h>
 
 #include "random.h"
 
@@ -62,7 +63,7 @@ char* LoadFilePath(char* filepath) {
 }
 
 
-char* LoadFile(char* filename, bool use_cwd = false) {
+char* LoadFile(char* filename, bool use_cwd = true) {
   if (use_cwd) {
     char cwd[KILOBYTE];
     if (getcwd(cwd, sizeof(cwd)) != NULL) {
