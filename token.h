@@ -1,7 +1,6 @@
 #ifndef __TOKEN_H__
 #define __TOKEN_H__
 
-
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
@@ -52,56 +51,68 @@ enum TokenType {
   TOK_ENDOFSTREAM,
 };
 
-void PrintTokenType(TokenType tpe, bool newline = true) {
+const char* TokenTypeToString(TokenType tpe) {
   switch (tpe)
   {
-      case TOK_UNKNOWN: printf("TOK_UNKNOWN"); break;
+      case TOK_UNKNOWN: return "TOK_UNKNOWN";
+      case TOK_LBRACK: return "TOK_LBRACK";
+      case TOK_RBRACK: return "TOK_RBRACK";
+      case TOK_LBRACE: return "TOK_LBRACE";
+      case TOK_RBRACE: return "TOK_RBRACE";
+      case TOK_LSBRACK: return "TOK_LSBRACK";
+      case TOK_RSBRACK: return "TOK_RSBRACK";
+      case TOK_LEDGE: return "TOK_LEDGE";
+      case TOK_REDGE: return "TOK_REDGE";
+      case TOK_POUND: return "TOK_POUND";
+      case TOK_ASTERISK: return "TOK_ASTERISK";
+      case TOK_COMMA: return "TOK_COMMA";
+      case TOK_DOT: return "TOK_DOT";
+      case TOK_SLASH: return "TOK_SLASH";
+      case TOK_DASH: return "TOK_DASH";
+      case TOK_PLUS: return "TOK_PLUS";
+      case TOK_COLON: return "TOK_COLON";
+      case TOK_SEMICOLON: return "TOK_SEMICOLON";
+      case TOK_ASSIGN: return "TOK_ASSIGN";
+      case TOK_EXCLAMATION: return "TOK_EXCLAMATION";
+      case TOK_TILDE: return "TOK_TILDE";
+      case TOK_OR: return "TOK_OR";
+      case TOK_AND: return "TOK_AND";
+      case TOK_PERCENT: return "TOK_PERCENT";
 
-      case TOK_LBRACK: printf("TOK_LBRACK"); break;
-      case TOK_RBRACK: printf("TOK_RBRACK"); break;
-      case TOK_LBRACE: printf("TOK_LBRACE"); break;
-      case TOK_RBRACE: printf("TOK_RBRACE"); break;
-      case TOK_LSBRACK: printf("TOK_LSBRACK"); break;
-      case TOK_RSBRACK: printf("TOK_RSBRACK"); break;
-      case TOK_LEDGE: printf("TOK_LEDGE"); break;
-      case TOK_REDGE: printf("TOK_REDGE"); break;
-      case TOK_POUND: printf("TOK_POUND"); break;
-      case TOK_ASTERISK: printf("TOK_ASTERISK"); break;
-      case TOK_COMMA: printf("TOK_COMMA"); break;
-      case TOK_DOT: printf("TOK_DOT"); break;
-      case TOK_SLASH: printf("TOK_SLASH"); break;
-      case TOK_DASH: printf("TOK_DASH"); break;
-      case TOK_PLUS: printf("TOK_PLUS"); break;
-      case TOK_COLON: printf("TOK_COLON"); break;
-      case TOK_SEMICOLON: printf("TOK_SEMICOLON"); break;
-      case TOK_ASSIGN: printf("TOK_ASSIGN"); break;
-      case TOK_EXCLAMATION: printf("TOK_EXCLAMATION"); break;
-      case TOK_TILDE: printf("TOK_TILDE"); break;
-      case TOK_OR: printf("TOK_OR"); break;
-      case TOK_AND: printf("TOK_AND"); break;
-      case TOK_PERCENT: printf("TOK_PERCENT"); break;
+      case TOK_CHAR: return "TOK_CHAR";
+      case TOK_STRING: return "TOK_STRING";
+      case TOK_INT: return "TOK_INT";
+      case TOK_FLOAT: return "TOK_FLOAT";
+      case TOK_SCI: return "TOK_SCI";
+      case TOK_IDENTIFIER: return "TOK_IDENTIFIER";
 
-      case TOK_CHAR: printf("TOK_CHAR"); break;
-      case TOK_STRING: printf("TOK_STRING"); break;
-      case TOK_INT: printf("TOK_INT"); break;
-      case TOK_FLOAT: printf("TOK_FLOAT"); break;
-      case TOK_SCI: printf("TOK_SCI"); break;
-      case TOK_IDENTIFIER: printf("TOK_IDENTIFIER"); break;
+      case TOK_ENDOFSTREAM: return "TOK_ENDOFSTREAM";
 
-      case TOK_ENDOFSTREAM: printf("TOK_ENDOFSTREAM"); break;
-
-      default: printf("PrintTokenType__default"); break;
+      default: return "ReturnTokenTypeString__default";
   }
+}
 
+void TokenTypePrint(TokenType tpe, bool newline = true) {
+  printf("%s", TokenTypeToString(tpe));
   if (newline) {
     printf("\n");
   }
 }
 
-
-
 struct Tokenizer {
-  char* at;
+  char *at;
+  u32 line = 1;
+  char *at_linestart;
+
+  void Init(char *text) {
+    line = 1;
+    at = text;
+    at_linestart = text;
+  }
+  void AtNewLineChar() {
+    ++line;
+    at_linestart = at + 1;
+  }
 };
 
 struct Token {
@@ -110,9 +121,14 @@ struct Token {
   u16 len;
 };
 
+u32 g_newlines = 0;
+
+
 inline
 bool IsEndOfLine(char c) {
-  return c == '\n' || c == '\r';
+  return
+    c == '\n' ||
+    c == '\r';
 }
 
 inline
@@ -149,12 +165,8 @@ void EatCppStyleComment(Tokenizer* tokenizer) {
     if (tokenizer->at[0] == '\0')
       return;
 
-    if (tokenizer->at[1] == '\0') {
-      ++tokenizer->at;
-      return;
-    }
-
     if (tokenizer->at[0] == '\n') {
+      tokenizer->AtNewLineChar();
       ++tokenizer->at;
       return;
     }
@@ -166,8 +178,13 @@ void EatCppStyleComment(Tokenizer* tokenizer) {
 void EatCStyleComment(Tokenizer* tokenizer) {
   tokenizer->at += 2; // assuming at = "/* ... */"
   for(;;) {
-    if (tokenizer->at[0] == '\0')
+    if (tokenizer->at[0] == '\0') {
       return;
+    }
+
+    if (tokenizer->at[0] == '\n') {
+      tokenizer->AtNewLineChar();
+    }
 
     if (tokenizer->at[1] == '\0') {
       ++tokenizer->at;
@@ -184,7 +201,11 @@ void EatCStyleComment(Tokenizer* tokenizer) {
 }
 
 void EatWhiteSpacesAndComments(Tokenizer* tokenizer) {
+  
   for (;;) {
+    if (IsEndOfLine(tokenizer->at[0])) {
+      tokenizer->AtNewLineChar();
+    }
     if (IsWhitespace(tokenizer->at[0])) {
       ++tokenizer->at;
     }
@@ -231,19 +252,71 @@ bool TokenEquals(Token* token, const char* match) {
 }
 
 inline
-void TokenValueTo(Token *token, char **dest, StackAllocator *stack) {
+void TokenValueToAlloc(Token *token, char **dest, StackAllocator *stack) {
   *dest = (char*) stack->Alloc(token->len + 1);
   strncpy(*dest, token->text, token->len);
   (*dest)[token->len] = '\0';
 }
 
 inline
-void TokenValueToAssertType(Token *token, TokenType type_assert, char **dest, StackAllocator *stack) {
+void TokenValueToAllocAssertType(Token *token, TokenType type_assert, char **dest, StackAllocator *stack) {
   assert( token->type == type_assert );
-  TokenValueTo(token, dest, stack);
+  TokenValueToAlloc(token, dest, stack);
+}
+
+inline
+int FindChar(char *text, char c) {
+  u32 dist = 0;
+  while (true) {
+    if (*text == '\0')
+      return -1;
+    if (c == *text)
+      return dist;
+    ++dist;
+    ++text;
+  }
+}
+
+inline
+u32 DistEndOfLine(char* text) {
+  u32 dist = 0;
+  while (true) {
+    if ('\0' == *text || IsEndOfLine(*text))
+      return dist;
+    ++dist;
+    ++text;
+  }
+}
+
+void PrintCurrentLine(Tokenizer *tokenizer) {
+  printf("%.*s\n", DistEndOfLine(tokenizer->at_linestart), tokenizer->at_linestart);
+}
+
+void PrintCurrentLineMark(Tokenizer *tokenizer, u32 padding = 0) {
+  u32 mark = tokenizer->at - tokenizer->at_linestart + padding;
+  for (u32 i = 0; i < mark; i++) {
+    printf(" ");
+  }
+  printf("^\n");
+}
+
+void PrintLineError(Tokenizer *tokenizer, Token *token, const char* errmsg = NULL) {
+  //printf("Error on line %d (%s %.*s): ",
+  char* msg = (char*) errmsg;
+  if (errmsg == NULL) {
+    msg = (char*) "Error.";
+  }
+
+  printf("%s:\n", msg);
+  char slineno[200];
+  sprintf(slineno, "%d| ", tokenizer->line);
+  printf("%s", slineno);
+  PrintCurrentLine(tokenizer);
+  PrintCurrentLineMark(tokenizer, strlen(slineno) + 2 - 1);
 }
 
 Token GetToken(Tokenizer* tokenizer) {
+
   EatWhiteSpacesAndComments(tokenizer);
 
   Token token = {};
@@ -283,7 +356,7 @@ Token GetToken(Tokenizer* tokenizer) {
 
       token.type = TOK_STRING;
 
-      while (tokenizer->at[0] != '\0' && tokenizer->at[0] != '"') {
+      while (tokenizer->at[0] != '\0' && tokenizer->at[0] != '"' && !IsEndOfLine(tokenizer->at[0])) {
         if (tokenizer->at[0] == '\\' && tokenizer->at[1]) {
           ++tokenizer->at;
         }
@@ -301,7 +374,7 @@ Token GetToken(Tokenizer* tokenizer) {
 
       token.type = TOK_CHAR;
   
-      while (tokenizer->at[0] != '\0' && tokenizer->at[0] != '\'') {
+      while (tokenizer->at[0] != '\0' && tokenizer->at[0] != '\'' && !IsEndOfLine(tokenizer->at[0])) {
         if (tokenizer->at[0] == '\\' && tokenizer->at[1]) {
           ++tokenizer->at;
         }
@@ -316,7 +389,6 @@ Token GetToken(Tokenizer* tokenizer) {
     } break;
 
     default : {
-
       if (IsAlphaOrUnderscore(c)) {
         token.type = TOK_IDENTIFIER;
 
@@ -378,7 +450,7 @@ Token GetToken(Tokenizer* tokenizer) {
 }
 
 u32 LookAheadTokenCountOR(Tokenizer *tokenizer, TokenType desired_type, TokenType desired_type_or = TOK_UNKNOWN) {
-  char* at = tokenizer->at;
+  Tokenizer resume = *tokenizer;
 
   u32 steps = 0;
   Token token;
@@ -395,12 +467,13 @@ u32 LookAheadTokenCountOR(Tokenizer *tokenizer, TokenType desired_type, TokenTyp
       break;
     }
   }
-  tokenizer->at = at;
+
+  *tokenizer = resume;
   return steps;
 }
 
 u32 LookAheadTokenCountNOT(Tokenizer *tokenizer, TokenType desired_type, TokenType avoid_type = TOK_UNKNOWN) {
-  char* at = tokenizer->at;
+  Tokenizer resume = *tokenizer;
 
   u32 steps = 0;
   Token token;
@@ -414,22 +487,34 @@ u32 LookAheadTokenCountNOT(Tokenizer *tokenizer, TokenType desired_type, TokenTy
       break;
     }
   }
-  tokenizer->at = at;
+
+  *tokenizer = resume;
   return steps;
 }
 
 // will inc tokenizer ONLY IF token requirement is satisfied
-bool RequireToken(Tokenizer* tokenizer, TokenType desired_type, const char *desired_value = NULL) {
-  char* at = tokenizer->at;
+bool RequireToken(Tokenizer* tokenizer, Token *token_dest, TokenType desired_type, const char *desired_value = NULL) {
+  Tokenizer resume = *tokenizer;
 
   Token token = GetToken(tokenizer);
+  if (token_dest != NULL) {
+    *token_dest = token;
+  }
   bool result =  token.type == desired_type;
   if (desired_value != NULL) {
     result = result && TokenEquals(&token, desired_value);
   }
 
   if (result == false) {
-    tokenizer->at = at;
+    *tokenizer = resume;
+    char msg[200];
+    if (desired_value == NULL) {
+      sprintf(msg, "Expected %s", TokenTypeToString(desired_type));
+    }
+    else {
+      sprintf(msg, "Expected %s", desired_value);
+    }
+    PrintLineError(tokenizer, &token, msg);
   }
   return result;
 }
@@ -448,7 +533,7 @@ void AllocIdentifierField(char** dest, Token* token, StackAllocator* stack) {
   (*dest)[token->len] = '\0';
 }
 
-void ParseAllocListOfStrings(StringList* lst, Tokenizer* tokenizer, StackAllocator* stack) {
+void ParseAllocCommaSeparatedListOfStrings(StringList* lst, Tokenizer* tokenizer, StackAllocator* stack) {
   char* start = tokenizer->at;
 
   u32 list_len = 0;

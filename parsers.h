@@ -30,7 +30,7 @@ Node ParseNode(Tokenizer* tokenizer, StackAllocator* stack) {
     token = GetToken(tokenizer);
 
     if (TokenEquals(&token, "Name")) {
-      pcheck = RequireToken(tokenizer, TOK_COLON);
+      pcheck = RequireToken(tokenizer, NULL, TOK_COLON);
       assert(pcheck == true);
 
       token = GetToken(tokenizer);
@@ -39,7 +39,7 @@ Node ParseNode(Tokenizer* tokenizer, StackAllocator* stack) {
       ++fields_parsed;
     } else 
     if (TokenEquals(&token, "ID")) {
-      pcheck = RequireToken(tokenizer, TOK_COLON);
+      pcheck = RequireToken(tokenizer, NULL, TOK_COLON);
       assert(pcheck == true);
 
       // NOTE: assuming the format 0xab for hex number ab ..
@@ -49,7 +49,7 @@ Node ParseNode(Tokenizer* tokenizer, StackAllocator* stack) {
       ++fields_parsed;
     } else 
     if (TokenEquals(&token, "clock_prio")) {
-      pcheck = RequireToken(tokenizer, TOK_COLON);
+      pcheck = RequireToken(tokenizer, NULL, TOK_COLON);
       assert(pcheck == true);
 
       token = GetToken(tokenizer);
@@ -58,7 +58,7 @@ Node ParseNode(Tokenizer* tokenizer, StackAllocator* stack) {
       ++fields_parsed;
     } else 
     if (TokenEquals(&token, "network_address_0")) {
-      pcheck = RequireToken(tokenizer, TOK_COLON);
+      pcheck = RequireToken(tokenizer, NULL, TOK_COLON);
       assert(pcheck == true);
 
       token = GetToken(tokenizer);
@@ -67,7 +67,7 @@ Node ParseNode(Tokenizer* tokenizer, StackAllocator* stack) {
       ++fields_parsed;
     } else 
     if (TokenEquals(&token, "network_address_1")) {
-      pcheck = RequireToken(tokenizer, TOK_COLON);
+      pcheck = RequireToken(tokenizer, NULL, TOK_COLON);
       assert(pcheck == true);
 
       token = GetToken(tokenizer);
@@ -76,7 +76,7 @@ Node ParseNode(Tokenizer* tokenizer, StackAllocator* stack) {
       ++fields_parsed;
     } else 
     if (TokenEquals(&token, "port_loc")) {
-      pcheck = RequireToken(tokenizer, TOK_COLON);
+      pcheck = RequireToken(tokenizer, NULL, TOK_COLON);
       assert(pcheck == true);
 
       token = GetToken(tokenizer);
@@ -85,7 +85,7 @@ Node ParseNode(Tokenizer* tokenizer, StackAllocator* stack) {
       ++fields_parsed;
     } else 
     if (TokenEquals(&token, "port_lan")) {
-      pcheck = RequireToken(tokenizer, TOK_COLON);
+      pcheck = RequireToken(tokenizer, NULL, TOK_COLON);
       assert(pcheck == true);
 
       token = GetToken(tokenizer);
@@ -109,7 +109,7 @@ App ParseApp(Tokenizer* tokenizer, StackAllocator* stack) {
     token = GetToken(tokenizer);
 
     if (TokenEquals(&token, "Name")) {
-      pcheck = RequireToken(tokenizer, TOK_COLON);
+      pcheck = RequireToken(tokenizer, NULL, TOK_COLON);
       assert(pcheck == true);
 
       token = GetToken(tokenizer);
@@ -118,28 +118,28 @@ App ParseApp(Tokenizer* tokenizer, StackAllocator* stack) {
       ++fields_parsed;
     } else 
     if (TokenEquals(&token, "Node")) {
-      pcheck = RequireToken(tokenizer, TOK_COLON);
+      pcheck = RequireToken(tokenizer, NULL, TOK_COLON);
       assert(pcheck == true);
-      pcheck = RequireToken(tokenizer, TOK_LSBRACK);
+      pcheck = RequireToken(tokenizer, NULL, TOK_LSBRACK);
       assert(pcheck == true);
 
-      ParseAllocListOfStrings(&app.nodes, tokenizer, stack);
+      ParseAllocCommaSeparatedListOfStrings(&app.nodes, tokenizer, stack);
 
-      pcheck = RequireToken(tokenizer, TOK_RSBRACK);
+      pcheck = RequireToken(tokenizer, NULL, TOK_RSBRACK);
       assert(pcheck == true);
 
       ++fields_parsed;
     } else 
     if (TokenEquals(&token, "State")) {
-      pcheck = RequireToken(tokenizer, TOK_COLON);
+      pcheck = RequireToken(tokenizer, NULL, TOK_COLON);
       assert(pcheck == true);
-      pcheck = RequireToken(tokenizer, TOK_LSBRACK);
+      pcheck = RequireToken(tokenizer, NULL, TOK_LSBRACK);
       assert(pcheck == true);
 
       token = GetToken(tokenizer);
       AllocStringField(&app.state, &token, stack);
 
-      pcheck = RequireToken(tokenizer, TOK_RSBRACK);
+      pcheck = RequireToken(tokenizer, NULL, TOK_RSBRACK);
       assert(pcheck == true);
 
       ++fields_parsed;
@@ -163,13 +163,13 @@ void TestParseConfig() {
   }
 
   Tokenizer tokenizer = {};
+  tokenizer.Init(text);
   ParseMode parsing_mode;
 
   // read the number of nodes / apps present
   u8 num_nodes = 0;
   u8 num_apps = 0;
 
-  tokenizer.at = text;
   parsing_mode = IDLE;
   bool parsing = true;
   while (parsing) {
@@ -189,10 +189,10 @@ void TestParseConfig() {
       } break;
 
       case TOK_IDENTIFIER: {
-        if (TokenEquals(&token, "NODE") && RequireToken(&tokenizer, TOK_COLON)) {
+        if (TokenEquals(&token, "NODE") && RequireToken(&tokenizer, NULL, TOK_COLON)) {
           parsing_mode = NODES;
         } else 
-        if (TokenEquals(&token, "APP") && RequireToken(&tokenizer, TOK_COLON)) {
+        if (TokenEquals(&token, "APP") && RequireToken(&tokenizer, NULL, TOK_COLON)) {
           parsing_mode = APPS;
         }
       } break;
@@ -206,7 +206,7 @@ void TestParseConfig() {
   ArrayList nodes(stack.Alloc(sizeof(Node) * num_nodes), sizeof(Node));
   ArrayList apps(stack.Alloc(sizeof(App) * num_apps), sizeof(App));
 
-  tokenizer.at = text;
+  tokenizer.Init(text);
   parsing_mode = IDLE;
   parsing = true;
   while (parsing) {
@@ -230,10 +230,10 @@ void TestParseConfig() {
       } break;
 
       case TOK_IDENTIFIER: {
-        if (TokenEquals(&token, "NODE") && RequireToken(&tokenizer, TOK_COLON)) {
+        if (TokenEquals(&token, "NODE") && RequireToken(&tokenizer, NULL, TOK_COLON)) {
           parsing_mode = NODES;
         } else
-        if (TokenEquals(&token, "APP") && RequireToken(&tokenizer, TOK_COLON)) {
+        if (TokenEquals(&token, "APP") && RequireToken(&tokenizer, NULL, TOK_COLON)) {
           parsing_mode = APPS;
         }
       } break;
@@ -267,19 +267,21 @@ struct InstrParam {
   char* defaultval;
 };
 
+
 ArrayListT<InstrParam> ParseInstrParams(Tokenizer *tokenizer, StackAllocator *stack) {
 
   // lookahead count how many pars there will be
   u32 count = 0;
   bool parstart_flag = true;
-  char *at = tokenizer->at;
+  Tokenizer resume = *tokenizer;
   bool parsing = true;
   while (parsing) {
     Token token = GetToken(tokenizer);
     switch ( token.type ) {
       case TOK_ENDOFSTREAM: {
         parsing = false;
-        assert(1 == 0);
+        PrintLineError(tokenizer, &token, "Unexpected end of stream");
+        exit(1);
       } break;
 
       case TOK_COMMA: {
@@ -301,13 +303,9 @@ ArrayListT<InstrParam> ParseInstrParams(Tokenizer *tokenizer, StackAllocator *st
       } break;
     }
   }
-  tokenizer->at = at;
+  *tokenizer = resume;
 
   ArrayListT<InstrParam> alst(stack->Alloc(sizeof(InstrParam) * count));
-
-  // TODO: populate this array of par structs. The chars can go after, now that
-  // we know how long the list is, the allocator can open-endedly allocate chars
-  // in the space after
 
   parsing = true;
   while (parsing) {
@@ -334,42 +332,44 @@ ArrayListT<InstrParam> ParseInstrParams(Tokenizer *tokenizer, StackAllocator *st
 
         if (count == 4) {
           // type varname = defval
-          //token = GetToken(tokenizer);
-          TokenValueToAssertType(&token, TOK_IDENTIFIER, &param.type, stack);
+          TokenValueToAllocAssertType(&token, TOK_IDENTIFIER, &param.type, stack);
 
           token = GetToken(tokenizer);
-          TokenValueToAssertType(&token, TOK_IDENTIFIER, &param.name, stack);
+          TokenValueToAllocAssertType(&token, TOK_IDENTIFIER, &param.name, stack);
 
           GetToken(tokenizer);
 
           token = GetToken(tokenizer);
           if (token.type != TOK_FLOAT && token.type != TOK_INT && token.type != TOK_SCI && token.type != TOK_STRING) {
-            assert(1==0);
+            tokenizer->at -= token.len;
+            PrintLineError(tokenizer, &token, "Expected number or string");
+            exit(1);
           }
-          TokenValueTo(&token, &param.defaultval, stack);
+          TokenValueToAlloc(&token, &param.defaultval, stack);
         }
         else if (count == 3) {
-          //token = GetToken(tokenizer);
-          TokenValueToAssertType(&token, TOK_IDENTIFIER, &param.name, stack);
+          // parname = defval
+          TokenValueToAllocAssertType(&token, TOK_IDENTIFIER, &param.name, stack);
 
           GetToken(tokenizer);
 
           token = GetToken(tokenizer);
           if (token.type != TOK_FLOAT && token.type != TOK_INT && token.type != TOK_SCI && token.type != TOK_STRING) {
-            assert(1==0);
+            PrintLineError(tokenizer, &token, "Expected number or string");
+            exit(1);
           }
-          TokenValueTo(&token, &param.defaultval, stack);
+          TokenValueToAlloc(&token, &param.defaultval, stack);
         }
         else if (count == 2) {
-          //token = GetToken(tokenizer);
-          TokenValueToAssertType(&token, TOK_IDENTIFIER, &param.type, stack);
+          // type parname
+          TokenValueToAllocAssertType(&token, TOK_IDENTIFIER, &param.type, stack);
 
           token = GetToken(tokenizer);
-          TokenValueToAssertType(&token, TOK_IDENTIFIER, &param.name, stack);
+          TokenValueToAllocAssertType(&token, TOK_IDENTIFIER, &param.name, stack);
         }
         else if (count == 1) {
-          //token = GetToken(tokenizer);
-          TokenValueToAssertType(&token, TOK_IDENTIFIER, &param.defaultval, stack);
+          // parname
+          TokenValueToAllocAssertType(&token, TOK_IDENTIFIER, &param.defaultval, stack);
         }
         alst.Add(&param);
  
@@ -380,34 +380,30 @@ ArrayListT<InstrParam> ParseInstrParams(Tokenizer *tokenizer, StackAllocator *st
     }
   }
 
-
-
-
   return alst;
-
 }
+
+struct InstrDef {
+  char* name;
+};
 
 
 void ParseInstrument(Tokenizer *tokenizer, StackAllocator *stack) {
 
-  
-  bool ok = true;
-  ok = ok && RequireToken(tokenizer, TOK_IDENTIFIER, "DEFINE");
-  ok = ok && RequireToken(tokenizer, TOK_IDENTIFIER, "INSTRUMENT");
-  // TODO: how do we print errors?
-
   Token token;
+  bool ok = true;
 
-  token = GetToken(tokenizer);
-  ok = ok && token.type == TOK_IDENTIFIER;
+  if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "DEFINE")) exit(1);
+  if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "INSTRUMENT")) exit(1);
 
-  ok = ok && RequireToken(tokenizer, TOK_LBRACK);
+  if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(1);
+
+  InstrDef instr;
+  TokenValueToAlloc(&token, &instr.name, stack);
+
+  if (!RequireToken(tokenizer, NULL, TOK_LBRACK)) exit(1);
 
   ArrayListT<InstrParam> lst = ParseInstrParams(tokenizer, stack);
-
-
-  // DB:
-
   printf("instrument params listed:\n");
   for (int i = 0; i < lst.len; i++) {
     InstrParam* p = lst.At(i);
@@ -435,27 +431,41 @@ void ParseInstrument(Tokenizer *tokenizer, StackAllocator *stack) {
 
 
 void TestParseMcStas(int argc, char **argv) {
+  //char *filename = (char*) "PSI_DMC.instr";
+  char *filename = (char*) "testnewlines.instr";
+  char *text = LoadFile(filename, true);
+  if (text == NULL) {
+      printf("could not load file %s\n", filename);
+      exit(1);
+  }
+  printf("parsing file %s as a mcstas instrument...\n", filename);
 
-    //if (argc < 2) {
-    //    std::cerr << "Usage: " << argv[0] << " INSTFILE\n";
-    //    exit(1);
-    //}
-    //char *filename = argv[1];
+  StackAllocator stack(SIXTEEN_K);
 
-    char *filename = (char*) "PSI_DMC.instr";
-    printf("parsing file %s as a mcstas instrument...\n", filename);
+  Tokenizer tokenizer = {};
+  tokenizer.Init(text);
 
-    char* text = LoadFile(filename, true);
-    if (text == NULL) {
-        printf("could not load file\n");
-        exit(1);
+  /*
+  // DB TEST newline capture
+  bool parsing = true;
+  u32 count = 0;
+  while (count < 20) {
+    Token token = GetToken(&tokenizer);
+
+    switch ( token.type ) {
+      case TOK_ENDOFSTREAM: {
+        parsing = false;
+      } break;
+
+      default: {
+        ++count;
+        //PrintLineNo(&tokenizer);
+      } break;
     }
-    //printf("\n%s\n\n", text);
+  }
+  printf("end\n");
+  exit(0);
+  */
 
-    StackAllocator stack(SIXTEEN_K);
-
-    Tokenizer tokenizer = {};
-    tokenizer.at = text;
-
-    ParseInstrument(&tokenizer, &stack);
+  ParseInstrument(&tokenizer, &stack);
 }

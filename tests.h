@@ -465,7 +465,7 @@ void TestParseNumerics() {
   bool parsing = true;
   while (parsing) {
     Token token = GetToken(&tokenizer);
-    PrintTokenType(token.type, false);
+    TokenTypePrint(token.type, false);
     printf(" --- %.*s\n", token.len, token.text);
 
     switch ( token.type ) {
