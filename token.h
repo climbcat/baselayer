@@ -449,7 +449,7 @@ Token GetToken(Tokenizer* tokenizer) {
 }
 
 u32 LookAheadTokenCountOR(Tokenizer *tokenizer, TokenType desired_type, TokenType desired_type_or = TOK_ENDOFSTREAM) {
-  Tokenizer resume = *tokenizer;
+  Tokenizer save = *tokenizer;
 
   u32 steps = 0;
   Token token;
@@ -467,17 +467,12 @@ u32 LookAheadTokenCountOR(Tokenizer *tokenizer, TokenType desired_type, TokenTyp
     }
   }
 
-  *tokenizer = resume;
+  *tokenizer = save;
   return steps;
 }
 
-inline
-u32 LookAheadTokenCount(Tokenizer *tokenizer, TokenType desired_type) {
-  return LookAheadTokenCountOR(tokenizer, desired_type);
-}
-
 u32 LookAheadTokenCountNOT(Tokenizer *tokenizer, TokenType desired_type, TokenType avoid_type = TOK_ENDOFSTREAM) {
-  Tokenizer resume = *tokenizer;
+  Tokenizer save = *tokenizer;
 
   u32 steps = 0;
   Token token;
@@ -492,13 +487,36 @@ u32 LookAheadTokenCountNOT(Tokenizer *tokenizer, TokenType desired_type, TokenTy
     }
   }
 
-  *tokenizer = resume;
+  *tokenizer = save;
   return steps;
 }
 
+inline
+u32 LookAheadTokenCount(Tokenizer *tokenizer, TokenType desired_type) {
+  return LookAheadTokenCountOR(tokenizer, desired_type);
+}
+
+u32 LookAheadTokenTextlen(Tokenizer *tokenizer, TokenType desired_type) {
+  Tokenizer save = *tokenizer;
+
+  Token token;
+  while (true) {
+    token = GetToken(tokenizer);
+    if (token.type == TOK_ENDOFSTREAM) {
+      return 0;
+    }
+    else if (token.type == desired_type) {
+      break;
+    }
+  }
+
+  u32 result = tokenizer->at - token.len - save.at;
+  *tokenizer = save;
+  return result;
+}
 
 bool LookAheadNextToken(Tokenizer *tokenizer, TokenType desired_type, const char *desired_value = NULL) {
-  Tokenizer resume = *tokenizer;
+  Tokenizer save = *tokenizer;
   Token token = GetToken(tokenizer);
   bool result = 0;
   if (token.type == desired_type) {
@@ -507,7 +525,7 @@ bool LookAheadNextToken(Tokenizer *tokenizer, TokenType desired_type, const char
   if (desired_value != NULL && !TokenEquals(&token, desired_value)) {
     result = 0;
   }
-  *tokenizer = resume;
+  *tokenizer = save;
   return result;
 }
 

@@ -408,7 +408,7 @@ struct FinalizeDef {
   char * text;
 };
 
-char* ParsePercentBraceTextBlock(Tokenizer *tokenizer, StackAllocator *stack) {
+char* CopyPercentBraceTextBlock(Tokenizer *tokenizer, StackAllocator *stack) {
   Token token;
   if (!RequireToken(tokenizer, &token, TOK_PERCENT)) exit(1);
   if (!RequireToken(tokenizer, &token, TOK_LBRACE)) exit(1);
@@ -417,27 +417,43 @@ char* ParsePercentBraceTextBlock(Tokenizer *tokenizer, StackAllocator *stack) {
   char *text = NULL;
 
   while (true) {
-    u32 count = LookAheadTokenCount(tokenizer, TOK_PERCENT);
-    if (count == 0 && LookAheadNextToken(tokenizer, TOK_ENDOFSTREAM)) {
+    u32 dist = LookAheadTokenTextlen(tokenizer, TOK_PERCENT);
+    if (dist == 0 && LookAheadNextToken(tokenizer, TOK_ENDOFSTREAM)) {
       PrintLineError(tokenizer, &token, "End of file reached");
       exit(0);
     }
-    tokenizer->at += count;
-    if (LookAheadNextToken(tokenizer, TOK_RBRACE)) {
-      GetToken(tokenizer);
+    tokenizer->at += dist;
+    if (!RequireToken(tokenizer, &token, TOK_PERCENT)) exit(0);
+    if (!RequireToken(tokenizer, &token, TOK_RBRACE)) exit(0);
 
-      // copy intact DECLARE text block
-      u32 len = tokenizer->at - save.at - 2;
-      text = (char*) stack->Alloc(len + 1);
-      strncpy(text, save.at, len);
-      text[len] = '\0';
+    u32 len = tokenizer->at - save.at - 2;
+    text = (char*) stack->Alloc(len + 1);
+    strncpy(text, save.at, len);
+    text[len] = '\0';
 
-      break;
-    }
+    break;
   }
   return text;
 }
 
+struct CompParam {
+  char* name;
+  char* value;
+};
+
+struct Vector3 {
+  double x = 0;
+  double y = 0;
+  double z = 0;
+};
+
+struct CompDecl {
+  char *type;
+  char *name;
+  ArrayListT<CompParam> params;
+  Vector3 at;
+  Vector3 rot;
+};
 
 struct InstrDef {
   char *name;
@@ -448,6 +464,79 @@ struct InstrDef {
   FinalizeDef finalize;
 };
 
+struct StructMember {
+  char *type = NULL;
+  char *name = NULL;
+  char *defval = NULL;
+};
+
+
+ArrayListT<StructMember> ParseStructMembers(char *text, StackAllocator *stack) {
+  // NOTE: this one does not take a tokenizer, but builds its own, which decouples the proble somewhat
+  Tokenizer _tokenizer_var;
+  Tokenizer *tokenizer = &_tokenizer_var;
+  tokenizer->Init(text);
+  Tokenizer save = _tokenizer_var;
+
+  // count the number of members by counting semi-colons
+  bool parsing = true;
+  u32 count = 0;
+  while (parsing) {
+    Token token = GetToken(tokenizer);
+
+    switch ( token.type ) {
+      case TOK_ENDOFSTREAM: {
+        parsing = false;
+      } break;
+
+      case TOK_SEMICOLON: {
+        ++count;
+      } break;
+
+      default: {
+      } break;
+    }
+  }
+
+  *tokenizer = save;
+  ArrayListT<StructMember> lst;
+  lst.Init(stack->Alloc(sizeof(StructMember) * count));
+  Token token;
+
+  while (true) {
+    StructMember member;
+
+    if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(0);
+    TokenValueToAlloc(&token, &member.type, stack);
+
+    if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(0);
+    TokenValueToAlloc(&token, &member.name, stack);
+
+    if (LookAheadNextToken(tokenizer, TOK_ASSIGN)) {
+      GetToken(tokenizer); // skip the assign
+      u32 len = LookAheadTokenTextlen(tokenizer, TOK_SEMICOLON);
+      if (len == 0) {
+        PrintLineError(tokenizer, &token, "Expected: ;");
+        exit(0);
+      }
+      member.defval = (char*) stack->Alloc(len);
+      strncpy(member.defval, tokenizer->at, len);
+
+      tokenizer->at += len;
+    }
+
+    if (!RequireToken(tokenizer, &token, TOK_SEMICOLON)) exit(0);
+
+    lst.Add(&member);
+
+    // positive exit condition
+    if (LookAheadNextToken(tokenizer, TOK_ENDOFSTREAM)) {
+      break;
+    }
+  }
+
+  return lst;
+}
 
 void ParseInstrument(Tokenizer *tokenizer, StackAllocator *stack) {
   Token token;
@@ -469,7 +558,7 @@ void ParseInstrument(Tokenizer *tokenizer, StackAllocator *stack) {
   printf("instr params:\n");
   for (int i = 0; i < instr.params.len; i++) {
     InstrParam* p = instr.params.At(i);
-    printf("%s %s %s\n", p->type, p->name, p->defaultval);
+    printf("  %s %s = %s\n", p->type, p->name, p->defaultval);
   }
   printf("\n");
 
@@ -478,17 +567,27 @@ void ParseInstrument(Tokenizer *tokenizer, StackAllocator *stack) {
 
     DeclareDef declare;
     instr.declare = declare;
-    instr.declare.text = ParsePercentBraceTextBlock(tokenizer, stack);
+    instr.declare.text = CopyPercentBraceTextBlock(tokenizer, stack);
+
+
+    ArrayListT<StructMember> lst = ParseStructMembers(instr.declare.text, stack);
     
-    printf("declare:%s\n\n", instr.declare.text);
+    printf("declare members:\n");
+    for (int i = 0; i < lst.len; ++i) {
+      StructMember *memb = lst.At(i);
+      printf("  %s %s = %s\n", memb->type, memb->name, memb->defval);
+    }
+    printf("\n");
   }
+
+
 
   if (LookAheadNextToken(tokenizer, TOK_IDENTIFIER, "INITIALIZE")) {
     if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "INITIALIZE")) exit(1);
 
     InitializeDef init;
     instr.init = init;
-    instr.init.text = ParsePercentBraceTextBlock(tokenizer, stack);
+    instr.init.text = CopyPercentBraceTextBlock(tokenizer, stack);
 
     printf("init:%s\n\n", instr.init.text);
   }
@@ -507,7 +606,7 @@ void ParseInstrument(Tokenizer *tokenizer, StackAllocator *stack) {
 
     FinalizeDef finalize;
     instr.finalize = finalize;
-    instr.finalize.text = ParsePercentBraceTextBlock(tokenizer, stack);
+    instr.finalize.text = CopyPercentBraceTextBlock(tokenizer, stack);
 
     printf("finalize:%s\n\n", instr.finalize.text);
   }
