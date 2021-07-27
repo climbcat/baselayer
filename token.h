@@ -148,7 +148,7 @@ bool IsNumeric(char c) {
 
 inline
 bool IsNumericSymbol(char c) {
-  bool issymb = ((c == '.') || (c == 'e') || (c == 'E'));
+  bool issymb = ((c == '.') || (c == 'e') || (c == 'E') || (c == '-') || (c == '+'));
   return issymb;
 }
 
