@@ -391,23 +391,6 @@ ArrayListT<InstrParam> ParseInstrParams(Tokenizer *tokenizer, StackAllocator *st
   return alst;
 }
 
-
-struct DeclareDef {
-  char * text;
-};
-
-struct InitializeDef {
-  char * text;
-};
-
-struct TraceDef {
-  char * text;
-};
-
-struct FinalizeDef {
-  char * text;
-};
-
 char* CopyPercentBraceTextBlock(Tokenizer *tokenizer, StackAllocator *stack) {
   Token token;
   if (!RequireToken(tokenizer, &token, TOK_PERCENT)) exit(1);
@@ -436,23 +419,44 @@ char* CopyPercentBraceTextBlock(Tokenizer *tokenizer, StackAllocator *stack) {
   return text;
 }
 
+struct DeclareDef {
+  char * text;
+};
+
+struct InitializeDef {
+  char * text;
+};
+
+struct FinalizeDef {
+  char * text;
+};
+
 struct CompParam {
   char* name;
   char* value;
 };
 
-struct Vector3 {
-  double x = 0;
-  double y = 0;
-  double z = 0;
+struct Vector3Strings {
+  char* x;
+  char* y;
+  char* z;
 };
 
 struct CompDecl {
-  char *type;
-  char *name;
+  char *type = NULL;
+  char *name = NULL;
+  char *extend = NULL;
+  u32 split = 0;
   ArrayListT<CompParam> params;
-  Vector3 at;
-  Vector3 rot;
+  Vector3Strings at;
+  Vector3Strings rot;
+  char* at_relative = NULL; // value can be ABSOLUTE or a comp name
+  char* rot_relative = NULL; // value must be a comp name
+};
+
+struct TraceDef {
+  char * text;
+  ArrayListT<CompDecl> comps;
 };
 
 struct InstrDef {
@@ -538,6 +542,308 @@ ArrayListT<StructMember> ParseStructMembers(char *text, StackAllocator *stack) {
   return lst;
 }
 
+char* GetTextUntillEOSOrBlockClose(Tokenizer *tokenizer, StackAllocator *stack) {
+  Tokenizer save = *tokenizer;
+
+  // basic parsing pattern:
+  bool parsing = true;
+  while (parsing) {
+    Token token = GetToken(tokenizer);
+
+    switch ( token.type ) {
+      case TOK_ENDOFSTREAM: {
+        parsing = false;
+      } break;
+
+      case TOK_PERCENT: {
+        if (LookAheadNextToken(tokenizer, TOK_RBRACE)) {
+          tokenizer->at -= 1;
+          parsing = false;
+        }
+      } break;
+
+      case TOK_IDENTIFIER: {
+        if (TokenEquals(&token, "END")) {
+          tokenizer->at -= 3;
+          parsing = false;
+        }
+      } break;
+
+      default: {
+      } break;
+    }
+  }
+
+  u32 len = tokenizer->at - save.at;
+  char *result = (char*) stack->Alloc(len + 1);
+  strncpy(result, save.at, len);
+  result[len] = '\0';
+  return result;
+}
+
+u32 MinU(u32 a, u32 b) {
+  if (a <= b) {
+    return a;
+  }
+  else {
+    return b;
+  }
+}
+
+u32 MaxU(u32 a, u32 b) {
+  if (a >= b) {
+    return a;
+  }
+  else {
+    return b;
+  }
+}
+
+ArrayListT<CompParam> ParseCompParams(Tokenizer *tokenizer, StackAllocator *stack) {
+  CompParam par;
+  Token token;
+
+  // find number of pars, check integrity
+  Tokenizer save = *tokenizer;
+  u32 count = 0;
+  bool parsing = true;
+  while (parsing) {
+    Token token = GetToken(tokenizer);
+
+    switch ( token.type ) {
+      case TOK_ENDOFSTREAM: {
+        parsing = false;
+        PrintLineError(tokenizer, &token, "Unexpected end of stream");
+      } break;
+
+      case TOK_IDENTIFIER: {
+        count = MaxU(count, 1);
+      } break;
+
+      case TOK_COMMA: {
+        ++count;
+        count = MaxU(count, 2);
+      } break;
+
+      case TOK_RBRACK: {
+        parsing = false;
+      } break;
+
+      default: {
+      } break;
+    }
+  }
+
+  ArrayListT<CompParam> lst;
+  lst.Init(stack->Alloc(sizeof(CompParam) * count));
+  *tokenizer = save;
+
+  // parse individual params
+  for (int i = 0; i < count; i++) {
+    CompParam par;
+
+    if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(0);
+    TokenValueToAlloc(&token, &par.name, stack);
+
+    if (!RequireToken(tokenizer, &token, TOK_ASSIGN)) exit(0);
+
+    EatWhiteSpacesAndComments(tokenizer);
+    u32 vallen = MinU(LookAheadTokenTextlen(tokenizer, TOK_COMMA), LookAheadTokenTextlen(tokenizer, TOK_RBRACK));
+    if (vallen == 0) {
+      PrintLineError(tokenizer, &token, "Expected param value.");
+    }
+    else {
+      EatWhiteSpacesAndComments(tokenizer);
+      token.text = tokenizer->at;
+      token.len = vallen;
+      TokenValueToAlloc(&token, &par.value, stack);
+      lst.Add(&par);
+      tokenizer->at += vallen;
+    }
+
+    if (LookAheadNextToken(tokenizer, TOK_COMMA)) {
+      GetToken(tokenizer);
+    }
+  }
+
+  return lst;
+}
+
+u32 Trim(char **src, u32 maxlen) { // trim whitespaces, sets *src = start and returns len (no null term)
+  u32 idx = 0;
+  char *at = *src;
+  while ( IsWhitespace(*at) ) {
+    ++at;
+    ++idx;
+  }
+
+  *src = at;
+  while ( !IsWhitespace(*at) && idx < maxlen) {
+    ++at;
+    ++idx;
+  }
+  return at - *src;
+}
+
+char* CopyAllocCharsUntillTok(TokenType token_type, Tokenizer *tokenizer, StackAllocator *stack) {
+  char* result;
+  u32 len = LookAheadTokenTextlen(tokenizer, token_type);
+  len = Trim(&tokenizer->at, len);
+
+  if (len == 1) { // safeguard against the value = zero case
+    u8 alen = 3;
+    result = (char*) stack->Alloc(alen + 1);
+    result[0] = *tokenizer->at;
+    result[1] = '.';
+    result[2] = '0';
+    result[3] = '\0';
+  }
+  else {
+    result = (char*) stack->Alloc(len + 1);
+    strncpy(result, tokenizer->at, len);
+    result[len] = '\0';
+  }
+
+  tokenizer->at += len;
+  return result;
+}
+
+Vector3Strings ParseVector3(Tokenizer *tokenizer, StackAllocator *stack) {
+  Token token;
+  Vector3Strings vect;
+
+  EatWhiteSpacesAndComments(tokenizer);
+  vect.x = CopyAllocCharsUntillTok(TOK_COMMA, tokenizer, stack);
+
+  RequireToken(tokenizer, &token, TOK_COMMA);
+
+  EatWhiteSpacesAndComments(tokenizer);
+  vect.y = CopyAllocCharsUntillTok(TOK_COMMA, tokenizer, stack);
+
+  RequireToken(tokenizer, &token, TOK_COMMA);
+
+  EatWhiteSpacesAndComments(tokenizer);
+  vect.z = CopyAllocCharsUntillTok(TOK_RBRACK, tokenizer, stack);
+
+  return vect;
+}
+
+char* ParseAbsoluteRelative(Tokenizer *tokenizer, StackAllocator *stack) {
+  char *result = NULL;
+  Token token;
+  if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(0);
+
+  if (TokenEquals(&token, "ABSOLUTE")) {
+    TokenValueToAlloc(&token, &result, stack);
+  }
+  else if (TokenEquals(&token, "RELATIVE")) {
+    if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(0);
+    TokenValueToAlloc(&token, &result, stack);
+  }
+  else {
+    PrintLineError(tokenizer, &token, "Expected RELATIVE [compname/PREVIOUS] or ABSOLUTE.");
+    exit(0);
+  }
+  return result;
+}
+
+
+ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack) {
+  ArrayListT<CompDecl> result;
+
+  Tokenizer save = *tokenizer;
+
+  // basic parsing pattern:
+  u32 count = 0;
+  bool parsing = true;
+  while (parsing) {
+    Token token = GetToken(tokenizer);
+
+    switch ( token.type ) {
+      case TOK_ENDOFSTREAM: {
+        parsing = false;
+      } break;
+
+      case TOK_IDENTIFIER: {
+        if (TokenEquals(&token, "COMPONENT")) {
+          ++count;
+        }
+        else if (TokenEquals(&token, "FINALIZE")) {
+          parsing = false;
+        }
+        else if (TokenEquals(&token, "END")) {
+          parsing = false;
+        }
+      } break;
+
+      default: {
+      } break;
+    }
+  }
+
+  *tokenizer = save;
+  Token token = {};
+  ArrayListT<CompDecl> lst;
+  lst.Init(stack->Alloc(sizeof(CompDecl) * count));
+  for (int idx = 0; idx < count; ++idx) {
+    if (LookAheadNextToken(tokenizer, TOK_ENDOFSTREAM)) {
+      break;
+    }
+    else {
+      CompDecl comp = {};
+
+      // OPTIONAL split
+      if (LookAheadNextToken(tokenizer, TOK_IDENTIFIER, "SPLIT")) {
+        token = GetToken(tokenizer);
+        comp.split = 1;
+        if (LookAheadNextToken(tokenizer, TOK_INT)) {
+          token = GetToken(tokenizer);
+          char split[10];
+          strncpy(split, token.text, token.len);
+          comp.split = atoi(split);
+          if (comp.split == 0) {
+            PrintLineError(tokenizer, &token, "Expected a positive integer");
+          }
+        }
+      }
+      
+      // declaration
+      if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "COMPONENT")) exit(0);
+      if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(0);
+      TokenValueToAlloc(&token, &comp.name, stack);
+      if (!RequireToken(tokenizer, &token, TOK_ASSIGN)) exit(0);
+      if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(0);
+      TokenValueToAlloc(&token, &comp.type, stack);
+
+      // parameter values
+      if (!RequireToken(tokenizer, &token, TOK_LBRACK)) exit(0);
+
+      comp.params = ParseCompParams(tokenizer, stack);
+      if (!RequireToken(tokenizer, &token, TOK_RBRACK)) exit(0);
+
+      // location / AT
+      if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "AT")) exit(0);
+      RequireToken(tokenizer, &token, TOK_LBRACK);
+      comp.at = ParseVector3(tokenizer, stack);
+      RequireToken(tokenizer, &token, TOK_RBRACK);
+      comp.at_relative = ParseAbsoluteRelative(tokenizer, stack);
+
+      // OPTIONAL rotation / ROTATED
+      if (LookAheadNextToken(tokenizer, TOK_IDENTIFIER, "ROTATED")) {
+        token = GetToken(tokenizer);
+        RequireToken(tokenizer, &token, TOK_LBRACK);
+        comp.rot = ParseVector3(tokenizer, stack);
+        RequireToken(tokenizer, &token, TOK_RBRACK);
+        comp.rot_relative = ParseAbsoluteRelative(tokenizer, stack);
+      }
+
+      lst.Add(&comp);
+    }
+  }
+
+  return lst;
+}
+
 void ParseInstrument(Tokenizer *tokenizer, StackAllocator *stack) {
   Token token;
 
@@ -545,23 +851,27 @@ void ParseInstrument(Tokenizer *tokenizer, StackAllocator *stack) {
   if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "INSTRUMENT")) exit(1);
   if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(1);
 
+  // instr header
   InstrDef instr;
-  TokenValueToAlloc(&token, &instr.name, stack);
+  {
+    TokenValueToAlloc(&token, &instr.name, stack);
 
-  if (!RequireToken(tokenizer, NULL, TOK_LBRACK)) exit(1);
+    if (!RequireToken(tokenizer, NULL, TOK_LBRACK)) exit(1);
 
-  instr.params = ParseInstrParams(tokenizer, stack);
+    instr.params = ParseInstrParams(tokenizer, stack);
 
-  if (!RequireToken(tokenizer, NULL, TOK_RBRACK)) exit(1);
+    if (!RequireToken(tokenizer, NULL, TOK_RBRACK)) exit(1);
 
-  printf("instr name:\n%s\n\n", instr.name);
-  printf("instr params:\n");
-  for (int i = 0; i < instr.params.len; i++) {
-    InstrParam* p = instr.params.At(i);
-    printf("  %s %s = %s\n", p->type, p->name, p->defaultval);
+    printf("instr name:\n%s\n\n", instr.name);
+    printf("instr params:\n");
+    for (int i = 0; i < instr.params.len; i++) {
+      InstrParam* p = instr.params.At(i);
+      printf("  %s %s = %s\n", p->type, p->name, p->defaultval);
+    }
+    printf("\n");
   }
-  printf("\n");
 
+  // declare
   if (LookAheadNextToken(tokenizer, TOK_IDENTIFIER, "DECLARE")) {
     if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "DECLARE")) exit(1);
 
@@ -580,8 +890,7 @@ void ParseInstrument(Tokenizer *tokenizer, StackAllocator *stack) {
     printf("\n");
   }
 
-
-
+  // initialize
   if (LookAheadNextToken(tokenizer, TOK_IDENTIFIER, "INITIALIZE")) {
     if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "INITIALIZE")) exit(1);
 
@@ -589,18 +898,42 @@ void ParseInstrument(Tokenizer *tokenizer, StackAllocator *stack) {
     instr.init = init;
     instr.init.text = CopyPercentBraceTextBlock(tokenizer, stack);
 
-    printf("init:%s\n\n", instr.init.text);
+    printf("init text:%s\n\n", instr.init.text);
   }
 
+  // trace
   {
     if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "TRACE")) exit(1);
 
     TraceDef trace;
     instr.trace = trace;
-    instr.trace.text = NULL;
-    printf("trace: (...) \n\n");
+    Tokenizer save = *tokenizer;
+    instr.trace.text = GetTextUntillEOSOrBlockClose(tokenizer, stack);
+    *tokenizer = save;
+    trace.comps = ParseTraceComps(tokenizer, stack);
+
+    printf("components:\n");
+    auto lst = trace.comps;
+    for (int i = 0; i < lst.len; ++i) {
+      CompDecl *comp = lst.At(i);
+      printf("  type: %s\n", comp->type);
+      printf("  name %s\n", comp->name);
+      printf("  params:\n");
+      auto lstp = comp->params;
+      for (int i = 0; i < lstp.len; ++i) {
+        CompParam *param = lstp.At(i);
+        printf("    name: %s\n", param->name);
+        printf("    value %s\n", param->value);
+      }
+      printf("  at:      (%s, %s, %s) %s\n", comp->at.x, comp->at.y, comp->at.z, comp->at_relative);
+      printf("  rotated: (%s, %s, %s) %s\n", comp->rot.x, comp->rot.y, comp->rot.z, comp->rot_relative);
+    }
+    printf("\n");
+
+    //printf("trace text: \n%s\n\n", instr.trace.text);
   }
 
+  // finalize
   if (LookAheadNextToken(tokenizer, TOK_IDENTIFIER, "FINALIZE")) {
     if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "FINALIZE")) exit(1);
 
@@ -608,7 +941,7 @@ void ParseInstrument(Tokenizer *tokenizer, StackAllocator *stack) {
     instr.finalize = finalize;
     instr.finalize.text = CopyPercentBraceTextBlock(tokenizer, stack);
 
-    printf("finalize:%s\n\n", instr.finalize.text);
+    printf("finalize text:%s\n\n", instr.finalize.text);
   }
 
 
@@ -641,7 +974,7 @@ void TestParseMcStas(int argc, char **argv) {
   }
   printf("parsing file %s\n\n", filename);
 
-  StackAllocator stack(SIXTEEN_K);
+  StackAllocator stack(MEGABYTE);
 
   Tokenizer tokenizer = {};
   tokenizer.Init(text);
