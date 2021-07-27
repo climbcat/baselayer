@@ -103,7 +103,6 @@ struct Tokenizer {
   char *at;
   u32 line = 1;
   char *at_linestart;
-
   void Init(char *text) {
     line = 1;
     at = text;
@@ -449,7 +448,7 @@ Token GetToken(Tokenizer* tokenizer) {
   return token;
 }
 
-u32 LookAheadTokenCountOR(Tokenizer *tokenizer, TokenType desired_type, TokenType desired_type_or = TOK_UNKNOWN) {
+u32 LookAheadTokenCountOR(Tokenizer *tokenizer, TokenType desired_type, TokenType desired_type_or = TOK_ENDOFSTREAM) {
   Tokenizer resume = *tokenizer;
 
   u32 steps = 0;
@@ -472,7 +471,12 @@ u32 LookAheadTokenCountOR(Tokenizer *tokenizer, TokenType desired_type, TokenTyp
   return steps;
 }
 
-u32 LookAheadTokenCountNOT(Tokenizer *tokenizer, TokenType desired_type, TokenType avoid_type = TOK_UNKNOWN) {
+inline
+u32 LookAheadTokenCount(Tokenizer *tokenizer, TokenType desired_type) {
+  return LookAheadTokenCountOR(tokenizer, desired_type);
+}
+
+u32 LookAheadTokenCountNOT(Tokenizer *tokenizer, TokenType desired_type, TokenType avoid_type = TOK_ENDOFSTREAM) {
   Tokenizer resume = *tokenizer;
 
   u32 steps = 0;
@@ -490,6 +494,21 @@ u32 LookAheadTokenCountNOT(Tokenizer *tokenizer, TokenType desired_type, TokenTy
 
   *tokenizer = resume;
   return steps;
+}
+
+
+bool LookAheadNextToken(Tokenizer *tokenizer, TokenType desired_type, const char *desired_value = NULL) {
+  Tokenizer resume = *tokenizer;
+  Token token = GetToken(tokenizer);
+  bool result = 0;
+  if (token.type == desired_type) {
+    result = 1;
+  }
+  if (desired_value != NULL && !TokenEquals(&token, desired_value)) {
+    result = 0;
+  }
+  *tokenizer = resume;
+  return result;
 }
 
 // will inc tokenizer ONLY IF token requirement is satisfied

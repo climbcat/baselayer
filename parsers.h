@@ -305,10 +305,14 @@ ArrayListT<InstrParam> ParseInstrParams(Tokenizer *tokenizer, StackAllocator *st
   }
   *tokenizer = resume;
 
-  ArrayListT<InstrParam> alst(stack->Alloc(sizeof(InstrParam) * count));
+  ArrayListT<InstrParam> alst;
+  alst.Init(stack->Alloc(sizeof(InstrParam) * count));
 
   parsing = true;
   while (parsing) {
+    if (LookAheadNextToken(tokenizer, TOK_RBRACK)) {
+      return alst;
+    }
     Token token = GetToken(tokenizer);
     switch ( token.type ) {
       case TOK_ENDOFSTREAM: {
@@ -371,6 +375,10 @@ ArrayListT<InstrParam> ParseInstrParams(Tokenizer *tokenizer, StackAllocator *st
           // parname
           TokenValueToAllocAssertType(&token, TOK_IDENTIFIER, &param.defaultval, stack);
         }
+        else {
+          PrintLineError(tokenizer, &token, "Parameter ill defined");
+          exit(1);
+        }
         alst.Add(&param);
  
       } break;
@@ -383,19 +391,69 @@ ArrayListT<InstrParam> ParseInstrParams(Tokenizer *tokenizer, StackAllocator *st
   return alst;
 }
 
+
+struct DeclareDef {
+  char * text;
+};
+
+struct InitializeDef {
+  char * text;
+};
+
+struct TraceDef {
+  char * text;
+};
+
+struct FinalizeDef {
+  char * text;
+};
+
+char* ParsePercentBraceTextBlock(Tokenizer *tokenizer, StackAllocator *stack) {
+  Token token;
+  if (!RequireToken(tokenizer, &token, TOK_PERCENT)) exit(1);
+  if (!RequireToken(tokenizer, &token, TOK_LBRACE)) exit(1);
+
+  Tokenizer save = *tokenizer;
+  char *text = NULL;
+
+  while (true) {
+    u32 count = LookAheadTokenCount(tokenizer, TOK_PERCENT);
+    if (count == 0 && LookAheadNextToken(tokenizer, TOK_ENDOFSTREAM)) {
+      PrintLineError(tokenizer, &token, "End of file reached");
+      exit(0);
+    }
+    tokenizer->at += count;
+    if (LookAheadNextToken(tokenizer, TOK_RBRACE)) {
+      GetToken(tokenizer);
+
+      // copy intact DECLARE text block
+      u32 len = tokenizer->at - save.at - 2;
+      text = (char*) stack->Alloc(len + 1);
+      strncpy(text, save.at, len);
+      text[len] = '\0';
+
+      break;
+    }
+  }
+  return text;
+}
+
+
 struct InstrDef {
-  char* name;
+  char *name;
+  ArrayListT<InstrParam> params;
+  DeclareDef declare;
+  InitializeDef init;
+  TraceDef trace;
+  FinalizeDef finalize;
 };
 
 
 void ParseInstrument(Tokenizer *tokenizer, StackAllocator *stack) {
-
   Token token;
-  bool ok = true;
 
   if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "DEFINE")) exit(1);
   if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "INSTRUMENT")) exit(1);
-
   if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(1);
 
   InstrDef instr;
@@ -403,11 +461,55 @@ void ParseInstrument(Tokenizer *tokenizer, StackAllocator *stack) {
 
   if (!RequireToken(tokenizer, NULL, TOK_LBRACK)) exit(1);
 
-  ArrayListT<InstrParam> lst = ParseInstrParams(tokenizer, stack);
-  printf("instrument params listed:\n");
-  for (int i = 0; i < lst.len; i++) {
-    InstrParam* p = lst.At(i);
+  instr.params = ParseInstrParams(tokenizer, stack);
+
+  if (!RequireToken(tokenizer, NULL, TOK_RBRACK)) exit(1);
+
+  printf("instr name:\n%s\n\n", instr.name);
+  printf("instr params:\n");
+  for (int i = 0; i < instr.params.len; i++) {
+    InstrParam* p = instr.params.At(i);
     printf("%s %s %s\n", p->type, p->name, p->defaultval);
+  }
+  printf("\n");
+
+  if (LookAheadNextToken(tokenizer, TOK_IDENTIFIER, "DECLARE")) {
+    if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "DECLARE")) exit(1);
+
+    DeclareDef declare;
+    instr.declare = declare;
+    instr.declare.text = ParsePercentBraceTextBlock(tokenizer, stack);
+    
+    printf("declare:%s\n\n", instr.declare.text);
+  }
+
+  if (LookAheadNextToken(tokenizer, TOK_IDENTIFIER, "INITIALIZE")) {
+    if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "INITIALIZE")) exit(1);
+
+    InitializeDef init;
+    instr.init = init;
+    instr.init.text = ParsePercentBraceTextBlock(tokenizer, stack);
+
+    printf("init:%s\n\n", instr.init.text);
+  }
+
+  {
+    if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "TRACE")) exit(1);
+
+    TraceDef trace;
+    instr.trace = trace;
+    instr.trace.text = NULL;
+    printf("trace: (...) \n\n");
+  }
+
+  if (LookAheadNextToken(tokenizer, TOK_IDENTIFIER, "FINALIZE")) {
+    if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "FINALIZE")) exit(1);
+
+    FinalizeDef finalize;
+    instr.finalize = finalize;
+    instr.finalize.text = ParsePercentBraceTextBlock(tokenizer, stack);
+
+    printf("finalize:%s\n\n", instr.finalize.text);
   }
 
 
@@ -432,13 +534,13 @@ void ParseInstrument(Tokenizer *tokenizer, StackAllocator *stack) {
 
 void TestParseMcStas(int argc, char **argv) {
   //char *filename = (char*) "PSI_DMC.instr";
-  char *filename = (char*) "testnewlines.instr";
+  char *filename = (char*) "PSI.instr";
   char *text = LoadFile(filename, true);
   if (text == NULL) {
       printf("could not load file %s\n", filename);
       exit(1);
   }
-  printf("parsing file %s as a mcstas instrument...\n", filename);
+  printf("parsing file %s\n\n", filename);
 
   StackAllocator stack(SIXTEEN_K);
 

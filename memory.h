@@ -411,35 +411,38 @@ public:
 };
 
 
-template<class T>
-class ArrayListT {
-public:
+/**
+* ArrayList which uses a single template argument for safety and ease of use.
+*/
+template<typename T>
+struct ArrayListT {
   T* lst = NULL;
-  u32 element_size;
+  u32 element_size = 0;
   u32 len = 0;
-  ArrayListT(void* memloc) {
+  void Init(void* memloc) {
     this->lst = (T*) memloc;
     this->element_size = sizeof(T);
   }
   void Add(void* item) {
+    assert(element_size != 0);
     this->len++;
     ArrayPut(this->lst, this->element_size, this->len, this->len - 1, item);
   }
   void Insert(void* item, u32 at_idx) {
+    assert(element_size != 0);
     ArrayShift(this->lst, this->element_size, this->len, at_idx, 1);
     this->len++;
     ArrayPut(this->lst, this->element_size, this->len, at_idx, item);
   }
   void Remove(u32 at_idx) {
+    assert(element_size != 0);
     ArrayShift(this->lst, this->element_size, this->len, at_idx, -1);
     this->len--;
   }
   T* At(u32 idx) {
+    assert(element_size != 0);
     return this->lst + idx;
   }
-
-  // TODO: consider adding max_len
-  // TODO: consider adding overwrite, multi-insert and multi-delete
 };
 
 
