@@ -577,6 +577,30 @@ void TestTokenizerLineNums() {
   assert( tokenizer.line == 5 );
 }
 
+void TestTokenizerLineNums_PSI() {
+  char *filename = (char*) "PSI.instr";
+  char *text = LoadFile(filename, true);
+  if (text == NULL) {
+      printf("could not load file %s\n", filename);
+      exit(1);
+  }
+  printf("parsing file %s\n\n", filename);
+
+  StackAllocator stack(MEGABYTE);
+
+  Tokenizer tokenizer = {};
+  tokenizer.Init(text);
+
+  ParseInstrument(&tokenizer, &stack);
+
+  u32 num_endofline = CountNumCharsInText(text, '\n');
+  printf("\n\n");
+  printf("text:      %d\n", num_endofline);
+  printf("tokenizer: %d\n", tokenizer.line);
+
+  assert( tokenizer.line = num_endofline );
+}
+
 
 void RunTests(int argc, char **argv) {
   //TestRandGen();
@@ -596,8 +620,9 @@ void RunTests(int argc, char **argv) {
   //TestParseNumerics();
   //TestParseNumTokenSeparatedStuff();
   //TestTokenizerLineNums();
+  TestTokenizerLineNums_PSI();
 
-  TestParseMcStas(argc, argv);
+  //TestParseMcStas(argc, argv);
 }
 
 

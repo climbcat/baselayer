@@ -598,7 +598,7 @@ void ParseInstrument(Tokenizer *tokenizer, StackAllocator *stack) {
     auto lst = trace.comps;
     for (int i = 0; i < lst.len; ++i) {
       CompDecl *comp = lst.At(i);
-      printf("  type: %s\n", comp->type);
+      printf("\n  type: %s\n", comp->type);
       printf("  name %s\n", comp->name);
       printf("  params:\n");
       auto lstp = comp->params;

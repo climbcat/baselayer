@@ -601,6 +601,17 @@ u32 MaxU(u32 a, u32 b) {
   }
 }
 
+u32 CountNumCharsInText(char *text, char match) {
+  u32 count = 0;
+  while (*text != '\0') {
+    if (*text == match) {
+      ++count;
+    }
+    ++text;
+  }
+  return count;
+}
+
 u32 GetNumTokenSeparatedStuff(char *text, TokenType tok_separator, TokenType tok_exit = TOK_ENDOFSTREAM, TokenType tok_enter = TOK_UNKNOWN) {
   Tokenizer tokenizer;
   tokenizer.Init(text);
