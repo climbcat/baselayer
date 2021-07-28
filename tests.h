@@ -554,6 +554,29 @@ void TestParseNumTokenSeparatedStuff() {
   assert( count == 7 );
 }
 
+void TestTokenizerLineNums() {
+  const char *string = 
+    " \
+    yheight=0.156, xwidth=0.126, \n\
+    Lmin=lambda-ldiff/2,Lmax=lambda+ldiff/2, \n\
+    dist=1.5, focus_xw = 0.02, focus_yh = 0.12) \n\
+    Lmin=lambda-ldiff/2,Lmax=lambda+ldiff/2, \n\
+    ";
+
+  Tokenizer tokenizer;
+  tokenizer.Init((char*) string);
+  printf("line0 = %d\n", tokenizer.line);
+
+  Token token;
+  token.type = TOK_UNKNOWN;
+  while (token.type != TOK_ENDOFSTREAM) {
+    token = GetToken(&tokenizer);
+  }
+
+  printf("linen = %d\n", tokenizer.line);
+  assert( tokenizer.line == 5 );
+}
+
 
 void RunTests(int argc, char **argv) {
   //TestRandGen();
@@ -572,6 +595,7 @@ void RunTests(int argc, char **argv) {
   //TestParseConfig();
   //TestParseNumerics();
   //TestParseNumTokenSeparatedStuff();
+  //TestTokenizerLineNums();
 
   TestParseMcStas(argc, argv);
 }
