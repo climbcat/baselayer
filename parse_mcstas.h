@@ -36,7 +36,7 @@ ArrayListT<StructMember> ParseStructMembers(char *text, StackAllocator *stack) {
     AllocTokenValue(&member.name, &token, stack);
 
     if (LookAheadNextToken(tokenizer, TOK_ASSIGN)) {
-      GetToken(tokenizer); // skip the assign
+      GetToken(tokenizer);
       u32 len = LookAheadTokenTextlen(tokenizer, TOK_SEMICOLON);
       if (len == 0) {
         PrintLineError(tokenizer, &token, "Expected: ;");
@@ -67,32 +67,33 @@ ArrayListT<StructMember> ParseStructMembers(char *text, StackAllocator *stack) {
 
 
 struct InstrParam {
-  char* name;
-  char* type;
-  char* defaultval;
+  char* name = NULL;
+  char* type = NULL;
+  char* defaultval = NULL;
 };
 
 struct DeclareDef {
-  char * text;
+  char *text = NULL;
+  ArrayListT<StructMember> decls;
 };
 
 struct InitializeDef {
-  char * text;
+  char *text = NULL;
 };
 
 struct FinalizeDef {
-  char * text;
+  char *text = NULL;
 };
 
 struct CompParam {
-  char* name;
-  char* value;
+  char *name = NULL;
+  char *value = NULL;
 };
 
 struct Vector3Strings {
-  char* x;
-  char* y;
-  char* z;
+  char *x;
+  char *y;
+  char *z;
 };
 
 struct CompDecl {
@@ -103,17 +104,17 @@ struct CompDecl {
   ArrayListT<CompParam> params;
   Vector3Strings at;
   Vector3Strings rot;
-  char* at_relative = NULL; // value can be ABSOLUTE or a comp name
-  char* rot_relative = NULL; // value must be a comp name
+  char *at_relative = NULL; // value can be ABSOLUTE or a comp name
+  char *rot_relative = NULL; // value must be a comp name
 };
 
 struct TraceDef {
-  char * text;
+  char *text = NULL;
   ArrayListT<CompDecl> comps;
 };
 
 struct InstrDef {
-  char *name;
+  char *name = NULL;
   ArrayListT<InstrParam> params;
   DeclareDef declare;
   InitializeDef init;
@@ -236,7 +237,7 @@ char* CopyPercentBraceTextBlock(Tokenizer *tokenizer, StackAllocator *stack) {
   return text;
 }
 
-char* GetTextUntillEOSOrBlockClose(Tokenizer *tokenizer, StackAllocator *stack) {
+char* GetTextUntillEOSOrBlockClose(Tokenizer *tokenizer, bool restore_tokenizer, StackAllocator *stack) {
   Tokenizer save = *tokenizer;
 
   // basic parsing pattern:
@@ -272,6 +273,11 @@ char* GetTextUntillEOSOrBlockClose(Tokenizer *tokenizer, StackAllocator *stack) 
   char *result = (char*) stack->Alloc(len + 1);
   strncpy(result, save.at, len);
   result[len] = '\0';
+
+  if (restore_tokenizer) {
+    *tokenizer = save;
+  }
+
   return result;
 }
 
@@ -489,7 +495,7 @@ ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack
           }
         }
       }
-      
+
       // declaration
       if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "COMPONENT")) exit(0);
       if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(0);
@@ -527,7 +533,7 @@ ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack
   return lst;
 }
 
-void ParseInstrument(Tokenizer *tokenizer, StackAllocator *stack) {
+InstrDef ParseInstrument(Tokenizer *tokenizer, StackAllocator *stack) {
   Token token;
 
   if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "DEFINE")) exit(1);
@@ -538,38 +544,19 @@ void ParseInstrument(Tokenizer *tokenizer, StackAllocator *stack) {
   InstrDef instr;
   {
     AllocTokenValue(&instr.name, &token, stack);
-
     if (!RequireToken(tokenizer, NULL, TOK_LBRACK)) exit(1);
 
     instr.params = ParseInstrParams(tokenizer, stack);
 
     if (!RequireToken(tokenizer, NULL, TOK_RBRACK)) exit(1);
-
-    printf("instr name:\n%s\n\n", instr.name);
-    printf("instr params:\n");
-    for (int i = 0; i < instr.params.len; i++) {
-      InstrParam* p = instr.params.At(i);
-      printf("  %s %s = %s\n", p->type, p->name, p->defaultval);
-    }
-    printf("\n");
   }
 
   // declare
   if (LookAheadNextToken(tokenizer, TOK_IDENTIFIER, "DECLARE")) {
     if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "DECLARE")) exit(1);
 
-    DeclareDef declare;
-    instr.declare = declare;
     instr.declare.text = CopyPercentBraceTextBlock(tokenizer, stack);
-
-    ArrayListT<StructMember> lst = ParseStructMembers(instr.declare.text, stack);
-    
-    printf("declare members:\n");
-    for (int i = 0; i < lst.len; ++i) {
-      StructMember *memb = lst.At(i);
-      printf("  %s %s = %s\n", memb->type, memb->name, memb->defval);
-    }
-    printf("\n");
+    instr.declare.decls = ParseStructMembers(instr.declare.text, stack);
   }
 
   // initialize
@@ -579,38 +566,14 @@ void ParseInstrument(Tokenizer *tokenizer, StackAllocator *stack) {
     InitializeDef init;
     instr.init = init;
     instr.init.text = CopyPercentBraceTextBlock(tokenizer, stack);
-
-    printf("init text:%s\n\n", instr.init.text);
   }
 
   // trace
   {
     if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "TRACE")) exit(1);
 
-    TraceDef trace;
-    instr.trace = trace;
-    Tokenizer save = *tokenizer;
-    instr.trace.text = GetTextUntillEOSOrBlockClose(tokenizer, stack);
-    *tokenizer = save;
-    trace.comps = ParseTraceComps(tokenizer, stack);
-
-    printf("components:\n");
-    auto lst = trace.comps;
-    for (int i = 0; i < lst.len; ++i) {
-      CompDecl *comp = lst.At(i);
-      printf("\n  type: %s\n", comp->type);
-      printf("  name %s\n", comp->name);
-      printf("  params:\n");
-      auto lstp = comp->params;
-      for (int i = 0; i < lstp.len; ++i) {
-        CompParam *param = lstp.At(i);
-        printf("    name: %s\n", param->name);
-        printf("    value %s\n", param->value);
-      }
-      printf("  at:      (%s, %s, %s) %s\n", comp->at.x, comp->at.y, comp->at.z, comp->at_relative);
-      printf("  rotated: (%s, %s, %s) %s\n", comp->rot.x, comp->rot.y, comp->rot.z, comp->rot_relative);
-    }
-    printf("\n");
+    instr.trace.text = GetTextUntillEOSOrBlockClose(tokenizer, true, stack);
+    instr.trace.comps = ParseTraceComps(tokenizer, stack);
   }
 
   // finalize
@@ -620,14 +583,50 @@ void ParseInstrument(Tokenizer *tokenizer, StackAllocator *stack) {
     FinalizeDef finalize;
     instr.finalize = finalize;
     instr.finalize.text = CopyPercentBraceTextBlock(tokenizer, stack);
-
-    printf("finalize text:%s\n\n", instr.finalize.text);
   }
+
+  return instr;
 }
 
+void PrintInstrumentParse(InstrDef instr) {
+  printf("instr name:\n%s\n\n", instr.name);
+  printf("instr params:\n");
+  for (int i = 0; i < instr.params.len; i++) {
+    InstrParam* p = instr.params.At(i);
+    printf("  %s %s = %s\n", p->type, p->name, p->defaultval);
+  }
+  printf("\n");
+
+  printf("declare members:\n");
+  for (int i = 0; i < instr.declare.decls.len; ++i) {
+    StructMember *memb = instr.declare.decls.At(i);
+    printf("  %s %s = %s\n", memb->type, memb->name, memb->defval);
+  }
+  printf("\n");
+
+  printf("init text:%s\n\n", instr.init.text);
+
+  printf("components:\n");
+  for (int i = 0; i < instr.trace.comps.len; ++i) {
+    CompDecl *comp = instr.trace.comps.At(i);
+    printf("\n  type: %s\n", comp->type);
+    printf("  name %s\n", comp->name);
+    printf("  params:\n");
+    auto lstp = comp->params;
+    for (int i = 0; i < lstp.len; ++i) {
+      CompParam *param = lstp.At(i);
+      printf("    name: %s\n", param->name);
+      printf("    value %s\n", param->value);
+    }
+    printf("  at:      (%s, %s, %s) %s\n", comp->at.x, comp->at.y, comp->at.z, comp->at_relative);
+    printf("  rotated: (%s, %s, %s) %s\n", comp->rot.x, comp->rot.y, comp->rot.z, comp->rot_relative);
+  }
+  printf("\n");
+
+  printf("finalize text:%s\n\n", instr.finalize.text);
+}
 
 void TestParseMcStas(int argc, char **argv) {
-  //char *filename = (char*) "PSI_DMC.instr";
   char *filename = (char*) "PSI.instr";
   char *text = LoadFile(filename, true);
   if (text == NULL) {
@@ -641,5 +640,7 @@ void TestParseMcStas(int argc, char **argv) {
   Tokenizer tokenizer = {};
   tokenizer.Init(text);
 
-  ParseInstrument(&tokenizer, &stack);
+  InstrDef instr = ParseInstrument(&tokenizer, &stack);
+
+  PrintInstrumentParse(instr);
 }

@@ -620,9 +620,9 @@ void RunTests(int argc, char **argv) {
   //TestParseNumerics();
   //TestParseNumTokenSeparatedStuff();
   //TestTokenizerLineNums();
-  TestTokenizerLineNums_PSI();
+  //TestTokenizerLineNums_PSI();
 
-  //TestParseMcStas(argc, argv);
+  TestParseMcStas(argc, argv);
 }
 
 
