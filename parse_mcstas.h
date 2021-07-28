@@ -17,29 +17,11 @@ ArrayListT<StructMember> ParseStructMembers(char *text, StackAllocator *stack) {
   Tokenizer _tokenizer_var;
   Tokenizer *tokenizer = &_tokenizer_var;
   tokenizer->Init(text);
-  Tokenizer save = _tokenizer_var;
 
   // count the number of members by counting semi-colons
   bool parsing = true;
-  u32 count = 0;
-  while (parsing) {
-    Token token = GetToken(tokenizer);
+  u32 count = GetNumTokenSeparatedStuff(text, TOK_SEMICOLON);
 
-    switch ( token.type ) {
-      case TOK_ENDOFSTREAM: {
-        parsing = false;
-      } break;
-
-      case TOK_SEMICOLON: {
-        ++count;
-      } break;
-
-      default: {
-      } break;
-    }
-  }
-
-  *tokenizer = save;
   ArrayListT<StructMember> lst;
   lst.Init(stack->Alloc(sizeof(StructMember) * count));
   Token token;
@@ -58,7 +40,7 @@ ArrayListT<StructMember> ParseStructMembers(char *text, StackAllocator *stack) {
       u32 len = LookAheadTokenTextlen(tokenizer, TOK_SEMICOLON);
       if (len == 0) {
         PrintLineError(tokenizer, &token, "Expected: ;");
-        exit(0);
+        exit(1);
       }
       member.defval = (char*) stack->Alloc(len);
       strncpy(member.defval, tokenizer->at, len);
@@ -139,47 +121,13 @@ struct InstrDef {
   FinalizeDef finalize;
 };
 
-
 ArrayListT<InstrParam> ParseInstrParams(Tokenizer *tokenizer, StackAllocator *stack) {
-  // lookahead count number of pars
-  u32 count = 0;
-  bool parstart_flag = true;
-  Tokenizer resume = *tokenizer;
-  bool parsing = true;
-  while (parsing) {
-    Token token = GetToken(tokenizer);
-    switch ( token.type ) {
-      case TOK_ENDOFSTREAM: {
-        parsing = false;
-        PrintLineError(tokenizer, &token, "Unexpected end of stream");
-        exit(1);
-      } break;
-
-      case TOK_COMMA: {
-        parstart_flag = true;
-      } break;
-
-      case TOK_RBRACK: {
-        parsing = false;
-      } break;
-
-      case TOK_IDENTIFIER: {
-        if (parstart_flag) {
-          parstart_flag = false;
-          ++count;
-        }
-      } break;
-
-      default: {
-      } break;
-    }
-  }
-  *tokenizer = resume;
+  u32 count = GetNumTokenSeparatedStuff(tokenizer->at, TOK_COMMA, TOK_RBRACK);
 
   ArrayListT<InstrParam> alst;
   alst.Init(stack->Alloc(sizeof(InstrParam) * count));
 
-  parsing = true;
+  bool parsing = true;
   while (parsing) {
     if (LookAheadNextToken(tokenizer, TOK_RBRACK)) {
       return alst;
@@ -272,7 +220,7 @@ char* CopyPercentBraceTextBlock(Tokenizer *tokenizer, StackAllocator *stack) {
     u32 dist = LookAheadTokenTextlen(tokenizer, TOK_PERCENT);
     if (dist == 0 && LookAheadNextToken(tokenizer, TOK_ENDOFSTREAM)) {
       PrintLineError(tokenizer, &token, "End of file reached");
-      exit(0);
+      exit(1);
     }
     tokenizer->at += dist;
     if (!RequireToken(tokenizer, &token, TOK_PERCENT)) exit(0);
@@ -327,27 +275,11 @@ char* GetTextUntillEOSOrBlockClose(Tokenizer *tokenizer, StackAllocator *stack) 
   return result;
 }
 
-u32 MinU(u32 a, u32 b) {
-  if (a <= b) {
-    return a;
-  }
-  else {
-    return b;
-  }
-}
-
-u32 MaxU(u32 a, u32 b) {
-  if (a >= b) {
-    return a;
-  }
-  else {
-    return b;
-  }
-}
-
 ArrayListT<CompParam> ParseCompParams(Tokenizer *tokenizer, StackAllocator *stack) {
   CompParam par;
   Token token;
+
+
 
   // find number of pars, check integrity
   Tokenizer save = *tokenizer;
@@ -360,6 +292,7 @@ ArrayListT<CompParam> ParseCompParams(Tokenizer *tokenizer, StackAllocator *stac
       case TOK_ENDOFSTREAM: {
         parsing = false;
         PrintLineError(tokenizer, &token, "Unexpected end of stream");
+        exit(1);
       } break;
 
       case TOK_IDENTIFIER: {
@@ -397,6 +330,7 @@ ArrayListT<CompParam> ParseCompParams(Tokenizer *tokenizer, StackAllocator *stac
     u32 vallen = MinU(LookAheadTokenTextlen(tokenizer, TOK_COMMA), LookAheadTokenTextlen(tokenizer, TOK_RBRACK));
     if (vallen == 0) {
       PrintLineError(tokenizer, &token, "Expected param value.");
+      exit(1);
     }
     else {
       EatWhiteSpacesAndComments(tokenizer);
@@ -488,7 +422,7 @@ char* ParseAbsoluteRelative(Tokenizer *tokenizer, StackAllocator *stack) {
   }
   else {
     PrintLineError(tokenizer, &token, "Expected RELATIVE [compname/PREVIOUS] or ABSOLUTE.");
-    exit(0);
+    exit(1);
   }
   return result;
 }
@@ -496,10 +430,10 @@ char* ParseAbsoluteRelative(Tokenizer *tokenizer, StackAllocator *stack) {
 
 ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack) {
   ArrayListT<CompDecl> result;
-
   Tokenizer save = *tokenizer;
+  Token token = {};
 
-  // basic parsing pattern:
+  // get number of comps
   u32 count = 0;
   bool parsing = true;
   while (parsing) {
@@ -527,10 +461,12 @@ ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack
     }
   }
 
+  // prepare
   *tokenizer = save;
-  Token token = {};
   ArrayListT<CompDecl> lst;
   lst.Init(stack->Alloc(sizeof(CompDecl) * count));
+
+  // parse comps
   for (int idx = 0; idx < count; ++idx) {
     if (LookAheadNextToken(tokenizer, TOK_ENDOFSTREAM)) {
       break;
@@ -538,7 +474,7 @@ ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack
     else {
       CompDecl comp = {};
 
-      // OPTIONAL split
+      // split [OPTIONAL]
       if (LookAheadNextToken(tokenizer, TOK_IDENTIFIER, "SPLIT")) {
         token = GetToken(tokenizer);
         comp.split = 1;
@@ -549,6 +485,7 @@ ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack
           comp.split = atoi(split);
           if (comp.split == 0) {
             PrintLineError(tokenizer, &token, "Expected a positive integer");
+            exit(1);
           }
         }
       }
@@ -561,7 +498,7 @@ ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack
       if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(0);
       AllocTokenValue(&comp.type, &token, stack);
 
-      // parameter values
+      // params
       if (!RequireToken(tokenizer, &token, TOK_LBRACK)) exit(0);
 
       comp.params = ParseCompParams(tokenizer, stack);
@@ -574,7 +511,7 @@ ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack
       RequireToken(tokenizer, &token, TOK_RBRACK);
       comp.at_relative = ParseAbsoluteRelative(tokenizer, stack);
 
-      // OPTIONAL rotation / ROTATED
+      // rotation / ROTATED [OPTIONAL]
       if (LookAheadNextToken(tokenizer, TOK_IDENTIFIER, "ROTATED")) {
         token = GetToken(tokenizer);
         RequireToken(tokenizer, &token, TOK_LBRACK);
@@ -624,7 +561,6 @@ void ParseInstrument(Tokenizer *tokenizer, StackAllocator *stack) {
     DeclareDef declare;
     instr.declare = declare;
     instr.declare.text = CopyPercentBraceTextBlock(tokenizer, stack);
-
 
     ArrayListT<StructMember> lst = ParseStructMembers(instr.declare.text, stack);
     
@@ -704,28 +640,6 @@ void TestParseMcStas(int argc, char **argv) {
 
   Tokenizer tokenizer = {};
   tokenizer.Init(text);
-
-  /*
-  // DB TEST newline capture
-  bool parsing = true;
-  u32 count = 0;
-  while (count < 20) {
-    Token token = GetToken(&tokenizer);
-
-    switch ( token.type ) {
-      case TOK_ENDOFSTREAM: {
-        parsing = false;
-      } break;
-
-      default: {
-        ++count;
-        //PrintLineNo(&tokenizer);
-      } break;
-    }
-  }
-  printf("end\n");
-  exit(0);
-  */
 
   ParseInstrument(&tokenizer, &stack);
 }

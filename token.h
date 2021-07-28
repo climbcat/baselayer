@@ -247,19 +247,6 @@ bool TokenEquals(Token* token, const char* match) {
 }
 
 inline
-void AllocTokenValue(char **dest, Token *token, StackAllocator *stack) {
-  *dest = (char*) stack->Alloc(token->len + 1);
-  strncpy(*dest, token->text, token->len);
-  (*dest)[token->len] = '\0';
-}
-
-inline
-void AllocTokenValueAssertType(char **dest, Token *token, TokenType type_assert, StackAllocator *stack) {
-  assert( token->type == type_assert );
-  AllocTokenValue(dest, token, stack);
-}
-
-inline
 int FindChar(char *text, char c) {
   u32 dist = 0;
   while (true) {
@@ -571,6 +558,19 @@ bool RequireToken(Tokenizer* tokenizer, Token *token_dest, TokenType desired_typ
 
 typedef char** StringList;
 
+inline
+void AllocTokenValue(char **dest, Token *token, StackAllocator *stack) {
+  *dest = (char*) stack->Alloc(token->len + 1);
+  strncpy(*dest, token->text, token->len);
+  (*dest)[token->len] = '\0';
+}
+
+inline
+void AllocTokenValueAssertType(char **dest, Token *token, TokenType type_assert, StackAllocator *stack) {
+  assert( token->type == type_assert );
+  AllocTokenValue(dest, token, stack);
+}
+
 void AllocStringField(char** dest, Token* token, StackAllocator* stack) {
   *dest = (char*) stack->Alloc(token->len - 1);
   memcpy(*dest, token->text + 1, token->len - 2);
@@ -581,6 +581,62 @@ void AllocIdentifierField(char** dest, Token* token, StackAllocator* stack) {
   *dest = (char*) stack->Alloc(token->len + 1);
   memcpy(*dest, token->text, token->len);
   (*dest)[token->len] = '\0';
+}
+
+u32 MinU(u32 a, u32 b) {
+  if (a <= b) {
+    return a;
+  }
+  else {
+    return b;
+  }
+}
+
+u32 MaxU(u32 a, u32 b) {
+  if (a >= b) {
+    return a;
+  }
+  else {
+    return b;
+  }
+}
+
+u32 GetNumTokenSeparatedStuff(char *text, TokenType tok_separator, TokenType tok_exit = TOK_ENDOFSTREAM, TokenType tok_enter = TOK_UNKNOWN) {
+  Tokenizer tokenizer;
+  tokenizer.Init(text);
+
+  if (tok_enter != TOK_UNKNOWN) {
+    if (!RequireToken(&tokenizer, NULL, tok_enter)) return 0;
+  }
+
+  bool flag = true;
+  u32 count = 0;
+  bool parsing = true;
+  while (parsing) {
+    Token token = GetToken(&tokenizer);
+
+    // case END
+    if (token.type == TOK_ENDOFSTREAM) {
+      parsing = false;
+    }
+    // case SEP
+    else if (token.type == tok_separator) {
+      flag = true;
+    }
+    // case EXIT
+    else if (token.type == tok_exit) {
+      parsing = false;
+    }
+    // default
+    else {
+      if (flag == true) {
+        ++count;
+        flag = false;
+      }
+    }
+  }
+
+  return count;
 }
 
 void ParseAllocCommaSeparatedListOfStrings(StringList* lst, Tokenizer* tokenizer, StackAllocator* stack) {

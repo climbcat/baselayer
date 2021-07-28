@@ -488,6 +488,73 @@ void TestParseNumerics() {
 }
 
 
+void TestParseNumTokenSeparatedStuff() {
+
+  const char *string_24 =
+    " \
+    double mono_q = 1.8734; \
+    double OMA; \
+    double RV; \
+    double y_mono = 0.025; \
+    double NV = 5; \
+    double d_phi_0; \
+    double TTM; \
+    double sample_radius = 0.008/2; \
+    double sample_height = 0.03; \
+    double can_radius = 0.0083/2; \
+    double can_height = 0.0303; \
+    double can_thick = 0.00015; \
+    /******Mirrorvalues*****/  \
+    double alpha; \
+    double Qc=0.0217; \
+    double R0=0.995; \
+    double Mvalue=1.9; \
+    double W=1.0/250.0; \
+    double alpha_curve; \
+    double Qc_curve=0.0217; \
+    double R0_curve= 0.995; \
+    double Mvalue_curve=2.1; \
+    double W_curve=1.0/250.0; \
+    double ldiff=0.05; \
+    /* Curved guide element angle*/ \
+    double angleGuideCurved; \
+    ";
+
+  u32 count = GetNumTokenSeparatedStuff((char*) string_24, TOK_SEMICOLON, TOK_ENDOFSTREAM);
+  printf("num1 = %d\n", count);
+  assert( count == 24 );
+
+  const char *string_1 = 
+    " \
+    double mono_q = 1.8734; \
+    ";
+
+  count = GetNumTokenSeparatedStuff((char*) string_1, TOK_SEMICOLON, TOK_ENDOFSTREAM);
+  printf("num2 = %d\n", count);
+  assert( count == 1 );
+
+  const char *string_0 = 
+    " \
+    ";
+
+  count = GetNumTokenSeparatedStuff((char*) string_0, TOK_SEMICOLON, TOK_ENDOFSTREAM);
+  printf("num3 = %d\n", count);
+  assert( count == 0 );
+
+  const char *string_end = 
+    " \
+    yheight=0.156, xwidth=0.126, \
+    Lmin=lambda-ldiff/2,Lmax=lambda+ldiff/2, \
+    dist=1.5, focus_xw = 0.02, focus_yh = 0.12) \
+    Lmin=lambda-ldiff/2,Lmax=lambda+ldiff/2, \
+    ";
+
+  count = GetNumTokenSeparatedStuff((char*) string_end, TOK_COMMA, TOK_RBRACK);
+  printf("num4 = %d\n", count);
+  assert( count == 7 );
+}
+
+
 void RunTests(int argc, char **argv) {
   //TestRandGen();
   //TestLoadFile();
@@ -504,6 +571,7 @@ void RunTests(int argc, char **argv) {
   //TestTokenizer();
   //TestParseConfig();
   //TestParseNumerics();
+  //TestParseNumTokenSeparatedStuff();
 
   TestParseMcStas(argc, argv);
 }
