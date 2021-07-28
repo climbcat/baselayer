@@ -14,9 +14,8 @@ struct StructMember {
 
 
 ArrayListT<StructMember> ParseStructMembers(char *text, StackAllocator *stack) {
-  Tokenizer _tokenizer_var;
-  Tokenizer *tokenizer = &_tokenizer_var;
-  tokenizer->Init(text);
+  Tokenizer tokenizer;
+  tokenizer.Init(text);
 
   // count the number of members by counting semi-colons
   bool parsing = true;
@@ -29,31 +28,33 @@ ArrayListT<StructMember> ParseStructMembers(char *text, StackAllocator *stack) {
   while (true) {
     StructMember member;
 
-    if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(0);
+    if (!RequireToken(&tokenizer, &token, TOK_IDENTIFIER)) exit(1);
     AllocTokenValue(&member.type, &token, stack);
 
-    if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(0);
+    if (!RequireToken(&tokenizer, &token, TOK_IDENTIFIER)) exit(1);
     AllocTokenValue(&member.name, &token, stack);
 
-    if (LookAheadNextToken(tokenizer, TOK_ASSIGN)) {
-      GetToken(tokenizer);
-      u32 len = LookAheadTokenTextlen(tokenizer, TOK_SEMICOLON);
+    if (LookAheadNextToken(&tokenizer, TOK_ASSIGN)) {
+      token = GetToken(&tokenizer);
+      EatWhiteSpacesAndComments(&tokenizer);
+
+      u32 len = LookAheadLenUntilToken(&tokenizer, TOK_SEMICOLON, true);
       if (len == 0) {
-        PrintLineError(tokenizer, &token, "Expected: ;");
+        tokenizer.at += LookAheadLenEoL(tokenizer.at);
+        PrintLineError(&tokenizer, NULL, "Expected: ;");
         exit(1);
       }
-      member.defval = (char*) stack->Alloc(len);
-      strncpy(member.defval, tokenizer->at, len);
-
-      tokenizer->at += len;
+      member.defval = (char*) stack->Alloc(len + 1);
+      strncpy(member.defval, tokenizer.at, len);
+      member.defval[len] = '\0';
+      tokenizer.at += len;
     }
 
-    if (!RequireToken(tokenizer, &token, TOK_SEMICOLON)) exit(0);
-
+    if (!RequireToken(&tokenizer, NULL, TOK_SEMICOLON)) exit(1);
     lst.Add(&member);
 
     // positive exit condition
-    if (LookAheadNextToken(tokenizer, TOK_ENDOFSTREAM)) {
+    if (LookAheadNextToken(&tokenizer, TOK_ENDOFSTREAM)) {
       break;
     }
   }
@@ -218,7 +219,7 @@ char* CopyPercentBraceTextBlock(Tokenizer *tokenizer, StackAllocator *stack) {
   char *text = NULL;
 
   while (true) {
-    u32 dist = LookAheadTokenTextlen(tokenizer, TOK_PERCENT);
+    u32 dist = LookAheadLenUntilToken(tokenizer, TOK_PERCENT);
     if (dist == 0 && LookAheadNextToken(tokenizer, TOK_ENDOFSTREAM)) {
       PrintLineError(tokenizer, &token, "End of file reached");
       exit(1);
@@ -333,7 +334,7 @@ ArrayListT<CompParam> ParseCompParams(Tokenizer *tokenizer, StackAllocator *stac
     if (!RequireToken(tokenizer, &token, TOK_ASSIGN)) exit(0);
 
     EatWhiteSpacesAndComments(tokenizer);
-    u32 vallen = MinU(LookAheadTokenTextlen(tokenizer, TOK_COMMA), LookAheadTokenTextlen(tokenizer, TOK_RBRACK));
+    u32 vallen = MinU(LookAheadLenUntilToken(tokenizer, TOK_COMMA), LookAheadLenUntilToken(tokenizer, TOK_RBRACK));
     if (vallen == 0) {
       PrintLineError(tokenizer, &token, "Expected param value.");
       exit(1);
@@ -373,7 +374,7 @@ u32 Trim(char **src, u32 maxlen) { // trim whitespaces, sets *src = start and re
 
 char* CopyAllocCharsUntillTok(TokenType token_type, Tokenizer *tokenizer, StackAllocator *stack) {
   char* result;
-  u32 len = LookAheadTokenTextlen(tokenizer, token_type);
+  u32 len = LookAheadLenUntilToken(tokenizer, token_type);
   len = Trim(&tokenizer->at, len);
 
   if (len == 1) { // safeguard against the value = zero case

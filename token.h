@@ -283,18 +283,22 @@ void PrintCurrentLineMark(Tokenizer *tokenizer, u32 padding = 0) {
 }
 
 void PrintLineError(Tokenizer *tokenizer, Token *token, const char* errmsg = NULL) {
-  //printf("Error on line %d (%s %.*s): ",
   char* msg = (char*) errmsg;
   if (errmsg == NULL) {
     msg = (char*) "Error.";
   }
 
-  printf("%s:\n", msg);
+  u32 toklen = 0;
+  if (token != NULL) {
+    toklen = token->len;
+  }
+
+  printf("%s\n", msg);
   char slineno[200];
   sprintf(slineno, "%d| ", tokenizer->line);
   printf("%s", slineno);
   PrintCurrentLine(tokenizer);
-  PrintCurrentLineMark(tokenizer, strlen(slineno) + 2 - 1);
+  PrintCurrentLineMark(tokenizer, strlen(slineno) - toklen);
 }
 
 Token GetToken(Tokenizer* tokenizer) {
@@ -496,7 +500,31 @@ u32 LookAheadTokenCount(Tokenizer *tokenizer, TokenType desired_type) {
   return LookAheadTokenCountOR(tokenizer, desired_type);
 }
 
-u32 LookAheadTokenTextlen(Tokenizer *tokenizer, TokenType desired_type) {
+u32 LookAheadLenChars(char* at, char until) {
+  char *start = at;
+  while (*at != until && *at != '\0') {
+    ++at;
+  }
+  return at - start;
+}
+
+u32 LookAheadLenEoL(char* at) {
+  char *start = at;
+  while (*at != '\0' && !IsEndOfLine(*at)) {
+    ++at;
+  }
+  return at - start;
+}
+
+u32 LookAheadLenCharsFailAtEolAndEos(char* at, char until) {
+  char *start = at;
+  while (*at != until && *at != '\0' && !IsEndOfLine(*at)) {
+    ++at;
+  }
+  return at - start;
+}
+
+u32 LookAheadLenUntilToken(Tokenizer *tokenizer, TokenType desired_type, bool failat_eol = false) {
   Tokenizer save = *tokenizer;
 
   Token token;
@@ -511,7 +539,13 @@ u32 LookAheadTokenTextlen(Tokenizer *tokenizer, TokenType desired_type) {
   }
 
   u32 result = tokenizer->at - token.len - save.at;
+  u32 result_eol = LookAheadLenEoL(save.at);
   *tokenizer = save;
+
+  if (failat_eol && result_eol < result) {
+    return 0;
+  }
+
   return result;
 }
 
