@@ -12,7 +12,8 @@
 #include "various.h"
 #include "perftimer.h"
 #include "token.h"
-#include "parsers.h"
+#include "parse_slconfig.h"
+#include "parse_mcstas.h"
 
 
 void TestRandGen() {

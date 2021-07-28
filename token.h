@@ -120,9 +120,6 @@ struct Token {
   u16 len;
 };
 
-u32 g_newlines = 0;
-
-
 inline
 bool IsEndOfLine(char c) {
   return
@@ -200,7 +197,6 @@ void EatCStyleComment(Tokenizer* tokenizer) {
 }
 
 void EatWhiteSpacesAndComments(Tokenizer* tokenizer) {
-  
   for (;;) {
     if (IsEndOfLine(tokenizer->at[0])) {
       tokenizer->AtNewLineChar();
@@ -251,16 +247,16 @@ bool TokenEquals(Token* token, const char* match) {
 }
 
 inline
-void TokenValueToAlloc(Token *token, char **dest, StackAllocator *stack) {
+void AllocTokenValue(char **dest, Token *token, StackAllocator *stack) {
   *dest = (char*) stack->Alloc(token->len + 1);
   strncpy(*dest, token->text, token->len);
   (*dest)[token->len] = '\0';
 }
 
 inline
-void TokenValueToAllocAssertType(Token *token, TokenType type_assert, char **dest, StackAllocator *stack) {
+void AllocTokenValueAssertType(char **dest, Token *token, TokenType type_assert, StackAllocator *stack) {
   assert( token->type == type_assert );
-  TokenValueToAlloc(token, dest, stack);
+  AllocTokenValue(dest, token, stack);
 }
 
 inline
@@ -469,6 +465,23 @@ u32 LookAheadTokenCountOR(Tokenizer *tokenizer, TokenType desired_type, TokenTyp
 
   *tokenizer = save;
   return steps;
+}
+
+void BasicParsingLoopSwitch(Tokenizer *tokenizer) {
+  // template loop / switch
+  bool parsing = true;
+  while (parsing) {
+    Token token = GetToken(tokenizer);
+
+    switch ( token.type ) {
+      case TOK_ENDOFSTREAM: {
+        parsing = false;
+      } break;
+
+      default: {
+      } break;
+    }
+  }
 }
 
 u32 LookAheadTokenCountNOT(Tokenizer *tokenizer, TokenType desired_type, TokenType avoid_type = TOK_ENDOFSTREAM) {
