@@ -209,13 +209,17 @@ void EatCStyleComment(Tokenizer* tokenizer) {
 
 void EatWhiteSpacesAndComments(Tokenizer* tokenizer) {
   for (;;) {
+    if (tokenizer->at[0] == '\0') {
+      return;
+    }
+
     if (IsEndOfLine(tokenizer->at[0])) {
       tokenizer->AtNewLineChar();
     }
+
     if (IsWhitespace(tokenizer->at[0])) {
       ++tokenizer->at;
     }
-
     else if (tokenizer->at[0] == '/') {
       if (tokenizer->at[1]) {
         if (tokenizer->at[1] == '/') { // C++-style comment
@@ -235,14 +239,13 @@ void EatWhiteSpacesAndComments(Tokenizer* tokenizer) {
         return;
       }
     }
-
     else if (tokenizer->at[0] == '#') { // pythonic | matlabish comment
       EatCppStyleComment(tokenizer);
     }
-
     else {
       break;
     }
+
   }
 }
 
@@ -581,10 +584,14 @@ bool LookAheadNextToken(Tokenizer *tokenizer, TokenType desired_type, const char
   Tokenizer save = *tokenizer;
   Token token = GetToken(tokenizer);
   bool result = 0;
-  if (token.type == desired_type) {
+
+  if (token.type == TOK_ENDOFSTREAM) {
+    result = 0;
+  }
+  else if (token.type == desired_type) {
     result = 1;
   }
-  if (desired_value != NULL && !TokenEquals(&token, desired_value)) {
+  else if (desired_value != NULL && !TokenEquals(&token, desired_value)) {
     result = 0;
   }
   *tokenizer = save;
@@ -691,19 +698,15 @@ u32 CountTokenSeparatedStuff(char *text, TokenType tok_separator, TokenType tok_
   while (parsing) {
     Token token = GetToken(&tokenizer);
 
-    // case END
     if (token.type == TOK_ENDOFSTREAM) {
       parsing = false;
     }
-    // case SEP
     else if (token.type == tok_separator) {
       flag = true;
     }
-    // case EXIT
     else if (token.type == tok_exit) {
       parsing = false;
     }
-    // default
     else {
       if (flag == true) {
         ++count;
@@ -716,7 +719,7 @@ u32 CountTokenSeparatedStuff(char *text, TokenType tok_separator, TokenType tok_
 }
 
 void ParseAllocCommaSeparatedListOfStrings(StringList* lst, Tokenizer* tokenizer, StackAllocator* stack) {
-  char* start = tokenizer->at;
+  Tokenizer save = *tokenizer;
 
   u32 list_len = 0;
   bool counting = true;
@@ -750,13 +753,11 @@ void ParseAllocCommaSeparatedListOfStrings(StringList* lst, Tokenizer* tokenizer
       } break;
     }
   }
-
-  // now we can assign list length
   *lst = (StringList) stack->Alloc(list_len * sizeof(StringList));
 
   // reset 
   u32 idx = 0;
-  tokenizer->at = start;
+  *tokenizer = save;
   while (idx < list_len) {
     Token token = GetToken(tokenizer);
 

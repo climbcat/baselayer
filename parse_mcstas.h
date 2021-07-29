@@ -13,13 +13,10 @@ struct StructMember {
 };
 
 
-ArrayListT<StructMember> ParseStructMembers(char *text, StackAllocator *stack) {
-  Tokenizer tokenizer;
-  tokenizer.Init(text);
-
+ArrayListT<StructMember> ParseStructMembers(Tokenizer *tokenizer, StackAllocator *stack) {
   // count the number of members by counting semi-colons
   bool parsing = true;
-  u32 count = CountTokenSeparatedStuff(text, TOK_SEMICOLON);
+  u32 count = CountTokenSeparatedStuff(tokenizer->at, TOK_SEMICOLON);
 
   ArrayListT<StructMember> lst;
   lst.Init(stack->Alloc(sizeof(StructMember) * count));
@@ -28,33 +25,45 @@ ArrayListT<StructMember> ParseStructMembers(char *text, StackAllocator *stack) {
   while (true) {
     StructMember member;
 
-    if (!RequireToken(&tokenizer, &token, TOK_IDENTIFIER)) exit(1);
+    if (!LookAheadNextToken(tokenizer, TOK_IDENTIFIER)) {
+      break;
+    }
+
+    if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(1);
     AllocTokenValue(&member.type, &token, stack);
 
-    if (!RequireToken(&tokenizer, &token, TOK_IDENTIFIER)) exit(1);
+    if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(1);
     AllocTokenValue(&member.name, &token, stack);
 
-    if (LookAheadNextToken(&tokenizer, TOK_ASSIGN)) {
-      token = GetToken(&tokenizer);
-      EatWhiteSpacesAndComments(&tokenizer);
+    if (LookAheadNextToken(tokenizer, TOK_ASSIGN)) {
+      token = GetToken(tokenizer);
+      EatWhiteSpacesAndComments(tokenizer);
 
-      u32 len = LookAheadLenUntilToken(&tokenizer, TOK_SEMICOLON, true);
-      if (len == 0) {
-        tokenizer.at += LookAheadLenEoL(tokenizer.at);
-        PrintLineError(&tokenizer, NULL, "Expected: ;");
+      u32 len = LookAheadLenUntilToken(tokenizer, TOK_SEMICOLON, true);
+      u32 len_eol = LookAheadLenEoL(tokenizer->at);
+
+      if (RequireToken(tokenizer, NULL, TOK_SEMICOLON, NULL, false)) {
+        PrintLineError(tokenizer, NULL, "Expected default value");
+        exit(1);
+      }
+      else if (len == 0 || len_eol < len) {
+        PrintLineError(tokenizer, NULL, "Expected ;");
         exit(1);
       }
       member.defval = (char*) stack->Alloc(len + 1);
-      strncpy(member.defval, tokenizer.at, len);
+      strncpy(member.defval, tokenizer->at, len);
       member.defval[len] = '\0';
-      tokenizer.at += len;
+      tokenizer->at += len;
     }
 
-    if (!RequireToken(&tokenizer, NULL, TOK_SEMICOLON)) exit(1);
+    if (!RequireToken(tokenizer, NULL, TOK_SEMICOLON)) exit(1);
     lst.Add(&member);
 
     // positive exit condition
-    if (LookAheadNextToken(&tokenizer, TOK_ENDOFSTREAM)) {
+    if (LookAheadNextToken(tokenizer, TOK_ENDOFSTREAM)) {
+      break;
+    }
+    else if (LookAheadNextToken(tokenizer, TOK_RPERBRACE)) {
       break;
     }
   }
@@ -212,15 +221,15 @@ ArrayListT<InstrParam> ParseInstrParams(Tokenizer *tokenizer, StackAllocator *st
   return alst;
 }
 
-char* CopyTextBlockUntil(Tokenizer *tokenizer, TokenType type_start, TokenType type_end, bool restore_tokenizer, StackAllocator *stack) {
+char* CopyBracketedTextBlock(Tokenizer *tokenizer, TokenType type_start, TokenType type_end, bool restore_tokenizer, StackAllocator *stack) {
+  Tokenizer save = *tokenizer;
+
   if (type_start != TOK_UNKNOWN) {
     if (!RequireToken(tokenizer, NULL, type_start)) exit(1);
   }
 
   Token token;
-  Tokenizer save = *tokenizer;
   char *text = NULL;
-
   while (true) {
     u32 dist = LookAheadLenUntilToken(tokenizer, type_end);
     if (dist == 0 && LookAheadNextToken(tokenizer, TOK_ENDOFSTREAM)) {
@@ -364,7 +373,6 @@ char* ParseAbsoluteRelative(Tokenizer *tokenizer, StackAllocator *stack) {
   return result;
 }
 
-
 ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack) {
   ArrayListT<CompDecl> result;
   Tokenizer save = *tokenizer;
@@ -412,11 +420,9 @@ ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack
       CompDecl comp = {};
 
       // split [OPTIONAL]
-      if (LookAheadNextToken(tokenizer, TOK_IDENTIFIER, "SPLIT")) {
-        token = GetToken(tokenizer);
+      if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "SPLIT")) {
         comp.split = 1;
-        if (LookAheadNextToken(tokenizer, TOK_INT)) {
-          token = GetToken(tokenizer);
+        if (RequireToken(tokenizer, &token, TOK_INT)) {
           char split[10];
           strncpy(split, token.text, token.len);
           comp.split = atoi(split);
@@ -449,9 +455,9 @@ ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack
       comp.at_relative = ParseAbsoluteRelative(tokenizer, stack);
 
       // rotation / ROTATED [OPTIONAL]
-      if (LookAheadNextToken(tokenizer, TOK_IDENTIFIER, "ROTATED")) {
-        token = GetToken(tokenizer);
+      if (RequireToken(tokenizer, NULL, TOK_IDENTIFIER, "ROTATED")) {
         RequireToken(tokenizer, &token, TOK_LBRACK);
+
         comp.rot = ParseVector3(tokenizer, stack);
         RequireToken(tokenizer, &token, TOK_RBRACK);
         comp.rot_relative = ParseAbsoluteRelative(tokenizer, stack);
@@ -484,29 +490,29 @@ InstrDef ParseInstrument(Tokenizer *tokenizer, StackAllocator *stack) {
 
   // declare
   if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "DECLARE", false)) {
-    instr.declare.text = CopyTextBlockUntil(tokenizer, TOK_LPERBRACE, TOK_RPERBRACE, false, stack);
-    instr.declare.decls = ParseStructMembers(instr.declare.text, stack);
+    instr.declare.text = CopyBracketedTextBlock(tokenizer, TOK_LPERBRACE, TOK_RPERBRACE, true, stack);
+
+    if (!RequireToken(tokenizer, &token, TOK_LPERBRACE)) exit(1);
+    instr.declare.decls = ParseStructMembers(tokenizer, stack);
+    if (!RequireToken(tokenizer, &token, TOK_RPERBRACE)) exit(1);
   }
 
   // initialize
   if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "INITIALIZE", false)) {
-    InitializeDef init;
-    instr.init = init;
-    instr.init.text = CopyTextBlockUntil(tokenizer, TOK_LPERBRACE, TOK_RPERBRACE, false, stack);
+    instr.init.text = CopyBracketedTextBlock(tokenizer, TOK_LPERBRACE, TOK_RPERBRACE, false, stack);
   }
 
   // trace
   {
     if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "TRACE")) exit(1);
-    instr.trace.text = CopyTextBlockUntil(tokenizer, TOK_UNKNOWN, TOK_MCSTAS_END, true, stack);
+    instr.trace.text = CopyBracketedTextBlock(tokenizer, TOK_UNKNOWN, TOK_MCSTAS_END, true, stack);
+
     instr.trace.comps = ParseTraceComps(tokenizer, stack);
   }
 
   // finalize
   if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "FINALIZE", false)) {
-    FinalizeDef finalize;
-    instr.finalize = finalize;
-    instr.finalize.text = CopyTextBlockUntil(tokenizer, TOK_LPERBRACE, TOK_RPERBRACE, false, stack);
+    instr.finalize.text = CopyBracketedTextBlock(tokenizer, TOK_LPERBRACE, TOK_RPERBRACE, false, stack);
   }
 
   return instr;
