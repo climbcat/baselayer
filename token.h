@@ -14,6 +14,9 @@
 * Light-weight, multi-purpose Tokenizer code. Implementation roughly follows handmade hero.
 */
 
+// TODO: expand with mcstas-like symbols - %{, %}, COMPONENT, TRACE, etc...
+// TODO: introduce a number catch-ass
+
 enum TokenType {
   TOK_UNKNOWN, // catch-all for things that aren't defined yet
 
@@ -40,6 +43,8 @@ enum TokenType {
   TOK_OR, // |
   TOK_AND, // &
   TOK_PERCENT,
+  TOK_RPERBRACE, // %{
+  TOK_LPERBRACE, // %}
 
   TOK_CHAR,
   TOK_STRING,
@@ -48,47 +53,53 @@ enum TokenType {
   TOK_SCI, // 2.4e21 
   TOK_IDENTIFIER,
 
+  TOK_MCSTAS_END,
+
   TOK_ENDOFSTREAM,
 };
 
 const char* TokenTypeToString(TokenType tpe) {
   switch (tpe)
   {
-      case TOK_UNKNOWN: return "TOK_UNKNOWN";
-      case TOK_LBRACK: return "TOK_LBRACK";
-      case TOK_RBRACK: return "TOK_RBRACK";
-      case TOK_LBRACE: return "TOK_LBRACE";
-      case TOK_RBRACE: return "TOK_RBRACE";
-      case TOK_LSBRACK: return "TOK_LSBRACK";
-      case TOK_RSBRACK: return "TOK_RSBRACK";
-      case TOK_LEDGE: return "TOK_LEDGE";
-      case TOK_REDGE: return "TOK_REDGE";
-      case TOK_POUND: return "TOK_POUND";
-      case TOK_ASTERISK: return "TOK_ASTERISK";
-      case TOK_COMMA: return "TOK_COMMA";
-      case TOK_DOT: return "TOK_DOT";
-      case TOK_SLASH: return "TOK_SLASH";
-      case TOK_DASH: return "TOK_DASH";
-      case TOK_PLUS: return "TOK_PLUS";
-      case TOK_COLON: return "TOK_COLON";
-      case TOK_SEMICOLON: return "TOK_SEMICOLON";
-      case TOK_ASSIGN: return "TOK_ASSIGN";
-      case TOK_EXCLAMATION: return "TOK_EXCLAMATION";
-      case TOK_TILDE: return "TOK_TILDE";
-      case TOK_OR: return "TOK_OR";
-      case TOK_AND: return "TOK_AND";
-      case TOK_PERCENT: return "TOK_PERCENT";
+    case TOK_UNKNOWN: return "TOK_UNKNOWN";
+    case TOK_LBRACK: return "TOK_LBRACK";
+    case TOK_RBRACK: return "TOK_RBRACK";
+    case TOK_LBRACE: return "TOK_LBRACE";
+    case TOK_RBRACE: return "TOK_RBRACE";
+    case TOK_LSBRACK: return "TOK_LSBRACK";
+    case TOK_RSBRACK: return "TOK_RSBRACK";
+    case TOK_LEDGE: return "TOK_LEDGE";
+    case TOK_REDGE: return "TOK_REDGE";
+    case TOK_POUND: return "TOK_POUND";
+    case TOK_ASTERISK: return "TOK_ASTERISK";
+    case TOK_COMMA: return "TOK_COMMA";
+    case TOK_DOT: return "TOK_DOT";
+    case TOK_SLASH: return "TOK_SLASH";
+    case TOK_DASH: return "TOK_DASH";
+    case TOK_PLUS: return "TOK_PLUS";
+    case TOK_COLON: return "TOK_COLON";
+    case TOK_SEMICOLON: return "TOK_SEMICOLON";
+    case TOK_ASSIGN: return "TOK_ASSIGN";
+    case TOK_EXCLAMATION: return "TOK_EXCLAMATION";
+    case TOK_TILDE: return "TOK_TILDE";
+    case TOK_OR: return "TOK_OR";
+    case TOK_AND: return "TOK_AND";
+    case TOK_PERCENT: return "TOK_PERCENT";
+    case TOK_RPERBRACE: return "TOK_RPERBRACE";
+    case TOK_LPERBRACE: return "TOK_LPERBRACE";
 
-      case TOK_CHAR: return "TOK_CHAR";
-      case TOK_STRING: return "TOK_STRING";
-      case TOK_INT: return "TOK_INT";
-      case TOK_FLOAT: return "TOK_FLOAT";
-      case TOK_SCI: return "TOK_SCI";
-      case TOK_IDENTIFIER: return "TOK_IDENTIFIER";
+    case TOK_CHAR: return "TOK_CHAR";
+    case TOK_STRING: return "TOK_STRING";
+    case TOK_INT: return "TOK_INT";
+    case TOK_FLOAT: return "TOK_FLOAT";
+    case TOK_SCI: return "TOK_SCI";
+    case TOK_IDENTIFIER: return "TOK_IDENTIFIER";
 
-      case TOK_ENDOFSTREAM: return "TOK_ENDOFSTREAM";
+    case TOK_MCSTAS_END: return "TOK_MCSTAS_END";
 
-      default: return "ReturnTokenTypeString__default";
+    case TOK_ENDOFSTREAM: return "TOK_ENDOFSTREAM";
+
+    default: return "ReturnTokenTypeString__default";
   }
 }
 
@@ -336,7 +347,20 @@ Token GetToken(Tokenizer* tokenizer) {
     case '~' : token.type = TOK_TILDE; break;
     case '|' : token.type = TOK_OR; break;
     case '&' : token.type = TOK_AND; break;
-    case '%' : token.type = TOK_PERCENT; break;
+
+    case '%' : {
+      if (tokenizer->at[0] && tokenizer->at[0] == '{') {
+        token.type = TOK_LPERBRACE;
+        ++tokenizer->at;
+      }
+      else if (tokenizer->at[0] && tokenizer->at[0] == '}') {
+        token.type = TOK_RPERBRACE;
+        ++tokenizer->at;
+      }
+      else {
+        token.type = TOK_PERCENT; break;
+      }
+    } break;
 
     case '"' : {
 
@@ -385,6 +409,10 @@ Token GetToken(Tokenizer* tokenizer) {
         }
 
         token.len = tokenizer->at - token.text;
+
+        if (TokenEquals(&token, "END")) {
+          token.type = TOK_MCSTAS_END;
+        }
       }
       else if (IsNumeric(c)) {
         token.type = TOK_INT;
@@ -538,7 +566,7 @@ u32 LookAheadLenUntilToken(Tokenizer *tokenizer, TokenType desired_type, bool fa
     }
   }
 
-  u32 result = tokenizer->at - token.len - save.at;
+  u32 result = tokenizer->at - token.len - save.at; // TODO: use rewind feature !!
   u32 result_eol = LookAheadLenEoL(save.at);
   *tokenizer = save;
 
@@ -564,7 +592,7 @@ bool LookAheadNextToken(Tokenizer *tokenizer, TokenType desired_type, const char
 }
 
 // will inc tokenizer ONLY IF token requirement is satisfied
-bool RequireToken(Tokenizer* tokenizer, Token *token_dest, TokenType desired_type, const char *desired_value = NULL) {
+bool RequireToken(Tokenizer* tokenizer, Token *token_dest, TokenType desired_type, const char *desired_value = NULL, bool print_error = true) {
   Tokenizer resume = *tokenizer;
 
   Token token = GetToken(tokenizer);
@@ -578,14 +606,17 @@ bool RequireToken(Tokenizer* tokenizer, Token *token_dest, TokenType desired_typ
 
   if (result == false) {
     *tokenizer = resume;
-    char msg[200];
-    if (desired_value == NULL) {
-      sprintf(msg, "Expected %s", TokenTypeToString(desired_type));
+
+    if (print_error) {
+      char msg[200];
+      if (desired_value == NULL) {
+        sprintf(msg, "Expected %s", TokenTypeToString(desired_type));
+      }
+      else {
+        sprintf(msg, "Expected %s", desired_value);
+      }
+      PrintLineError(tokenizer, &token, msg);
     }
-    else {
-      sprintf(msg, "Expected %s", desired_value);
-    }
-    PrintLineError(tokenizer, &token, msg);
   }
   return result;
 }
@@ -646,7 +677,7 @@ u32 CountNumCharsInText(char *text, char match) {
   return count;
 }
 
-u32 GetNumTokenSeparatedStuff(char *text, TokenType tok_separator, TokenType tok_exit = TOK_ENDOFSTREAM, TokenType tok_enter = TOK_UNKNOWN) {
+u32 CountTokenSeparatedStuff(char *text, TokenType tok_separator, TokenType tok_exit = TOK_ENDOFSTREAM, TokenType tok_enter = TOK_UNKNOWN) {
   Tokenizer tokenizer;
   tokenizer.Init(text);
 

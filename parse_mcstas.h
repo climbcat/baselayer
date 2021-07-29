@@ -19,7 +19,7 @@ ArrayListT<StructMember> ParseStructMembers(char *text, StackAllocator *stack) {
 
   // count the number of members by counting semi-colons
   bool parsing = true;
-  u32 count = GetNumTokenSeparatedStuff(text, TOK_SEMICOLON);
+  u32 count = CountTokenSeparatedStuff(text, TOK_SEMICOLON);
 
   ArrayListT<StructMember> lst;
   lst.Init(stack->Alloc(sizeof(StructMember) * count));
@@ -79,6 +79,8 @@ struct DeclareDef {
 };
 
 struct InitializeDef {
+
+
   char *text = NULL;
 };
 
@@ -124,7 +126,7 @@ struct InstrDef {
 };
 
 ArrayListT<InstrParam> ParseInstrParams(Tokenizer *tokenizer, StackAllocator *stack) {
-  u32 count = GetNumTokenSeparatedStuff(tokenizer->at, TOK_COMMA, TOK_RBRACK);
+  u32 count = CountTokenSeparatedStuff(tokenizer->at, TOK_COMMA, TOK_RBRACK);
 
   ArrayListT<InstrParam> alst;
   alst.Init(stack->Alloc(sizeof(InstrParam) * count));
@@ -210,23 +212,24 @@ ArrayListT<InstrParam> ParseInstrParams(Tokenizer *tokenizer, StackAllocator *st
   return alst;
 }
 
-char* CopyPercentBraceTextBlock(Tokenizer *tokenizer, StackAllocator *stack) {
-  Token token;
-  if (!RequireToken(tokenizer, &token, TOK_PERCENT)) exit(1);
-  if (!RequireToken(tokenizer, &token, TOK_LBRACE)) exit(1);
+char* CopyTextBlockUntil(Tokenizer *tokenizer, TokenType type_start, TokenType type_end, bool restore_tokenizer, StackAllocator *stack) {
+  if (type_start != TOK_UNKNOWN) {
+    if (!RequireToken(tokenizer, NULL, type_start)) exit(1);
+  }
 
+  Token token;
   Tokenizer save = *tokenizer;
   char *text = NULL;
 
   while (true) {
-    u32 dist = LookAheadLenUntilToken(tokenizer, TOK_PERCENT);
+    u32 dist = LookAheadLenUntilToken(tokenizer, type_end);
     if (dist == 0 && LookAheadNextToken(tokenizer, TOK_ENDOFSTREAM)) {
       PrintLineError(tokenizer, &token, "End of file reached");
       exit(1);
     }
-    tokenizer->at += dist;
-    if (!RequireToken(tokenizer, &token, TOK_PERCENT)) exit(0);
-    if (!RequireToken(tokenizer, &token, TOK_RBRACE)) exit(0);
+    while (token.type != type_end) {
+      token = GetToken(tokenizer);
+    }
 
     u32 len = tokenizer->at - save.at - 2;
     text = (char*) stack->Alloc(len + 1);
@@ -235,96 +238,23 @@ char* CopyPercentBraceTextBlock(Tokenizer *tokenizer, StackAllocator *stack) {
 
     break;
   }
-  return text;
-}
 
-char* GetTextUntillEOSOrBlockClose(Tokenizer *tokenizer, bool restore_tokenizer, StackAllocator *stack) {
-  Tokenizer save = *tokenizer;
-
-  // basic parsing pattern:
-  bool parsing = true;
-  while (parsing) {
-    Token token = GetToken(tokenizer);
-
-    switch ( token.type ) {
-      case TOK_ENDOFSTREAM: {
-        parsing = false;
-      } break;
-
-      case TOK_PERCENT: {
-        if (LookAheadNextToken(tokenizer, TOK_RBRACE)) {
-          tokenizer->at -= 1;
-          parsing = false;
-        }
-      } break;
-
-      case TOK_IDENTIFIER: {
-        if (TokenEquals(&token, "END")) {
-          tokenizer->at -= 3;
-          parsing = false;
-        }
-      } break;
-
-      default: {
-      } break;
-    }
-  }
-
-  u32 len = tokenizer->at - save.at;
-  char *result = (char*) stack->Alloc(len + 1);
-  strncpy(result, save.at, len);
-  result[len] = '\0';
-
-  if (restore_tokenizer) {
+  if (restore_tokenizer == true) {
     *tokenizer = save;
   }
 
-  return result;
+  return text;
 }
 
 ArrayListT<CompParam> ParseCompParams(Tokenizer *tokenizer, StackAllocator *stack) {
-  CompParam par;
-  Token token;
-
-
-
-  // find number of pars, check integrity
-  Tokenizer save = *tokenizer;
-  u32 count = 0;
-  bool parsing = true;
-  while (parsing) {
-    Token token = GetToken(tokenizer);
-
-    switch ( token.type ) {
-      case TOK_ENDOFSTREAM: {
-        parsing = false;
-        PrintLineError(tokenizer, &token, "Unexpected end of stream");
-        exit(1);
-      } break;
-
-      case TOK_IDENTIFIER: {
-        count = MaxU(count, 1);
-      } break;
-
-      case TOK_COMMA: {
-        ++count;
-        count = MaxU(count, 2);
-      } break;
-
-      case TOK_RBRACK: {
-        parsing = false;
-      } break;
-
-      default: {
-      } break;
-    }
-  }
+  u32 count = CountTokenSeparatedStuff(tokenizer->at, TOK_COMMA, TOK_RBRACK);
 
   ArrayListT<CompParam> lst;
   lst.Init(stack->Alloc(sizeof(CompParam) * count));
-  *tokenizer = save;
 
-  // parse individual params
+  CompParam par;
+  Token token;
+
   for (int i = 0; i < count; i++) {
     CompParam par;
 
@@ -553,37 +483,30 @@ InstrDef ParseInstrument(Tokenizer *tokenizer, StackAllocator *stack) {
   }
 
   // declare
-  if (LookAheadNextToken(tokenizer, TOK_IDENTIFIER, "DECLARE")) {
-    if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "DECLARE")) exit(1);
-
-    instr.declare.text = CopyPercentBraceTextBlock(tokenizer, stack);
+  if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "DECLARE", false)) {
+    instr.declare.text = CopyTextBlockUntil(tokenizer, TOK_LPERBRACE, TOK_RPERBRACE, false, stack);
     instr.declare.decls = ParseStructMembers(instr.declare.text, stack);
   }
 
   // initialize
-  if (LookAheadNextToken(tokenizer, TOK_IDENTIFIER, "INITIALIZE")) {
-    if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "INITIALIZE")) exit(1);
-
+  if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "INITIALIZE", false)) {
     InitializeDef init;
     instr.init = init;
-    instr.init.text = CopyPercentBraceTextBlock(tokenizer, stack);
+    instr.init.text = CopyTextBlockUntil(tokenizer, TOK_LPERBRACE, TOK_RPERBRACE, false, stack);
   }
 
   // trace
   {
     if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "TRACE")) exit(1);
-
-    instr.trace.text = GetTextUntillEOSOrBlockClose(tokenizer, true, stack);
+    instr.trace.text = CopyTextBlockUntil(tokenizer, TOK_UNKNOWN, TOK_MCSTAS_END, true, stack);
     instr.trace.comps = ParseTraceComps(tokenizer, stack);
   }
 
   // finalize
-  if (LookAheadNextToken(tokenizer, TOK_IDENTIFIER, "FINALIZE")) {
-    if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "FINALIZE")) exit(0);
-
+  if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "FINALIZE", false)) {
     FinalizeDef finalize;
     instr.finalize = finalize;
-    instr.finalize.text = CopyPercentBraceTextBlock(tokenizer, stack);
+    instr.finalize.text = CopyTextBlockUntil(tokenizer, TOK_LPERBRACE, TOK_RPERBRACE, false, stack);
   }
 
   return instr;
@@ -605,7 +528,7 @@ void PrintInstrumentParse(InstrDef instr) {
   }
   printf("\n");
 
-  printf("init text:%s\n\n", instr.init.text);
+  printf("init text:\n%s\n\n", instr.init.text);
 
   printf("components:\n");
   for (int i = 0; i < instr.trace.comps.len; ++i) {
@@ -624,7 +547,7 @@ void PrintInstrumentParse(InstrDef instr) {
   }
   printf("\n");
 
-  printf("finalize text:%s\n\n", instr.finalize.text);
+  printf("finalize text:\n%s\n\n", instr.finalize.text);
 }
 
 void TestParseMcStas(int argc, char **argv) {

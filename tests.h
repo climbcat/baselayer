@@ -520,7 +520,7 @@ void TestParseNumTokenSeparatedStuff() {
     double angleGuideCurved; \
     ";
 
-  u32 count = GetNumTokenSeparatedStuff((char*) string_24, TOK_SEMICOLON, TOK_ENDOFSTREAM);
+  u32 count = CountTokenSeparatedStuff((char*) string_24, TOK_SEMICOLON, TOK_ENDOFSTREAM);
   printf("num1 = %d\n", count);
   assert( count == 24 );
 
@@ -529,7 +529,7 @@ void TestParseNumTokenSeparatedStuff() {
     double mono_q = 1.8734; \
     ";
 
-  count = GetNumTokenSeparatedStuff((char*) string_1, TOK_SEMICOLON, TOK_ENDOFSTREAM);
+  count = CountTokenSeparatedStuff((char*) string_1, TOK_SEMICOLON, TOK_ENDOFSTREAM);
   printf("num2 = %d\n", count);
   assert( count == 1 );
 
@@ -537,7 +537,7 @@ void TestParseNumTokenSeparatedStuff() {
     " \
     ";
 
-  count = GetNumTokenSeparatedStuff((char*) string_0, TOK_SEMICOLON, TOK_ENDOFSTREAM);
+  count = CountTokenSeparatedStuff((char*) string_0, TOK_SEMICOLON, TOK_ENDOFSTREAM);
   printf("num3 = %d\n", count);
   assert( count == 0 );
 
@@ -549,7 +549,7 @@ void TestParseNumTokenSeparatedStuff() {
     Lmin=lambda-ldiff/2,Lmax=lambda+ldiff/2, \
     ";
 
-  count = GetNumTokenSeparatedStuff((char*) string_end, TOK_COMMA, TOK_RBRACK);
+  count = CountTokenSeparatedStuff((char*) string_end, TOK_COMMA, TOK_RBRACK);
   printf("num4 = %d\n", count);
   assert( count == 7 );
 }
