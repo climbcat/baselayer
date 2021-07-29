@@ -335,9 +335,9 @@ void LTrim(char **src) { // sets *src to first non-whitespace char
 
 inline
 u32 RTrimText(char *src, u32 textlen) { // returns len corresponding to last non-whitespace char
-  char *at = src + textlen;
+  char *at = src + textlen - 1;
   u32 steps_back = 0;
-  while (IsWhitespace(*at)) {
+  while (at > src && IsWhitespace(*at)) {
     --at;
     ++steps_back;
   }
@@ -368,17 +368,6 @@ u32 DistEndOfLine(char* text) {
   }
 }
 
-void PrintCurrentLine(Tokenizer *tokenizer) {
-  printf("%.*s\n", DistEndOfLine(tokenizer->at_linestart), tokenizer->at_linestart);
-}
-
-void PrintCurrentLineMark(Tokenizer *tokenizer, u32 padding = 0) {
-  u32 mark = tokenizer->at - tokenizer->at_linestart + padding;
-  for (u32 i = 0; i < mark; i++) {
-    printf(" ");
-  }
-  printf("^\n");
-}
 
 void PrintLineError(Tokenizer *tokenizer, Token *token, const char* errmsg = NULL) {
   char* msg = (char*) errmsg;
@@ -391,12 +380,23 @@ void PrintLineError(Tokenizer *tokenizer, Token *token, const char* errmsg = NUL
     toklen = token->len;
   }
 
+  // print message
   printf("%s\n", msg);
-  char slineno[200];
-  sprintf(slineno, "%d| ", tokenizer->line);
-  printf("%s", slineno);
-  PrintCurrentLine(tokenizer);
-  PrintCurrentLineMark(tokenizer, strlen(slineno));
+
+  // print line nb. tag
+  char lineno_tag[200];
+  sprintf(lineno_tag, "%d| ", tokenizer->line);
+  printf("%s", lineno_tag);
+
+  // print line
+  printf("%.*s\n", DistEndOfLine(tokenizer->at_linestart), tokenizer->at_linestart);
+
+  // print marker
+  u32 mark = (tokenizer->at - toklen) - tokenizer->at_linestart + strlen(lineno_tag);
+  for (u32 i = 0; i < mark; i++) {
+    printf(" ");
+  }
+  printf("^\n");
 }
 
 Token GetToken(Tokenizer* tokenizer) {
@@ -685,6 +685,18 @@ bool LookAheadNextToken(Tokenizer *tokenizer, TokenType desired_type, const char
   return result;
 }
 
+void IncTokenizerUntilAtToken(Tokenizer *tokenizer, TokenType until_type) {
+  while (true) {
+    if (LookAheadNextToken(tokenizer, until_type)) {
+      return;
+    }
+    if (LookAheadNextToken(tokenizer, TOK_ENDOFSTREAM)) {
+      return;
+    }
+    GetToken(tokenizer);
+  }
+}
+
 // will inc tokenizer ONLY IF token requirement is satisfied
 bool RequireToken(Tokenizer* tokenizer, Token *token_dest, TokenType desired_type, const char *desired_value = NULL, bool print_error = true) {
   Tokenizer resume = *tokenizer;
@@ -699,8 +711,6 @@ bool RequireToken(Tokenizer* tokenizer, Token *token_dest, TokenType desired_typ
   }
 
   if (result == false) {
-    *tokenizer = resume;
-
     if (print_error) {
       char msg[200];
       if (desired_value == NULL) {
@@ -711,6 +721,8 @@ bool RequireToken(Tokenizer* tokenizer, Token *token_dest, TokenType desired_typ
       }
       PrintLineError(tokenizer, &token, msg);
     }
+
+    *tokenizer = resume;
   }
   return result;
 }
