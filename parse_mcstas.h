@@ -262,10 +262,10 @@ ArrayListT<CompParam> ParseCompParams(Tokenizer *tokenizer, StackAllocator *stac
   for (int i = 0; i < count; i++) {
     CompParam par;
 
-    if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(0);
+    if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(1);
     AllocTokenValue(&par.name, &token, stack);
 
-    if (!RequireToken(tokenizer, &token, TOK_ASSIGN)) exit(0);
+    if (!RequireToken(tokenizer, &token, TOK_ASSIGN)) exit(1);
 
     EatWhiteSpacesAndComments(tokenizer);
     u32 vallen = MinU(LookAheadLenUntilToken(tokenizer, TOK_COMMA), LookAheadLenUntilToken(tokenizer, TOK_RBRACK));
@@ -352,13 +352,13 @@ Vector3Strings ParseVector3(Tokenizer *tokenizer, StackAllocator *stack) {
 char* ParseAbsoluteRelative(Tokenizer *tokenizer, StackAllocator *stack) {
   char *result = NULL;
   Token token;
-  if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(0);
+  if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(1);
 
   if (TokenEquals(&token, "ABSOLUTE")) {
     AllocTokenValue(&result, &token, stack);
   }
   else if (TokenEquals(&token, "RELATIVE")) {
-    if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(0);
+    if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(1);
     AllocTokenValue(&result, &token, stack);
   }
   else {
@@ -444,18 +444,23 @@ ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack
 
       // location / AT
       if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "AT")) exit(0);
-      RequireToken(tokenizer, &token, TOK_LBRACK);
+      RequireToken(tokenizer, &token, TOK_LBRACK, NULL, false);
       comp.at = ParseVector3(tokenizer, stack);
-      RequireToken(tokenizer, &token, TOK_RBRACK);
+      RequireToken(tokenizer, &token, TOK_RBRACK, NULL, false);
       comp.at_relative = ParseAbsoluteRelative(tokenizer, stack);
 
       // rotation / ROTATED [OPTIONAL]
       if (RequireToken(tokenizer, NULL, TOK_IDENTIFIER, "ROTATED", false)) {
-        RequireToken(tokenizer, &token, TOK_LBRACK);
+        RequireToken(tokenizer, &token, TOK_LBRACK, NULL, false);
 
         comp.rot = ParseVector3(tokenizer, stack);
-        RequireToken(tokenizer, &token, TOK_RBRACK);
+        RequireToken(tokenizer, &token, TOK_RBRACK, NULL, false);
         comp.rot_relative = ParseAbsoluteRelative(tokenizer, stack);
+      }
+
+      // EXTEND [OPTIONAL]
+      if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "EXTEND", false)) {
+        comp.extend = CopyBracketedTextBlock(tokenizer, TOK_LPERBRACE, TOK_RPERBRACE, false, stack);
       }
 
       lst.Add(&comp);
@@ -540,6 +545,7 @@ void PrintInstrumentParse(InstrDef instr) {
     }
     printf("  at:      (%s, %s, %s) %s\n", comp->at.x, comp->at.y, comp->at.z, comp->at_relative);
     printf("  rotated: (%s, %s, %s) %s\n", comp->rot.x, comp->rot.y, comp->rot.z, comp->rot_relative);
+    printf("  extend:\n    %s\n", comp->extend);
   }
   printf("\n");
 

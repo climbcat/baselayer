@@ -368,7 +368,6 @@ u32 DistEndOfLine(char* text) {
   }
 }
 
-
 void PrintLineError(Tokenizer *tokenizer, Token *token, const char* errmsg = NULL) {
   char* msg = (char*) errmsg;
   if (errmsg == NULL) {
