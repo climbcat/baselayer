@@ -103,6 +103,51 @@ const char* TokenTypeToString(TokenType tpe) {
   }
 }
 
+const char* TokenTypeToSymbol(TokenType tpe) {
+  switch (tpe)
+  {
+    case TOK_UNKNOWN: return "(unknown)";
+    case TOK_LBRACK: return "(";
+    case TOK_RBRACK: return ")";
+    case TOK_LBRACE: return "{";
+    case TOK_RBRACE: return "}";
+    case TOK_LSBRACK: return "[";
+    case TOK_RSBRACK: return "]";
+    case TOK_LEDGE: return "<";
+    case TOK_REDGE: return ">";
+    case TOK_POUND: return "#";
+    case TOK_ASTERISK: return "*";
+    case TOK_COMMA: return ",";
+    case TOK_DOT: return ".";
+    case TOK_SLASH: return "/";
+    case TOK_DASH: return "-";
+    case TOK_PLUS: return "+";
+    case TOK_COLON: return ":";
+    case TOK_SEMICOLON: return ";";
+    case TOK_ASSIGN: return "=";
+    case TOK_EXCLAMATION: return "!";
+    case TOK_TILDE: return "~";
+    case TOK_OR: return "|";
+    case TOK_AND: return "&";
+    case TOK_PERCENT: return "%";
+    case TOK_RPERBRACE: return "%{";
+    case TOK_LPERBRACE: return "%}";
+
+    case TOK_CHAR: return "[char]";
+    case TOK_STRING: return "[string]";
+    case TOK_INT: return "[integer]";
+    case TOK_FLOAT: return "[float]";
+    case TOK_SCI: return "[float scientific]";
+    case TOK_IDENTIFIER: return "[identifier]";
+
+    case TOK_MCSTAS_END: return "END";
+
+    case TOK_ENDOFSTREAM: return "[eos]";
+
+    default: return "ReturnTokenTypeSymbol__default";
+  }
+}
+
 void TokenTypePrint(TokenType tpe, bool newline = true) {
   printf("%s", TokenTypeToString(tpe));
   if (newline) {
@@ -261,6 +306,45 @@ bool TokenEquals(Token* token, const char* match) {
 }
 
 inline
+u32 Trim(char **src, u32 maxlen) { // trim whitespaces, sets *src = start and returns len (without null termination)
+  u32 idx = 0;
+  char *at = *src;
+  while ( IsWhitespace(*at) ) {
+    ++at;
+    ++idx;
+  }
+
+  *src = at;
+  while ( !IsWhitespace(*at) && idx < maxlen) {
+    ++at;
+    ++idx;
+  }
+  return at - *src;
+}
+
+inline
+void LTrim(char **src) { // sets *src to first non-whitespace char
+  u32 idx = 0;
+  char *at = *src;
+  while ( IsWhitespace(*at) ) {
+    ++at;
+    ++idx;
+  }
+  *src = at;
+}
+
+inline
+u32 RTrimText(char *src, u32 textlen) { // returns len corresponding to last non-whitespace char
+  char *at = src + textlen;
+  u32 steps_back = 0;
+  while (IsWhitespace(*at)) {
+    --at;
+    ++steps_back;
+  }
+  return textlen - steps_back;
+}
+
+inline
 int FindChar(char *text, char c) {
   u32 dist = 0;
   while (true) {
@@ -312,7 +396,7 @@ void PrintLineError(Tokenizer *tokenizer, Token *token, const char* errmsg = NUL
   sprintf(slineno, "%d| ", tokenizer->line);
   printf("%s", slineno);
   PrintCurrentLine(tokenizer);
-  PrintCurrentLineMark(tokenizer, strlen(slineno) - toklen);
+  PrintCurrentLineMark(tokenizer, strlen(slineno));
 }
 
 Token GetToken(Tokenizer* tokenizer) {
@@ -354,10 +438,12 @@ Token GetToken(Tokenizer* tokenizer) {
     case '%' : {
       if (tokenizer->at[0] && tokenizer->at[0] == '{') {
         token.type = TOK_LPERBRACE;
+        token.len = 2;
         ++tokenizer->at;
       }
       else if (tokenizer->at[0] && tokenizer->at[0] == '}') {
         token.type = TOK_RPERBRACE;
+        token.len = 2;
         ++tokenizer->at;
       }
       else {
@@ -366,7 +452,6 @@ Token GetToken(Tokenizer* tokenizer) {
     } break;
 
     case '"' : {
-
       token.type = TOK_STRING;
 
       while (tokenizer->at[0] != '\0' && tokenizer->at[0] != '"' && !IsEndOfLine(tokenizer->at[0])) {
@@ -384,7 +469,6 @@ Token GetToken(Tokenizer* tokenizer) {
     } break;
 
     case '\'' : {
-
       token.type = TOK_CHAR;
   
       while (tokenizer->at[0] != '\0' && tokenizer->at[0] != '\'' && !IsEndOfLine(tokenizer->at[0])) {
@@ -404,7 +488,6 @@ Token GetToken(Tokenizer* tokenizer) {
     default : {
       if (IsAlphaOrUnderscore(c)) {
         token.type = TOK_IDENTIFIER;
-
         while (
           tokenizer->at[0] != '\0' &&
           (IsAlphaOrUnderscore(tokenizer->at[0]) || IsNumeric(tokenizer->at[0]))) {
@@ -417,9 +500,9 @@ Token GetToken(Tokenizer* tokenizer) {
           token.type = TOK_MCSTAS_END;
         }
       }
+
       else if (IsNumeric(c)) {
         token.type = TOK_INT;
-
         while (true) {
           if (tokenizer->at[0] != 0
               && !IsNumeric(tokenizer->at[0])
@@ -439,8 +522,9 @@ Token GetToken(Tokenizer* tokenizer) {
               && tokenizer->at[1] != 0
               && IsNumeric(tokenizer->at[1]))
           {
-            if (token.type != TOK_INT)
+            if (token.type != TOK_INT) {
               break;
+            }
             token.type = TOK_FLOAT;
           }
           else if ((tokenizer->at[0] == 'e' || tokenizer->at[0] == 'E')
@@ -454,9 +538,9 @@ Token GetToken(Tokenizer* tokenizer) {
 
           ++tokenizer->at;
         }
-
         token.len = tokenizer->at - token.text;
       }
+
       else {
         token.type = TOK_UNKNOWN;
       }
@@ -531,6 +615,7 @@ u32 LookAheadTokenCount(Tokenizer *tokenizer, TokenType desired_type) {
   return LookAheadTokenCountOR(tokenizer, desired_type);
 }
 
+inline
 u32 LookAheadLenChars(char* at, char until) {
   char *start = at;
   while (*at != until && *at != '\0') {
@@ -539,6 +624,7 @@ u32 LookAheadLenChars(char* at, char until) {
   return at - start;
 }
 
+inline
 u32 LookAheadLenEoL(char* at) {
   char *start = at;
   while (*at != '\0' && !IsEndOfLine(*at)) {
@@ -547,6 +633,7 @@ u32 LookAheadLenEoL(char* at) {
   return at - start;
 }
 
+inline
 u32 LookAheadLenCharsFailAtEolAndEos(char* at, char until) {
   char *start = at;
   while (*at != until && *at != '\0' && !IsEndOfLine(*at)) {

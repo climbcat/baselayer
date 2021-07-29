@@ -228,25 +228,29 @@ char* CopyBracketedTextBlock(Tokenizer *tokenizer, TokenType type_start, TokenTy
     if (!RequireToken(tokenizer, NULL, type_start)) exit(1);
   }
 
+  char *text_start = tokenizer->at;
+  LTrim(&text_start);
+
   Token token;
   char *text = NULL;
-  while (true) {
-    u32 dist = LookAheadLenUntilToken(tokenizer, type_end);
-    if (dist == 0 && LookAheadNextToken(tokenizer, TOK_ENDOFSTREAM)) {
-      PrintLineError(tokenizer, &token, "End of file reached");
-      exit(1);
-    }
-    while (token.type != type_end) {
-      token = GetToken(tokenizer);
-    }
 
-    u32 len = tokenizer->at - save.at - 2;
-    text = (char*) stack->Alloc(len + 1);
-    strncpy(text, save.at, len);
-    text[len] = '\0';
-
-    break;
+  u32 dist = LookAheadLenUntilToken(tokenizer, type_end);
+  if (dist == 0 && LookAheadNextToken(tokenizer, TOK_ENDOFSTREAM)) {
+    PrintLineError(tokenizer, &token, "End of file reached");
+    exit(1);
   }
+  u32 last_token_len = 0;
+  while (token.type != type_end) {
+    last_token_len = token.len;
+    token = GetToken(tokenizer);
+  }
+
+  u32 len_untrimmed = (tokenizer->at - 1) - text_start - token.len;
+  u32 len = RTrimText(text_start, len_untrimmed);
+
+  text = (char*) stack->Alloc(len + 1);
+  strncpy(text, text_start, len);
+  text[len] = '\0';
 
   if (restore_tokenizer == true) {
     *tokenizer = save;
@@ -293,22 +297,6 @@ ArrayListT<CompParam> ParseCompParams(Tokenizer *tokenizer, StackAllocator *stac
   }
 
   return lst;
-}
-
-u32 Trim(char **src, u32 maxlen) { // trim whitespaces, sets *src = start and returns len (no null term)
-  u32 idx = 0;
-  char *at = *src;
-  while ( IsWhitespace(*at) ) {
-    ++at;
-    ++idx;
-  }
-
-  *src = at;
-  while ( !IsWhitespace(*at) && idx < maxlen) {
-    ++at;
-    ++idx;
-  }
-  return at - *src;
 }
 
 char* CopyAllocCharsUntillTok(TokenType token_type, Tokenizer *tokenizer, StackAllocator *stack) {
@@ -511,7 +499,7 @@ InstrDef ParseInstrument(Tokenizer *tokenizer, StackAllocator *stack) {
   }
 
   // finalize
-  if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "FINALIZE", false)) {
+  if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "FINALLY", false)) {
     instr.finalize.text = CopyBracketedTextBlock(tokenizer, TOK_LPERBRACE, TOK_RPERBRACE, false, stack);
   }
 
