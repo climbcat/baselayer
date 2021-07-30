@@ -12,53 +12,78 @@ struct StructMember {
   char *defval = NULL;
 };
 
-
 ArrayListT<StructMember> ParseStructMembers(Tokenizer *tokenizer, StackAllocator *stack) {
-  // count the number of members by counting semi-colons
-  bool parsing = true;
-  u32 count = CountTokenSeparatedStuff(tokenizer->at, TOK_SEMICOLON);
-
   ArrayListT<StructMember> lst;
+  u32 count = CountTokenSeparatedStuff(tokenizer->at, TOK_SEMICOLON, TOK_ENDOFSTREAM, TOK_UNKNOWN, TOK_COMMA);
   lst.Init(stack->Alloc(sizeof(StructMember) * count));
-  Token token;
 
-  StructMember member = {};
-  while (true) {
-    if (!LookAheadNextToken(tokenizer, TOK_IDENTIFIER) || LookAheadNextToken(tokenizer, TOK_ENDOFSTREAM)) {
-      break;
+  StructMember member;
+  bool parsing = true;
+  while (parsing) {
+    Token token = GetToken(tokenizer);
+    switch ( token.type ) {
+      case TOK_ENDOFSTREAM: {
+        parsing = false;
+      } break;
+
+      case TOK_RPERBRACE: {
+        parsing = false;
+        tokenizer->at -= token.len;
+      } break;
+
+      case TOK_SEMICOLON: {
+        lst.Add(&member);
+        member = {};
+      } break;
+
+      case TOK_COMMA: {
+        lst.Add(&member);
+        member.name = NULL;
+        member.defval = NULL;
+      } break;
+
+      case TOK_ASSIGN: {
+        if (member.type != NULL && member.name != NULL) {
+          // parse everything until next comma / semicolon
+          token = GetToken(tokenizer);
+          if (token.type == TOK_ENDOFSTREAM) {
+            PrintLineError(tokenizer, &token, "Unexpected end of stream:");
+            exit(1);
+          }
+          else if (token.type == TOK_SEMICOLON || token.type == TOK_COMMA) {
+            PrintLineError(tokenizer, &token, "Expected default value");
+            exit(1);
+          }
+          Token block = token;
+          u32 tcount = LookAheadTokenCountOR(tokenizer, TOK_SEMICOLON, TOK_COMMA);
+          for (int i = 1; i < tcount; ++i) {
+            token = GetToken(tokenizer);
+            block.len += token.len;
+          }
+          AllocTokenValue(&member.defval, &block, stack);
+        }
+        else {
+          PrintLineError(tokenizer, &token, "Unexpected assign:");
+          exit(1);
+        }
+      } break;
+
+      case TOK_IDENTIFIER: {
+        if (member.type != NULL && member.name != NULL) {
+          PrintLineError(tokenizer, &token, "Expected assign, comma or semicolon");
+          exit(1);
+        }
+        if (member.type != NULL && member.name == NULL) {
+          AllocTokenValue(&member.name, &token, stack);
+        }
+        else if (member.type == NULL && member.name == NULL) {
+          AllocTokenValue(&member.type, &token, stack);
+        }
+      } break;
+
+      default: {
+      } break;
     }
-
-    if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(1);
-    AllocTokenValue(&member.type, &token, stack);
-
-    if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(1);
-    AllocTokenValue(&member.name, &token, stack);
-
-    // default value
-    //if (RequireToken(tokenizer, &token, TOK_ASSIGN, NULL, false)) {
-    if (LookAheadNextToken(tokenizer, TOK_ASSIGN)) {
-      token = GetToken(tokenizer);
-      u32 len = LookAheadLenUntilToken(tokenizer, TOK_SEMICOLON, true);
-      u32 len_eol = LookAheadLenEoL(tokenizer->at);
-
-      if (RequireToken(tokenizer, &token, TOK_SEMICOLON, NULL, false)) {
-        PrintLineError(tokenizer, &token, "Expected default value");
-        exit(1);
-      }
-      else if (len == 0 || len_eol < len) {
-        PrintLineError(tokenizer, NULL, "Expected ;");
-        exit(1);
-      }
-      member.defval = (char*) stack->Alloc(len + 1);
-      strncpy(member.defval, tokenizer->at, len);
-      member.defval[len] = '\0';
-
-      IncTokenizerUntilAtToken(tokenizer, TOK_SEMICOLON);
-    }
-
-    if (!RequireToken(tokenizer, &token, TOK_SEMICOLON)) exit(1);
-
-    lst.Add(&member);
   }
 
   return lst;
@@ -582,11 +607,14 @@ void TestParseMcStasInstrExamplesFolder(int argc, char **argv) {
 
   ArrayListT<char*> filepaths = GetFilesInFolderPaths(folder, &stack_files);
 
-  for (int i = 0; i < filepaths.len; ++i) {
+ //for (int i = 0; i < filepaths.len; ++i) {
+  for (int i = 3; i < 4; ++i) {
     stack_work.Clear();
 
     char *filename = *filepaths.At(i);
+
     printf("parsing: %s\n", filename);
+
     char *text = LoadFile(filename, false, &stack_files);
     if (text == NULL) {
       continue;
@@ -599,7 +627,7 @@ void TestParseMcStasInstrExamplesFolder(int argc, char **argv) {
 
     // TODO: print instrdef
 
-    exit(0);
+    printf("  %s\n", instr.name);
   }
 
 }

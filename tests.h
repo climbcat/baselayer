@@ -554,6 +554,50 @@ void TestParseNumTokenSeparatedStuff() {
   assert( count == 7 );
 }
 
+void TestParseStructMembers() {
+
+  const char *text =
+    "\
+    double mono_q = 1.8734, mono_q1, mono_q2 = 2.0, mono_q3;\n\
+    double OMA;\n\
+    double RV;\n\
+    double y_mono = 0.025;\n\
+    double NV = 5;\n\
+    double d_phi_0;\n\
+    double TTM;\n\
+    double sample_radius = 0.008/2;\n\
+    double sample_height = 0.03;\n\
+    double can_radius = 0.0083/2;\n\
+    double can_height = 0.0303;\n\
+    double can_thick = 0.00015;\n\
+    /******Mirrorvalues*****/\n\
+    double alpha;\n\
+    double Qc=0.0217;\n\
+    double R0=0.995;\n\
+    double Mvalue=1.9;\n\
+    double W=1.0/250.0;\n\
+    double alpha_curve;\n\
+    double Qc_curve=0.0217;\n\
+    double R0_curve= 0.995;\n\
+    double Mvalue_curve=2.1;\n\
+    double W_curve=1.0/250.0;\n\
+    double ldiff=0.05;\n\
+    /* Curved guide element angle*/\n\
+    double angleGuideCurved;\n\
+    ";
+  StackAllocator stack(MEGABYTE);
+  Tokenizer tokenizer = {};
+  tokenizer.Init( (char*) text );
+  ArrayListT<StructMember> decls = ParseStructMembers(&tokenizer, &stack);
+
+  printf("declare members:\n");
+  for (int i = 0; i < decls.len; ++i) {
+    StructMember *memb = decls.At(i);
+    printf("  %s %s = %s\n", memb->type, memb->name, memb->defval);
+  }
+  printf("\n");
+}
+
 void TestTokenizerLineNums() {
   const char *string = 
     " \
@@ -634,9 +678,10 @@ void RunTests(int argc, char **argv) {
   //TestTokenizerLineNums();
   //TestTokenizerLineNums_PSI();
   //TestGetFilenamesInFolder();
+  //TestParseStructMembers();
 
-  //TestParseMcStasInstr(argc, argv);
-  TestParseMcStasInstrExamplesFolder(argc, argv);
+  TestParseMcStasInstr(argc, argv);
+  //TestParseMcStasInstrExamplesFolder(argc, argv);
 }
 
 

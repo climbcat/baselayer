@@ -398,6 +398,56 @@ void PrintLineError(Tokenizer *tokenizer, Token *token, const char* errmsg = NUL
   printf("^\n");
 }
 
+Token GetToken(Tokenizer *tokenizer);
+
+TokenType LookAheadNextTokenType(Tokenizer *tokenizer) {
+  Tokenizer save = *tokenizer;
+  Token token = GetToken(tokenizer);
+  *tokenizer = save;
+  return token.type;
+}
+
+void ParseNumeric(Tokenizer *tokenizer, Token *token) {
+  token->type = TOK_INT;
+
+  while (true) {
+    if (tokenizer->at[0] != 0
+        && !IsNumeric(tokenizer->at[0])
+        && !IsNumericSymbol(tokenizer->at[0]))
+    {
+      break;
+    }
+    else if (tokenizer->at[1] != 0
+        && tokenizer->at[2] != 0
+        && IsNumericSymbol(tokenizer->at[1])
+        && !IsNumeric(tokenizer->at[2]))
+    {
+      break;
+    }
+
+    if (tokenizer->at[0] == '.'
+        && tokenizer->at[1] != 0
+        && IsNumeric(tokenizer->at[1]))
+    {
+      if (token->type != TOK_INT) {
+        break;
+      }
+      token->type = TOK_FLOAT;
+    }
+    else if ((tokenizer->at[0] == 'e' || tokenizer->at[0] == 'E')
+        && tokenizer->at[1] != 0
+        && IsNumeric(tokenizer->at[1]))
+    {
+      if (token->type != TOK_INT && token->type != TOK_FLOAT)
+        break;
+      token->type = TOK_SCI;
+    }
+
+    ++tokenizer->at;
+  }
+  token->len = tokenizer->at - token->text;
+}
+
 Token GetToken(Tokenizer* tokenizer) {
 
   EatWhiteSpacesAndComments(tokenizer);
@@ -424,7 +474,16 @@ Token GetToken(Tokenizer* tokenizer) {
     case ',' : token.type = TOK_COMMA; break;
     case '.' : token.type = TOK_DOT; break;
     case '/' : token.type = TOK_SLASH; break;
-    case '-' : token.type = TOK_DASH; break;
+
+    case '-' : {
+      TokenType next_type = LookAheadNextTokenType(tokenizer);
+      if (next_type == TOK_INT || next_type == TOK_FLOAT ||next_type == TOK_SCI) {
+        ParseNumeric(tokenizer, &token);
+      }
+      else {
+        token.type = TOK_DASH;
+      }
+    } break;
     case '+' : token.type = TOK_PLUS; break;
     case ':' : token.type = TOK_COLON; break;
     case ';' : token.type = TOK_SEMICOLON; break;
@@ -501,43 +560,7 @@ Token GetToken(Tokenizer* tokenizer) {
       }
 
       else if (IsNumeric(c)) {
-        token.type = TOK_INT;
-        while (true) {
-          if (tokenizer->at[0] != 0
-              && !IsNumeric(tokenizer->at[0])
-              && !IsNumericSymbol(tokenizer->at[0]))
-          {
-            break;
-          }
-          else if (tokenizer->at[1] != 0
-              && tokenizer->at[2] != 0
-              && IsNumericSymbol(tokenizer->at[1])
-              && !IsNumeric(tokenizer->at[2]))
-          {
-            break;
-          }
-
-          if (tokenizer->at[0] == '.'
-              && tokenizer->at[1] != 0
-              && IsNumeric(tokenizer->at[1]))
-          {
-            if (token.type != TOK_INT) {
-              break;
-            }
-            token.type = TOK_FLOAT;
-          }
-          else if ((tokenizer->at[0] == 'e' || tokenizer->at[0] == 'E')
-              && tokenizer->at[1] != 0
-              && IsNumeric(tokenizer->at[1]))
-          {
-            if (token.type != TOK_INT && token.type != TOK_FLOAT)
-              break;
-            token.type = TOK_SCI;
-          }
-
-          ++tokenizer->at;
-        }
-        token.len = tokenizer->at - token.text;
+        ParseNumeric(tokenizer, &token);
       }
 
       else {
@@ -782,7 +805,7 @@ u32 CountNumCharsInText(char *text, char match) {
   return count;
 }
 
-u32 CountTokenSeparatedStuff(char *text, TokenType tok_separator, TokenType tok_exit = TOK_ENDOFSTREAM, TokenType tok_enter = TOK_UNKNOWN) {
+u32 CountTokenSeparatedStuff(char *text, TokenType tok_separator, TokenType tok_exit = TOK_ENDOFSTREAM, TokenType tok_enter = TOK_UNKNOWN, TokenType tok_separator_alt = TOK_UNKNOWN) {
   Tokenizer tokenizer;
   tokenizer.Init(text);
 
@@ -800,6 +823,9 @@ u32 CountTokenSeparatedStuff(char *text, TokenType tok_separator, TokenType tok_
       parsing = false;
     }
     else if (token.type == tok_separator) {
+      flag = true;
+    }
+    else if (token.type == tok_separator_alt && TOK_UNKNOWN != tok_separator_alt) {
       flag = true;
     }
     else if (token.type == tok_exit) {
