@@ -1,6 +1,8 @@
 # memory basics
 
-g++ main.cpp
+g++ -std=c++17 main.cpp
+
+(C++17 is for getting the list of files in a directory.)
 
 ### Hosts a few home-grown utilities, including:
 
