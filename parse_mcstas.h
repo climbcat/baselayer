@@ -226,27 +226,29 @@ char* CopyBracketedTextBlock(Tokenizer *tokenizer, TokenType type_start, TokenTy
 
   Token token = {};
   token.type = TOK_UNKNOWN;
+  char *text = NULL;
 
   u32 dist = LookAheadLenUntilToken(tokenizer, type_end);
   if (dist == 0 && LookAheadNextToken(tokenizer, TOK_ENDOFSTREAM)) {
     PrintLineError(tokenizer, &token, "End of file reached");
     exit(1);
   }
-  while (token.type != type_end) {
-    token = GetToken(tokenizer);
+  else if (dist > 1) {
+    while (token.type != type_end) {
+      token = GetToken(tokenizer);
+    }
+
+    u32 len_untrimmed = (tokenizer->at - 1) - text_start - token.len;
+    u32 len = RTrimText(text_start, len_untrimmed);
+
+    text = (char*) stack->Alloc(len + 1);
+    strncpy(text, text_start, len);
+    text[len] = '\0';
   }
-
-  u32 len_untrimmed = (tokenizer->at - 1) - text_start - token.len;
-  u32 len = RTrimText(text_start, len_untrimmed);
-
-  char *text = (char*) stack->Alloc(len + 1);
-  strncpy(text, text_start, len);
-  text[len] = '\0';
 
   if (restore_tokenizer == true) {
     *tokenizer = save;
   }
-
   return text;
 }
 
@@ -552,7 +554,7 @@ void PrintInstrumentParse(InstrDef instr) {
   printf("finalize text:\n%s\n\n", instr.finalize.text);
 }
 
-void TestParseMcStas(int argc, char **argv) {
+void TestParseMcStasInstr(int argc, char **argv) {
   StackAllocator stack(MEGABYTE);
 
   char *filename = (char*) "PSI.instr";
@@ -573,25 +575,31 @@ void TestParseMcStas(int argc, char **argv) {
 }
 
 
-void TestParseMcStasExamplesFolder() {
-  // (untested)
-
-
+void TestParseMcStasInstrExamplesFolder(int argc, char **argv) {
   char *folder = (char*) "/usr/share/mcstas/3.0-dev/examples";
-  StackAllocator stack(MEGABYTE);
+  StackAllocator stack_files(MEGABYTE);
+  StackAllocator stack_work(MEGABYTE);
 
-  ArrayListT<char*> filepaths = GetFilesInFolderPaths(folder, &stack);
-
+  ArrayListT<char*> filepaths = GetFilesInFolderPaths(folder, &stack_files);
 
   for (int i = 0; i < filepaths.len; ++i) {
-    stack.Clear();
+    stack_work.Clear();
 
     char *filename = *filepaths.At(i);
-    char *text = LoadFile(filename, false, &stack);
+    printf("parsing: %s\n", filename);
+    char *text = LoadFile(filename, false, &stack_files);
+    if (text == NULL) {
+      continue;
+    }
 
     Tokenizer tokenizer = {};
     tokenizer.Init(text);
 
+    InstrDef instr = ParseInstrument(&tokenizer, &stack_work);
+
+    // TODO: print instrdef
+
+    exit(0);
   }
 
 }
