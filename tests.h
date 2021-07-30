@@ -601,6 +601,18 @@ void TestTokenizerLineNums_PSI() {
   assert( tokenizer.line = num_endofline );
 }
 
+void TestGetFilenamesInFolder() {
+  char *folder = (char*) "/usr/share/mcstas/3.0-dev/examples";
+  StackAllocator stack(MEGABYTE);
+
+  ArrayListT<char*> filepaths = GetFilesInFolderPaths(folder, &stack);
+
+  for (int i = 0; i < filepaths.len; ++i) {
+    printf("%s\n", *filepaths.At(i));
+  }
+
+}
+
 
 void RunTests(int argc, char **argv) {
   //TestRandGen();
@@ -621,8 +633,9 @@ void RunTests(int argc, char **argv) {
   //TestParseNumTokenSeparatedStuff();
   //TestTokenizerLineNums();
   //TestTokenizerLineNums_PSI();
+  TestGetFilenamesInFolder();
 
-  TestParseMcStas(argc, argv);
+  //TestParseMcStas(argc, argv);
 }
 
 
