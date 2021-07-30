@@ -680,8 +680,8 @@ void RunTests(int argc, char **argv) {
   //TestGetFilenamesInFolder();
   //TestParseStructMembers();
 
-  TestParseMcStasInstr(argc, argv);
-  //TestParseMcStasInstrExamplesFolder(argc, argv);
+  //TestParseMcStasInstr(argc, argv);
+  TestParseMcStasInstrExamplesFolder(argc, argv);
 }
 
 
