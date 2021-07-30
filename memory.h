@@ -285,29 +285,34 @@ public:
 * the thing until released, enabling users to not have to predict sizes in advance. Combines
 * well with ArrayList.
 */
+// TODO: transform into a struct and use optional create / destroy buttons, enabling more versatility
 class StackAllocator {
 public:
-  void* root;
-  u32 total_size;
-  u32 max_size;
-  u32 num_blocks;
-  u32 used;
+  void* root = NULL;
+  u32 max_size = 0;
+  u32 num_blocks = 0;
+  u32 used = 0;
   bool locked = false;
 
   StackAllocator(u32 total_size) {
-    this->total_size = total_size;
     this->max_size = total_size;
     this->used = 0;
-    this->root = calloc(this->total_size, 1);
+    this->root = malloc(this->max_size);
   }
+
   ~StackAllocator() {
     free(this->root);
+  }
+
+  void Clear() {
+    this->used = 0;
+    this->num_blocks = 0;
   }
 
   void* Alloc(u32 size) {
     assert(this->locked == false);
 
-    if (size > this->total_size - this->used)
+    if (size > this->max_size - this->used)
       return NULL;
 
     void* retval = (u8*) this->root + this->used;
@@ -333,7 +338,7 @@ public:
   bool Free(void* addr) {
     u32 relative_location = (u8*) addr - (u8*) this->root;
     assert(relative_location >= 0);
-    assert(relative_location < this->total_size);
+    assert(relative_location < this->max_size);
 
     if (relative_location >= this->used)
       return false;

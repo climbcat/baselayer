@@ -46,7 +46,7 @@ void WriteRandomHexStr(char* dest, int strlen, bool put_nullchar = true, bool do
 
 
 
-char* LoadFilePath(char* filepath) {
+char* LoadFilePath(char* filepath, StackAllocator *stack = NULL) {
   char * buffer = NULL;
   long length;
   FILE * f = fopen(filepath, "rb");
@@ -56,7 +56,12 @@ char* LoadFilePath(char* filepath) {
     fseek (f, 0, SEEK_END);
     length = ftell (f);
     fseek (f, 0, SEEK_SET);
-    buffer = (char*) malloc (length);
+    if (stack != NULL) {
+      buffer = (char*) stack->Alloc(length);
+    }
+    else {
+      buffer = (char*) malloc(length);
+    }
     if (buffer)
       fread (buffer, 1, length, f);
     fclose (f);
@@ -66,7 +71,7 @@ char* LoadFilePath(char* filepath) {
 }
 
 
-char* LoadFile(char* filename, bool use_cwd = true) {
+char* LoadFile(char* filename, bool use_cwd = true, StackAllocator *stack = NULL) {
   if (use_cwd) {
     char cwd[KILOBYTE];
     if (getcwd(cwd, sizeof(cwd)) != NULL) {
@@ -74,12 +79,12 @@ char* LoadFile(char* filename, bool use_cwd = true) {
       strcat(cwd, filename);
       filename = (char*) cwd;
 
-      return LoadFilePath(filename);
+      return LoadFilePath(filename, stack);
     }
     return NULL;
   }
   else
-    return LoadFilePath(filename);
+    return LoadFilePath(filename, stack);
 }
 
 // TODO: get a portable version

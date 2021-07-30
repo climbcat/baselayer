@@ -208,8 +208,8 @@ void TestStackAlloc() {
   char* dest;
   int len = 0;
   RandInit();
-  while (arena.total_size - arena.used > len) {
-    std::cout << "used: " << arena.used << " total: " << arena.total_size <<  std::endl;
+  while (arena.max_size - arena.used > len) {
+    std::cout << "used: " << arena.used << " total: " << arena.max_size <<  std::endl;
 
     dest = (char*) arena.Alloc(len);
     WriteRandomHexStr(dest, len);
@@ -633,9 +633,9 @@ void RunTests(int argc, char **argv) {
   //TestParseNumTokenSeparatedStuff();
   //TestTokenizerLineNums();
   //TestTokenizerLineNums_PSI();
-  TestGetFilenamesInFolder();
+  //TestGetFilenamesInFolder();
 
-  //TestParseMcStas(argc, argv);
+  TestParseMcStas(argc, argv);
 }
 
 

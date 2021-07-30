@@ -553,15 +553,16 @@ void PrintInstrumentParse(InstrDef instr) {
 }
 
 void TestParseMcStas(int argc, char **argv) {
+  StackAllocator stack(MEGABYTE);
+
   char *filename = (char*) "PSI.instr";
-  char *text = LoadFile(filename, true);
+  char *text = LoadFile(filename, true, &stack);
   if (text == NULL) {
       printf("could not load file %s\n", filename);
       exit(1);
   }
   printf("parsing file %s\n\n", filename);
 
-  StackAllocator stack(MEGABYTE);
 
   Tokenizer tokenizer = {};
   tokenizer.Init(text);
@@ -569,4 +570,28 @@ void TestParseMcStas(int argc, char **argv) {
   InstrDef instr = ParseInstrument(&tokenizer, &stack);
 
   PrintInstrumentParse(instr);
+}
+
+
+void TestParseMcStasExamplesFolder() {
+  // (untested)
+
+
+  char *folder = (char*) "/usr/share/mcstas/3.0-dev/examples";
+  StackAllocator stack(MEGABYTE);
+
+  ArrayListT<char*> filepaths = GetFilesInFolderPaths(folder, &stack);
+
+
+  for (int i = 0; i < filepaths.len; ++i) {
+    stack.Clear();
+
+    char *filename = *filepaths.At(i);
+    char *text = LoadFile(filename, false, &stack);
+
+    Tokenizer tokenizer = {};
+    tokenizer.Init(text);
+
+  }
+
 }
