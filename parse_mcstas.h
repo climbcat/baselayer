@@ -44,23 +44,13 @@ ArrayListT<StructMember> ParseStructMembers(Tokenizer *tokenizer, StackAllocator
 
       case TOK_ASSIGN: {
         if (member.type != NULL && member.name != NULL) {
-          // parse everything until next comma / semicolon
-          token = GetToken(tokenizer);
-          if (token.type == TOK_ENDOFSTREAM) {
-            PrintLineError(tokenizer, &token, "Unexpected end of stream:");
+          if (ParseExpression(tokenizer, &token)) {
+            AllocTokenValue(&member.defval, &token, stack);
+          }
+          else {
+            PrintLineError(tokenizer, &token, "Expected value");
             exit(1);
           }
-          else if (token.type == TOK_SEMICOLON || token.type == TOK_COMMA) {
-            PrintLineError(tokenizer, &token, "Expected default value");
-            exit(1);
-          }
-          Token block = token;
-          u32 tcount = LookAheadTokenCountOR(tokenizer, TOK_SEMICOLON, TOK_COMMA);
-          for (int i = 1; i < tcount; ++i) {
-            token = GetToken(tokenizer);
-            block.len += token.len;
-          }
-          AllocTokenValue(&member.defval, &block, stack);
         }
         else {
           PrintLineError(tokenizer, &token, "Unexpected assign:");
