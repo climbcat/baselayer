@@ -124,7 +124,8 @@ struct CompDecl {
   char *name = NULL;
   char *extend = NULL;
   char *group = NULL;
-  char *copy = NULL;
+  char *copy_name = NULL;
+  char *copy_type = NULL;
   char *when = NULL;
   bool removable = false;
   u32 split = 0;
@@ -420,16 +421,28 @@ ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack
 
       // declaration
       if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "COMPONENT")) exit(1);
+      // name
       if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(1);
-      AllocTokenValue(&comp.name, &token, stack);
-      if (!RequireToken(tokenizer, &token, TOK_ASSIGN)) exit(1);
-      if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(1);
-      // copy [OPTIONAL]
+      // copy name [OPTIONAL]
       if (TokenEquals(&token, "COPY")) {
         if (!RequireToken(tokenizer, &token, TOK_LBRACK)) exit(1);
         if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(1);
         // TODO: whenever there is a copy, the type must be set by a post-processing step
-        AllocTokenValue(&comp.copy, &token, stack);
+        AllocTokenValue(&comp.copy_name, &token, stack);
+        if (!RequireToken(tokenizer, &token, TOK_RBRACK)) exit(1);
+      }
+      else {
+        AllocTokenValue(&comp.name, &token, stack);
+      }
+      if (!RequireToken(tokenizer, &token, TOK_ASSIGN)) exit(1);
+      // type
+      if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(1);
+      // copy type [OPTIONAL]
+      if (TokenEquals(&token, "COPY")) {
+        if (!RequireToken(tokenizer, &token, TOK_LBRACK)) exit(1);
+        if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(1);
+        // TODO: whenever there is a copy, the type must be set by a post-processing step
+        AllocTokenValue(&comp.copy_type, &token, stack);
         if (!RequireToken(tokenizer, &token, TOK_RBRACK)) exit(1);
       }
       else {
@@ -437,9 +450,10 @@ ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack
       }
 
       // params
-      if (!RequireToken(tokenizer, &token, TOK_LBRACK)) exit(1);
-      comp.params = ParseCompParams(tokenizer, stack);
-      if (!RequireToken(tokenizer, &token, TOK_RBRACK)) exit(1);
+      if (RequireToken(tokenizer, &token, TOK_LBRACK, NULL, false)) {
+        comp.params = ParseCompParams(tokenizer, stack);
+        if (!RequireToken(tokenizer, &token, TOK_RBRACK)) exit(1);
+      }
 
       // WHEN
       if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "WHEN", false)) {
@@ -558,7 +572,8 @@ void PrintInstrumentParse(InstrDef instr) {
   for (int i = 0; i < instr.trace.comps.len; ++i) {
     CompDecl *comp = instr.trace.comps.At(i);
     printf("\n  type: %s\n", comp->type);
-    printf("\n  copy: %s\n", comp->copy);
+    printf("  copy_name: %s\n", comp->copy_name);
+    printf("  copy_type: %s\n", comp->copy_type);
     printf("  name: %s\n", comp->name);
     printf("  split: %d\n", comp->split);
     printf("  removable: %d\n", comp->removable);
@@ -607,7 +622,7 @@ void TestParseMcStasInstrExamplesFolder(int argc, char **argv) {
   ArrayListT<char*> filepaths = GetFilesInFolderPaths(folder, &stack_files);
 
   //for (int i = 0; i < filepaths.len; ++i) {
-  for (int i = 20; i < 25; ++i) {
+  for (int i = 33; i < 40; ++i) {
     stack_work.Clear();
 
     char *filename = *filepaths.At(i);
