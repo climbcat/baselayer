@@ -853,6 +853,7 @@ bool ParseExpression(Tokenizer *tokenizer, Token *token) {
   bool result = false;
   u32 bracket_level = 0;
 
+  EatWhiteSpacesAndComments(tokenizer);
   token->text = tokenizer->at;
 
   bool parsing = true;

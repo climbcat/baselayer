@@ -693,9 +693,9 @@ void RunTests(int argc, char **argv) {
   //TestTokenizerLineNums_PSI();
   //TestGetFilenamesInFolder();
   //TestParseStructMembers();
-  TestParseUntilEndOfExpression();
+  //TestParseUntilEndOfExpression();
 
-  //TestParseMcStasInstr(argc, argv);
+  TestParseMcStasInstr(argc, argv);
   //TestParseMcStasInstrExamplesFolder(argc, argv);
 }
 

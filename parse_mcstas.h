@@ -351,32 +351,33 @@ Vector3Strings ParseVector3(Tokenizer *tokenizer, StackAllocator *stack) {
   Token token;
   Vector3Strings vect;
 
-  if (LookAheadNextToken(tokenizer, TOK_COMMA)) {
-    token = GetToken(tokenizer);
+  if (ParseExpression(tokenizer, &token)) {
+    AllocTokenValue(&vect.x, &token, stack);
+  }
+  else {
     PrintLineError(tokenizer, &token, "Expected value");
     exit(1);
   }
-  vect.x = CopyAllocCharsUntillTok(tokenizer, TOK_COMMA,stack);
-
   if (!RequireToken(tokenizer, &token, TOK_COMMA)) exit(1);
 
-  if (LookAheadNextToken(tokenizer, TOK_COMMA)) {
-    token = GetToken(tokenizer);
+  if (ParseExpression(tokenizer, &token)) {
+    AllocTokenValue(&vect.y, &token, stack);
+  }
+  else {
     PrintLineError(tokenizer, &token, "Expected value");
     exit(1);
   }
-  vect.y = CopyAllocCharsUntillTok(tokenizer, TOK_COMMA, stack);
-
   if (!RequireToken(tokenizer, &token, TOK_COMMA)) exit(1);
 
-  if (LookAheadNextToken(tokenizer, TOK_RBRACK)) {
-    token = GetToken(tokenizer);
+  if (ParseExpression(tokenizer, &token)) {
+    AllocTokenValue(&vect.z, &token, stack);
+  }
+  else {
     PrintLineError(tokenizer, &token, "Expected value");
     exit(1);
   }
-  vect.z = CopyAllocCharsUntillTok(tokenizer, TOK_RBRACK, stack);
-
   if (!RequireToken(tokenizer, &token, TOK_RBRACK)) exit(1);
+
   return vect;
 }
 
