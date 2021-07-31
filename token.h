@@ -709,9 +709,9 @@ bool LookAheadNextToken(Tokenizer *tokenizer, TokenType desired_type, const char
   }
   else if (token.type == desired_type) {
     result = 1;
-  }
-  else if (desired_value != NULL && !TokenEquals(&token, desired_value)) {
-    result = 0;
+    if (desired_value != NULL && !TokenEquals(&token, desired_value)) {
+      result = 0;
+    }
   }
   *tokenizer = save;
   return result;

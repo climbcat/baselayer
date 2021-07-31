@@ -346,6 +346,100 @@ char* ParseAbsoluteRelative(Tokenizer *tokenizer, StackAllocator *stack) {
   return result;
 }
 
+// TODO: any way to re-use the generic ParseExpresion?
+bool ParseExpression_McStasEndConditions(Tokenizer *tokenizer, Token *token) {
+  bool result = false;
+  u32 bracket_level = 0;
+  u32 brace_level = 0;
+  u32 sbrack_level = 0;
+
+  EatWhiteSpacesAndComments(tokenizer);
+  token->text = tokenizer->at;
+
+  bool parsing = true;
+  while (parsing) {
+    Token token = GetToken(tokenizer);
+    switch ( token.type ) {
+      case TOK_ENDOFSTREAM: {
+        parsing = false;
+      } break;
+
+      case TOK_LBRACK: {
+        ++bracket_level;
+      } break;
+
+      case TOK_RBRACK: {
+        if (bracket_level > 0) {
+          --bracket_level;
+        }
+        else {
+          parsing = false;
+        }
+      } break;
+
+      case TOK_LBRACE: {
+        ++brace_level;
+      } break;
+
+      case TOK_RBRACE: {
+        if (brace_level > 0) {
+          --brace_level;
+        }
+      } break;
+
+      case TOK_LSBRACK: {
+        ++sbrack_level;
+      } break;
+
+      case TOK_RSBRACK: {
+        if (sbrack_level > 0) {
+          --sbrack_level;
+        }
+      } break;
+
+      case TOK_SEMICOLON: {
+        if (bracket_level == 0 && brace_level == 0 && sbrack_level == 0) {
+          parsing = false;
+        }
+      } break;
+
+      case TOK_COMMA: {
+        if (bracket_level == 0 && brace_level == 0 && sbrack_level == 0) {
+          parsing = false;
+        }
+      } break;
+
+      case TOK_IDENTIFIER: {
+        result = true;
+
+        if (TokenEquals(&token, "AT")
+            || TokenEquals(&token, "ROTATED")
+            || TokenEquals(&token, "GROUP")
+            || TokenEquals(&token, "JUMP")
+            || TokenEquals(&token, "WHEN")
+            || TokenEquals(&token, "COMPONENT")
+            || TokenEquals(&token, "END")
+            || TokenEquals(&token, "EXTEND")) {
+          tokenizer->at -= token.len;
+          parsing = false;
+        }
+      } break;
+
+      default: {
+        result = true;
+      } break;
+    }
+  }
+
+  // exit conditions are: EOS, comma, semicolon or rbracket, all of which are 1 char long
+  --tokenizer->at;
+
+  token->len = tokenizer->at - token->text;
+  token->len = RTrimText(token->text, token->len);
+  return result;
+}
+
+
 ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack) {
   ArrayListT<CompDecl> result;
   Tokenizer save = *tokenizer;
@@ -388,10 +482,7 @@ ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack
 
   // parse comps
   for (int idx = 0; idx < count; ++idx) {
-    if (LookAheadNextToken(tokenizer, TOK_ENDOFSTREAM)) {
-      break;
-    }
-    else {
+    if (!LookAheadNextToken(tokenizer, TOK_ENDOFSTREAM)) {
       CompDecl comp = {};
 
       // include [OPTIONAL]
@@ -457,56 +548,87 @@ ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack
         if (!RequireToken(tokenizer, &token, TOK_RBRACK)) exit(1);
       }
 
+      // keywords AT ROTATED JUMP WHEN GROUP EXTEND can occur in any order, and only AT is required
+      bool found_AT = false;
+      bool parsing_keywords = true;
+      while (parsing_keywords) {
 
-      // TODO: make the order of the keywords AT ROTATED JUMP WHEN GROUP EXTEND be irrelevant,
-      //       e.g. implemented by getting a keyword, then if/elseif'in on its value
-
-
-      // JUMP [OPTIONAL]
-      if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "JUMP", false)) {
-        if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(1);
-        AllocTokenValue(&comp.jump, &token, stack);
-      }
-
-      // WHEN - NOTE: sometimes, the when block is not bracket, thus the added complexity
-      if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "WHEN", false)) {
-        RequireToken(tokenizer, &token, TOK_LBRACK, NULL, false);
-        if (!ParseExpression(tokenizer, &token, "AT")) { 
-          PrintLineError(tokenizer, &token, "Expected value expression");
-          exit(1);
+        // quick loop exit
+        if (LookAheadNextToken(tokenizer, TOK_IDENTIFIER, "COMPONENT")) {
+          parsing_keywords = false;
+          continue;
         }
-        AllocTokenValue(&comp.when, &token, stack);
-        RequireToken(tokenizer, &token, TOK_RBRACK, NULL, false);
+
+        // location / AT
+        else if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "AT", false)) {
+          found_AT = true;
+
+          RequireToken(tokenizer, &token, TOK_LBRACK, NULL, false);
+          comp.at = ParseVector3(tokenizer, stack);
+          RequireToken(tokenizer, &token, TOK_RBRACK, NULL, false);
+          comp.at_relative = ParseAbsoluteRelative(tokenizer, stack);
+          continue;
+        }
+
+        // rotation / ROTATED [OPTIONAL]
+        else if (RequireToken(tokenizer, NULL, TOK_IDENTIFIER, "ROTATED", false)) {
+          RequireToken(tokenizer, &token, TOK_LBRACK, NULL, false);
+
+          comp.rot = ParseVector3(tokenizer, stack);
+          RequireToken(tokenizer, &token, TOK_RBRACK, NULL, false);
+          comp.rot_relative = ParseAbsoluteRelative(tokenizer, stack);
+          continue;
+        }
+
+        // JUMP [OPTIONAL]
+        else if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "JUMP", false)) {
+          if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(1);
+          AllocTokenValue(&comp.jump, &token, stack);
+          continue;
+        }
+
+        // WHEN - NOTE: sometimes, the when block is not bracket, thus the added complexity
+        else if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "WHEN", false)) {
+          RequireToken(tokenizer, &token, TOK_LBRACK, NULL, false);
+          if (!ParseExpression_McStasEndConditions(tokenizer, &token)) {
+            PrintLineError(tokenizer, &token, "Expected value expression");
+            exit(1);
+          }
+          AllocTokenValue(&comp.when, &token, stack);
+          RequireToken(tokenizer, &token, TOK_RBRACK, NULL, false);
+          continue;
+        }
+
+        // group [OPTIONAL]
+        else if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "GROUP", false)) {
+          if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(1);
+          AllocTokenValue(&comp.group, &token, stack);
+          continue;
+        }
+
+        // extend [OPTIONAL]
+        else if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "EXTEND", false)) {
+          comp.extend = CopyBracketedTextBlock(tokenizer, TOK_LPERBRACE, TOK_RPERBRACE, false, stack);
+          continue;
+        }
+
+        // default: exit the keyword loop
+        else {
+          parsing_keywords = false;
+        }
       }
 
-      // location / AT
-      if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "AT")) exit(1);
-      RequireToken(tokenizer, &token, TOK_LBRACK, NULL, false);
-      comp.at = ParseVector3(tokenizer, stack);
-      RequireToken(tokenizer, &token, TOK_RBRACK, NULL, false);
-      comp.at_relative = ParseAbsoluteRelative(tokenizer, stack);
-
-      // rotation / ROTATED [OPTIONAL]
-      if (RequireToken(tokenizer, NULL, TOK_IDENTIFIER, "ROTATED", false)) {
-        RequireToken(tokenizer, &token, TOK_LBRACK, NULL, false);
-
-        comp.rot = ParseVector3(tokenizer, stack);
-        RequireToken(tokenizer, &token, TOK_RBRACK, NULL, false);
-        comp.rot_relative = ParseAbsoluteRelative(tokenizer, stack);
-      }
-
-      // group [OPTIONAL]
-      if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "GROUP", false)) {
-        if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(1);
-        AllocTokenValue(&comp.group, &token, stack);
-      }
-
-      // extend [OPTIONAL]
-      if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "EXTEND", false)) {
-        comp.extend = CopyBracketedTextBlock(tokenizer, TOK_LPERBRACE, TOK_RPERBRACE, false, stack);
+      if (!found_AT) {
+        // TODO: elaborate this error message
+        printf("Component declarations must include the AT definition.\n");
+        exit(1);
       }
 
       lst.Add(&comp);
+    }
+
+    else {
+      break;
     }
   }
 
@@ -643,7 +765,7 @@ void TestParseMcStasInstrExamplesFolder(int argc, char **argv) {
   ArrayListT<char*> filepaths = GetFilesInFolderPaths(folder, &stack_files);
 
   //for (int i = 0; i < filepaths.len; ++i) {
-  for (int i = 0; i < 60; ++i) {
+  for (int i = 58; i < 60; ++i) {
     stack_work.Clear();
 
     char *filename = *filepaths.At(i);
