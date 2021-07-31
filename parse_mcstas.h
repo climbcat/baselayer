@@ -145,6 +145,7 @@ struct TraceDef {
 struct InstrDef {
   char *name = NULL;
   ArrayListT<InstrParam> params;
+  char *dependency;
   DeclareDef declare;
   UservarsDef uservars;
   InitializeDef init;
@@ -516,12 +517,18 @@ InstrDef ParseInstrument(Tokenizer *tokenizer, StackAllocator *stack) {
     if (!RequireToken(tokenizer, NULL, TOK_RBRACK)) exit(1);
   }
 
-  // declare
+  // dependency [OPTIONAL]
+  if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "DEPENDENCY", false)) {
+    if (!RequireToken(tokenizer, &token, TOK_STRING)) exit(1);
+    AllocTokenValue(&instr.dependency, &token, stack);
+  }
+
+  // declare [OPTIONAL]
   if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "DECLARE", false)) {
     instr.declare.text = CopyBracketedTextBlock(tokenizer, TOK_LPERBRACE, TOK_RPERBRACE, false, stack);
   }
 
-  // uservars
+  // uservars [OPTIONAL]
   if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "USERVARS", false)) {
     instr.uservars.text = CopyBracketedTextBlock(tokenizer, TOK_LPERBRACE, TOK_RPERBRACE, true, stack);
     if (!RequireToken(tokenizer, &token, TOK_LPERBRACE)) exit(1);
@@ -529,7 +536,7 @@ InstrDef ParseInstrument(Tokenizer *tokenizer, StackAllocator *stack) {
     if (!RequireToken(tokenizer, &token, TOK_RPERBRACE)) exit(1);
   }
 
-  // initialize
+  // initialize [OPTIONAL]
   if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "INITIALIZE", false)) {
     instr.init.text = CopyBracketedTextBlock(tokenizer, TOK_LPERBRACE, TOK_RPERBRACE, false, stack);
   }
@@ -540,7 +547,7 @@ InstrDef ParseInstrument(Tokenizer *tokenizer, StackAllocator *stack) {
     instr.trace.comps = ParseTraceComps(tokenizer, stack);
   }
 
-  // finalize
+  // finalize [OPTIONAL]
   if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "FINALLY", false)) {
     instr.finalize.text = CopyBracketedTextBlock(tokenizer, TOK_LPERBRACE, TOK_RPERBRACE, false, stack);
   }
@@ -550,6 +557,7 @@ InstrDef ParseInstrument(Tokenizer *tokenizer, StackAllocator *stack) {
 
 void PrintInstrumentParse(InstrDef instr) {
   printf("instr name: %s\n", instr.name);
+  printf("instr dependency: %s\n", instr.dependency);
   printf("instr params:\n");
   for (int i = 0; i < instr.params.len; i++) {
     InstrParam* p = instr.params.At(i);
@@ -622,7 +630,7 @@ void TestParseMcStasInstrExamplesFolder(int argc, char **argv) {
   ArrayListT<char*> filepaths = GetFilesInFolderPaths(folder, &stack_files);
 
   //for (int i = 0; i < filepaths.len; ++i) {
-  for (int i = 42; i < 50; ++i) {
+  for (int i = 44; i < 50; ++i) {
     stack_work.Clear();
 
     char *filename = *filepaths.At(i);
