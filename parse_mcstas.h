@@ -497,10 +497,7 @@ InstrDef ParseInstrument(Tokenizer *tokenizer, StackAllocator *stack) {
 
   // declare
   if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "DECLARE", false)) {
-    instr.declare.text = CopyBracketedTextBlock(tokenizer, TOK_LPERBRACE, TOK_RPERBRACE, true, stack);
-    if (!RequireToken(tokenizer, &token, TOK_LPERBRACE)) exit(1);
-    instr.declare.decls = ParseStructMembers(tokenizer, stack);
-    if (!RequireToken(tokenizer, &token, TOK_RPERBRACE)) exit(1);
+    instr.declare.text = CopyBracketedTextBlock(tokenizer, TOK_LPERBRACE, TOK_RPERBRACE, false, stack);
   }
 
   // uservars
@@ -539,12 +536,7 @@ void PrintInstrumentParse(InstrDef instr) {
   }
   printf("\n");
 
-  printf("declare members:\n");
-  for (int i = 0; i < instr.declare.decls.len; ++i) {
-    StructMember *memb = instr.declare.decls.At(i);
-    printf("  %s %s = %s\n", memb->type, memb->name, memb->defval);
-  }
-  printf("\n");
+  printf("init text:\n%s\n\n", instr.declare.text);
 
   printf("uservars members:\n");
   for (int i = 0; i < instr.uservars.decls.len; ++i) {
@@ -608,7 +600,7 @@ void TestParseMcStasInstrExamplesFolder(int argc, char **argv) {
   ArrayListT<char*> filepaths = GetFilesInFolderPaths(folder, &stack_files);
 
   //for (int i = 0; i < filepaths.len; ++i) {
-  for (int i = 16; i < 20; ++i) {
+  for (int i = 0; i < 25; ++i) {
     stack_work.Clear();
 
     char *filename = *filepaths.At(i);
