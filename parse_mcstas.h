@@ -630,7 +630,7 @@ void TestParseMcStasInstrExamplesFolder(int argc, char **argv) {
   ArrayListT<char*> filepaths = GetFilesInFolderPaths(folder, &stack_files);
 
   //for (int i = 0; i < filepaths.len; ++i) {
-  for (int i = 44; i < 50; ++i) {
+  for (int i = 0; i < 50; ++i) {
     stack_work.Clear();
 
     char *filename = *filepaths.At(i);
@@ -646,7 +646,7 @@ void TestParseMcStasInstrExamplesFolder(int argc, char **argv) {
     InstrDef instr = ParseInstrument(&tokenizer, &stack_work);
     printf("  %s\n", instr.name);
 
-    bool print_exit = 1;
+    bool print_exit = 0;
     if (1 == print_exit) {
       PrintInstrumentParse(instr);
       exit(0);

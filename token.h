@@ -855,6 +855,8 @@ u32 CountTokenSeparatedStuff(char *text, TokenType tok_separator, TokenType tok_
 bool ParseExpression(Tokenizer *tokenizer, Token *token, const char* end_identifier = NULL) {
   bool result = false;
   u32 bracket_level = 0;
+  u32 brace_level = 0;
+  u32 sbrack_level = 0;
 
   EatWhiteSpacesAndComments(tokenizer);
   token->text = tokenizer->at;
@@ -864,7 +866,6 @@ bool ParseExpression(Tokenizer *tokenizer, Token *token, const char* end_identif
     Token token = GetToken(tokenizer);
     switch ( token.type ) {
       case TOK_ENDOFSTREAM: {
-        --tokenizer->at;
         parsing = false;
       } break;
 
@@ -881,14 +882,34 @@ bool ParseExpression(Tokenizer *tokenizer, Token *token, const char* end_identif
         }
       } break;
 
+      case TOK_LBRACE: {
+        ++brace_level;
+      } break;
+
+      case TOK_RBRACE: {
+        if (brace_level > 0) {
+          --brace_level;
+        }
+      } break;
+
+      case TOK_LSBRACK: {
+        ++sbrack_level;
+      } break;
+
+      case TOK_RSBRACK: {
+        if (sbrack_level > 0) {
+          --sbrack_level;
+        }
+      } break;
+
       case TOK_SEMICOLON: {
-        if (bracket_level == 0) {
+        if (bracket_level == 0 && brace_level == 0 && sbrack_level == 0) {
           parsing = false;
         }
       } break;
 
       case TOK_COMMA: {
-        if (bracket_level == 0) {
+        if (bracket_level == 0 && brace_level == 0 && sbrack_level == 0) {
           parsing = false;
         }
       } break;

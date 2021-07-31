@@ -694,6 +694,18 @@ void TestCountCommaSeparatedStuff() {
   printf("%d\n", count);
 }
 
+void TestParseWeirdExpression() {
+  char *text = (char*) "{ 1, 7, 200 }";
+
+  Tokenizer tokenizer;
+  tokenizer.Init(text);
+  Token token;
+  ParseExpression(&tokenizer, &token);
+
+  printf("text:  %s\n", text);
+  printf("parse: %.*s\n", token.len, token.text);
+}
+
 void RunTests(int argc, char **argv) {
   //TestRandGen();
   //TestLoadFile();
@@ -717,9 +729,10 @@ void RunTests(int argc, char **argv) {
   //TestParseStructMembers();
   //TestParseUntilEndOfExpression();
   //TestCountCommaSeparatedStuff();
+  TestParseWeirdExpression();
 
   //TestParseMcStasInstr(argc, argv);
-  TestParseMcStasInstrExamplesFolder(argc, argv);
+  //TestParseMcStasInstrExamplesFolder(argc, argv);
 }
 
 
