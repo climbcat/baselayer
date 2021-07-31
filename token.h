@@ -303,6 +303,9 @@ void EatWhiteSpacesAndComments(Tokenizer* tokenizer) {
 
 bool TokenEquals(Token* token, const char* match) { 
   char* at = (char*) match;
+  if (token->len != strlen(match)) {
+    return false;
+  }
   for (int idx = 0; idx < token->len; idx++, at++) {
     if (token->text[idx] != *at) {
       return false;
