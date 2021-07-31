@@ -348,6 +348,8 @@ ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack
   Tokenizer save = *tokenizer;
   Token token = {};
 
+  // TODO: use the ParseExpression -derived counter instead
+
   // get number of comps
   u32 count = 0;
   bool parsing = true;
@@ -441,8 +443,13 @@ ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack
 
       // WHEN
       if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "WHEN", false)) {
-        // TODO: this function should respect the use of nested tok_start and tok_end usage inside the text block
-        comp.when = CopyBracketedTextBlock(tokenizer, TOK_LBRACK, TOK_RBRACK, false, stack);
+        if (!RequireToken(tokenizer, &token, TOK_LBRACK)) exit(1);
+        if (!ParseExpression(tokenizer, &token)) {
+          PrintLineError(tokenizer, &token, "Expected value expression");
+          exit(1);
+        }
+        AllocTokenValue(&comp.when, &token, stack);
+        if (!RequireToken(tokenizer, &token, TOK_RBRACK)) exit(1);
       }
 
       // location / AT
@@ -600,7 +607,7 @@ void TestParseMcStasInstrExamplesFolder(int argc, char **argv) {
   ArrayListT<char*> filepaths = GetFilesInFolderPaths(folder, &stack_files);
 
   //for (int i = 0; i < filepaths.len; ++i) {
-  for (int i = 0; i < 25; ++i) {
+  for (int i = 20; i < 25; ++i) {
     stack_work.Clear();
 
     char *filename = *filepaths.At(i);
@@ -616,9 +623,11 @@ void TestParseMcStasInstrExamplesFolder(int argc, char **argv) {
     InstrDef instr = ParseInstrument(&tokenizer, &stack_work);
     printf("  %s\n", instr.name);
 
-    //PrintInstrumentParse(instr);
-
-    //exit(0);
+    bool print_exit = 1;
+    if (1 == print_exit) {
+      PrintInstrumentParse(instr);
+      exit(0);
+    }
   }
 
 }
