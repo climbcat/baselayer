@@ -151,90 +151,44 @@ struct InstrDef {
 };
 
 ArrayListT<InstrParam> ParseInstrParams(Tokenizer *tokenizer, StackAllocator *stack) {
-  u32 count = CountTokenSeparatedStuff(tokenizer->at, TOK_COMMA, TOK_RBRACK);
+  u32 count = CountCommaSeparatedSequenceOfExpresions(tokenizer->at);
+  ArrayListT<InstrParam> lst;
+  lst.Init(stack->Alloc(sizeof(InstrParam) * count));
 
-  ArrayListT<InstrParam> alst;
-  alst.Init(stack->Alloc(sizeof(InstrParam) * count));
+  Token token;
+  for (int i = 0; i < count; i++) {
+    InstrParam param = {};
 
-  bool parsing = true;
-  while (parsing) {
-    if (LookAheadNextToken(tokenizer, TOK_RBRACK)) {
-      return alst;
+    Token tok_one = {};
+    Token tok_two = {};
+
+    // name and optional type
+    if (!RequireToken(tokenizer, &tok_one, TOK_IDENTIFIER)) exit(1);
+    if (RequireToken(tokenizer, &tok_two, TOK_IDENTIFIER, NULL, false)) {
+      AllocTokenValue(&param.type, &tok_one, stack);
+      AllocTokenValue(&param.name, &tok_two, stack);
     }
-    Token token = GetToken(tokenizer);
-    switch ( token.type ) {
-      case TOK_ENDOFSTREAM: {
-        parsing = false;
-        assert(1 == 0);
-      } break;
-
-      case TOK_COMMA: {
-
-      } break;
-
-      case TOK_RBRACK: {
-        parsing = false;
-      } break;
-
-      case TOK_IDENTIFIER: {
-        InstrParam param = {};
-        u32 count = LookAheadTokenCountOR(tokenizer, TOK_COMMA, TOK_RBRACK);
-
-        if (count == 4) {
-          // type varname = defval
-          AllocTokenValueAssertType(&param.type, &token, TOK_IDENTIFIER, stack);
-
-          token = GetToken(tokenizer);
-          AllocTokenValueAssertType(&param.name, &token, TOK_IDENTIFIER, stack);
-
-          GetToken(tokenizer);
-
-          token = GetToken(tokenizer);
-          if (token.type != TOK_FLOAT && token.type != TOK_INT && token.type != TOK_SCI && token.type != TOK_STRING) {
-            tokenizer->at -= token.len;
-            PrintLineError(tokenizer, &token, "Expected number or string");
-            exit(1);
-          }
-          AllocTokenValue(&param.defaultval, &token, stack);
-        }
-        else if (count == 3) {
-          // parname = defval
-          AllocTokenValueAssertType(&param.name, &token, TOK_IDENTIFIER, stack);
-
-          GetToken(tokenizer);
-
-          token = GetToken(tokenizer);
-          if (token.type != TOK_FLOAT && token.type != TOK_INT && token.type != TOK_SCI && token.type != TOK_STRING) {
-            PrintLineError(tokenizer, &token, "Expected number or string");
-            exit(1);
-          }
-          AllocTokenValue(&param.defaultval, &token, stack);
-        }
-        else if (count == 2) {
-          // type parname
-          AllocTokenValueAssertType(&param.type, &token, TOK_IDENTIFIER, stack);
-
-          token = GetToken(tokenizer);
-          AllocTokenValueAssertType(&param.name, &token, TOK_IDENTIFIER, stack);
-        }
-        else if (count == 1) {
-          // parname
-          AllocTokenValueAssertType(&param.defaultval, &token, TOK_IDENTIFIER, stack);
-        }
-        else {
-          PrintLineError(tokenizer, &token, "Parameter ill defined");
-          exit(1);
-        }
-        alst.Add(&param);
- 
-      } break;
-
-      default: {
-      } break;
+    else {
+      AllocTokenValue(&param.name, &token, stack);
     }
+
+    // optional default value
+    if (RequireToken(tokenizer, &tok_two, TOK_ASSIGN, NULL, false)) {
+      if (!ParseExpression(tokenizer, &token)) {
+        PrintLineError(tokenizer, &token, "Expected param value");
+        exit(1);
+      }
+      else {
+        AllocTokenValue(&param.defaultval, &token, stack);
+      }
+    }
+
+    // eat any comma
+    RequireToken(tokenizer, &tok_two, TOK_COMMA, NULL, false);
   }
 
-  return alst;
+
+  return lst;
 }
 
 char* CopyBracketedTextBlock(Tokenizer *tokenizer, TokenType type_start, TokenType type_end, bool restore_tokenizer, StackAllocator *stack) {
@@ -293,7 +247,6 @@ ArrayListT<CompParam> ParseCompParams(Tokenizer *tokenizer, StackAllocator *stac
 
     if (!RequireToken(tokenizer, &token, TOK_ASSIGN)) exit(1);
 
-    char* expr_start = tokenizer->at;
     if (!ParseExpression(tokenizer, &token)) {
       PrintLineError(tokenizer, &token, "Expected param value.");
       exit(1);

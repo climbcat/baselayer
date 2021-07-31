@@ -905,6 +905,26 @@ bool ParseExpression(Tokenizer *tokenizer, Token *token) {
   return result;
 }
 
+u32 CountCommaSeparatedSequenceOfExpresions(char *text) {
+  Token token;
+  Tokenizer tokenizer;
+  tokenizer.Init(text);
+
+  u32 count = 0;
+  bool flag = false;
+  bool parsing = true;
+  while (parsing) {
+    if (ParseExpression(&tokenizer, &token)) {
+      ++count;
+    }
+
+    if (!RequireToken(&tokenizer, &token, TOK_COMMA, NULL, false)) {
+      parsing = false;
+    }
+  }
+  return count;
+}
+
 void ParseAllocCommaSeparatedListOfStrings(StringList* lst, Tokenizer* tokenizer, StackAllocator* stack) {
   Tokenizer save = *tokenizer;
 

@@ -672,6 +672,28 @@ void TestParseUntilEndOfExpression() {
   if (!RequireToken(&tokenizer, &token, TOK_COMMA)) assert(4 == 0);
 }
 
+void TestCountCommaSeparatedStuff() {
+  char *text = (char*) "\
+    (lambda = 2.5666,\n\
+    R = 0.87 and a bunc of stuff(),\n\
+    string filename = \"Na2Ca3Al2F14.laz\",\n\
+    D_PHI=6,\n\
+    SHIFT=0,\n\
+    PACK=0.7,\n\
+    Dw=0.8,\n\
+    BARNS=1)\n\
+  ";
+
+  Tokenizer tokenizer;
+  tokenizer.Init(text);
+  Token token;
+
+  if (!RequireToken(&tokenizer, &token, TOK_LBRACK)) exit(1);
+
+  u32 count = CountCommaSeparatedSequenceOfExpresions(tokenizer.at);
+  printf("%d\n", count);
+}
+
 void RunTests(int argc, char **argv) {
   //TestRandGen();
   //TestLoadFile();
@@ -694,6 +716,7 @@ void RunTests(int argc, char **argv) {
   //TestGetFilenamesInFolder();
   //TestParseStructMembers();
   //TestParseUntilEndOfExpression();
+  //TestCountCommaSeparatedStuff();
 
   TestParseMcStasInstr(argc, argv);
   //TestParseMcStasInstrExamplesFolder(argc, argv);
