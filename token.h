@@ -174,6 +174,13 @@ struct Token {
   TokenType type;
   char* text;
   u16 len;
+  void PrintValue(bool newline = true) {
+  printf("%.*s", len, text);
+  if (newline) {
+    printf("\n");
+  }
+}
+
 };
 
 inline
@@ -840,6 +847,61 @@ u32 CountTokenSeparatedStuff(char *text, TokenType tok_separator, TokenType tok_
   }
 
   return count;
+}
+
+bool ParseExpression(Tokenizer *tokenizer, Token *token) {
+  bool result = false;
+  u32 bracket_level = 0;
+
+  token->text = tokenizer->at;
+
+  bool parsing = true;
+  while (parsing) {
+    Token token = GetToken(tokenizer);
+    switch ( token.type ) {
+      case TOK_ENDOFSTREAM: {
+        --tokenizer->at;
+        parsing = false;
+      } break;
+
+      case TOK_LBRACK: {
+        ++bracket_level;
+      } break;
+
+      case TOK_RBRACK: {
+        if (bracket_level > 0) {
+          --bracket_level;
+        }
+        else {
+          parsing = false;
+        }
+      } break;
+
+      case TOK_SEMICOLON: {
+        if (bracket_level == 0) {
+          parsing = false;
+        }
+      } break;
+
+      case TOK_COMMA: {
+        if (bracket_level == 0) {
+          parsing = false;
+        }
+      } break;
+
+      default: {
+        result = true;
+        // do nothing
+      } break;
+    }
+  }
+
+  // exit conditions are: EOS, comma, semicolon or rbracket, all of which are 1 char long
+  --tokenizer->at;
+
+  token->len = tokenizer->at - token->text;
+  token->len = RTrimText(token->text, token->len);
+  return result;
 }
 
 void ParseAllocCommaSeparatedListOfStrings(StringList* lst, Tokenizer* tokenizer, StackAllocator* stack) {

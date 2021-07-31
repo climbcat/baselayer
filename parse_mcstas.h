@@ -293,8 +293,6 @@ ArrayListT<CompParam> ParseCompParams(Tokenizer *tokenizer, StackAllocator *stac
 
   ArrayListT<CompParam> lst;
   lst.Init(stack->Alloc(sizeof(CompParam) * count));
-
-  CompParam par;
   Token token;
 
   for (int i = 0; i < count; i++) {
@@ -305,19 +303,14 @@ ArrayListT<CompParam> ParseCompParams(Tokenizer *tokenizer, StackAllocator *stac
 
     if (!RequireToken(tokenizer, &token, TOK_ASSIGN)) exit(1);
 
-    EatWhiteSpacesAndComments(tokenizer);
-    u32 vallen = MinU(LookAheadLenUntilToken(tokenizer, TOK_COMMA), LookAheadLenUntilToken(tokenizer, TOK_RBRACK));
-    if (vallen == 0) {
+    char* expr_start = tokenizer->at;
+    if (!ParseExpression(tokenizer, &token)) {
       PrintLineError(tokenizer, &token, "Expected param value.");
       exit(1);
     }
     else {
-      EatWhiteSpacesAndComments(tokenizer);
-      token.text = tokenizer->at;
-      token.len = vallen;
       AllocTokenValue(&par.value, &token, stack);
       lst.Add(&par);
-      tokenizer->at += vallen;
     }
 
     if (LookAheadNextToken(tokenizer, TOK_COMMA)) {

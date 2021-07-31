@@ -657,6 +657,20 @@ void TestGetFilenamesInFolder() {
 
 }
 
+void TestParseUntilEndOfExpression() {
+  const char *string = 
+    "d_phi=RAD2DEG*atan2(0.5,L3),";
+
+  Tokenizer tokenizer;
+  tokenizer.Init((char*) string);
+  Token token;
+
+  if (!RequireToken(&tokenizer, &token, TOK_IDENTIFIER)) assert(1 == 0);
+  if (!RequireToken(&tokenizer, &token, TOK_ASSIGN)) assert(2 == 0);
+  assert(ParseExpression(&tokenizer, &token) == true);
+  token.PrintValue();
+  if (!RequireToken(&tokenizer, &token, TOK_COMMA)) assert(4 == 0);
+}
 
 void RunTests(int argc, char **argv) {
   //TestRandGen();
@@ -679,9 +693,10 @@ void RunTests(int argc, char **argv) {
   //TestTokenizerLineNums_PSI();
   //TestGetFilenamesInFolder();
   //TestParseStructMembers();
+  TestParseUntilEndOfExpression();
 
   //TestParseMcStasInstr(argc, argv);
-  TestParseMcStasInstrExamplesFolder(argc, argv);
+  //TestParseMcStasInstrExamplesFolder(argc, argv);
 }
 
 
