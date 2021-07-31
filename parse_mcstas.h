@@ -233,7 +233,7 @@ char* CopyBracketedTextBlock(Tokenizer *tokenizer, TokenType type_start, TokenTy
 }
 
 ArrayListT<CompParam> ParseCompParams(Tokenizer *tokenizer, StackAllocator *stack) {
-  u32 count = CountTokenSeparatedStuff(tokenizer->at, TOK_COMMA, TOK_RBRACK);
+  u32 count = CountCommaSeparatedSequenceOfExpresions(tokenizer->at);
 
   ArrayListT<CompParam> lst;
   lst.Init(stack->Alloc(sizeof(CompParam) * count));
