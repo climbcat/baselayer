@@ -718,8 +718,8 @@ void RunTests(int argc, char **argv) {
   //TestParseUntilEndOfExpression();
   //TestCountCommaSeparatedStuff();
 
-  TestParseMcStasInstr(argc, argv);
-  //TestParseMcStasInstrExamplesFolder(argc, argv);
+  //TestParseMcStasInstr(argc, argv);
+  TestParseMcStasInstrExamplesFolder(argc, argv);
 }
 
 

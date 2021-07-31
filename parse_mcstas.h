@@ -123,6 +123,7 @@ struct CompDecl {
   char *type = NULL;
   char *name = NULL;
   char *extend = NULL;
+  char *group = NULL;
   char *copy = NULL;
   char *when = NULL;
   bool removable = false;
@@ -159,17 +160,16 @@ ArrayListT<InstrParam> ParseInstrParams(Tokenizer *tokenizer, StackAllocator *st
   for (int i = 0; i < count; i++) {
     InstrParam param = {};
 
+    // name and optional type
     Token tok_one = {};
     Token tok_two = {};
-
-    // name and optional type
     if (!RequireToken(tokenizer, &tok_one, TOK_IDENTIFIER)) exit(1);
     if (RequireToken(tokenizer, &tok_two, TOK_IDENTIFIER, NULL, false)) {
       AllocTokenValue(&param.type, &tok_one, stack);
       AllocTokenValue(&param.name, &tok_two, stack);
     }
     else {
-      AllocTokenValue(&param.name, &token, stack);
+      AllocTokenValue(&param.name, &tok_one, stack);
     }
 
     // optional default value
@@ -184,7 +184,7 @@ ArrayListT<InstrParam> ParseInstrParams(Tokenizer *tokenizer, StackAllocator *st
     }
 
     // eat any comma
-    RequireToken(tokenizer, &tok_two, TOK_COMMA, NULL, false);
+    RequireToken(tokenizer, &token, TOK_COMMA, NULL, false);
   }
 
 
@@ -461,7 +461,13 @@ ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack
         comp.rot_relative = ParseAbsoluteRelative(tokenizer, stack);
       }
 
-      // EXTEND [OPTIONAL]
+      // group [OPTIONAL]
+      if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "GROUP", false)) {
+        if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(1);
+        AllocTokenValue(&comp.group, &token, stack);
+      }
+
+      // extend [OPTIONAL]
       if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "EXTEND", false)) {
         comp.extend = CopyBracketedTextBlock(tokenizer, TOK_LPERBRACE, TOK_RPERBRACE, false, stack);
       }
@@ -563,6 +569,7 @@ void PrintInstrumentParse(InstrDef instr) {
       CompParam *param = lstp.At(i);
       printf("    %s = %s\n", param->name, param->value);
     }
+    printf("  group: %s\n", comp->group);
     printf("  when: %s\n", comp->when);
     printf("  at:      (%s, %s, %s) %s\n", comp->at.x, comp->at.y, comp->at.z, comp->at_relative);
     printf("  rotated: (%s, %s, %s) %s\n", comp->rot.x, comp->rot.y, comp->rot.z, comp->rot_relative);
@@ -601,7 +608,7 @@ void TestParseMcStasInstrExamplesFolder(int argc, char **argv) {
   ArrayListT<char*> filepaths = GetFilesInFolderPaths(folder, &stack_files);
 
   //for (int i = 0; i < filepaths.len; ++i) {
-  for (int i = 12; i < 13; ++i) {
+  for (int i = 16; i < 20; ++i) {
     stack_work.Clear();
 
     char *filename = *filepaths.At(i);
@@ -609,19 +616,17 @@ void TestParseMcStasInstrExamplesFolder(int argc, char **argv) {
     if (text == NULL) {
       continue;
     }
-
-    printf("parsing: %s  ", filename);
-
     Tokenizer tokenizer = {};
     tokenizer.Init(text);
 
+    printf("parsing #%.3d: %s  ", i, filename);
+
     InstrDef instr = ParseInstrument(&tokenizer, &stack_work);
-
-    PrintInstrumentParse(instr);
-
-    // TODO: print instrdef
-
     printf("  %s\n", instr.name);
+
+    //PrintInstrumentParse(instr);
+
+    //exit(0);
   }
 
 }
