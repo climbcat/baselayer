@@ -852,7 +852,7 @@ u32 CountTokenSeparatedStuff(char *text, TokenType tok_separator, TokenType tok_
   return count;
 }
 
-bool ParseExpression(Tokenizer *tokenizer, Token *token) {
+bool ParseExpression(Tokenizer *tokenizer, Token *token, const char* end_identifier = NULL) {
   bool result = false;
   u32 bracket_level = 0;
 
@@ -893,9 +893,17 @@ bool ParseExpression(Tokenizer *tokenizer, Token *token) {
         }
       } break;
 
+      case TOK_IDENTIFIER: {
+        result = true;
+
+        if (end_identifier != NULL && TokenEquals(&token, end_identifier)) {
+          tokenizer->at -= token.len;
+          parsing = false;
+        }
+      } break;
+
       default: {
         result = true;
-        // do nothing
       } break;
     }
   }

@@ -455,15 +455,15 @@ ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack
         if (!RequireToken(tokenizer, &token, TOK_RBRACK)) exit(1);
       }
 
-      // WHEN
+      // WHEN - NOTE: sometimes, the when block is not bracket, thus the added complexity
       if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "WHEN", false)) {
-        if (!RequireToken(tokenizer, &token, TOK_LBRACK)) exit(1);
-        if (!ParseExpression(tokenizer, &token)) {
+        RequireToken(tokenizer, &token, TOK_LBRACK, NULL, false);
+        if (!ParseExpression(tokenizer, &token, "AT")) { 
           PrintLineError(tokenizer, &token, "Expected value expression");
           exit(1);
         }
         AllocTokenValue(&comp.when, &token, stack);
-        if (!RequireToken(tokenizer, &token, TOK_RBRACK)) exit(1);
+        RequireToken(tokenizer, &token, TOK_RBRACK, NULL, false);
       }
 
       // location / AT
@@ -622,7 +622,7 @@ void TestParseMcStasInstrExamplesFolder(int argc, char **argv) {
   ArrayListT<char*> filepaths = GetFilesInFolderPaths(folder, &stack_files);
 
   //for (int i = 0; i < filepaths.len; ++i) {
-  for (int i = 33; i < 40; ++i) {
+  for (int i = 42; i < 50; ++i) {
     stack_work.Clear();
 
     char *filename = *filepaths.At(i);
