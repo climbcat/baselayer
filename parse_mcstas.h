@@ -126,6 +126,7 @@ struct CompDecl {
   char *group = NULL;
   char *copy_name = NULL;
   char *copy_type = NULL;
+  char *jump = NULL;
   char *when = NULL;
   bool removable = false;
   u32 split = 0;
@@ -393,7 +394,7 @@ ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack
     else {
       CompDecl comp = {};
 
-      // removable [OPTIONAL]
+      // include [OPTIONAL]
       if (RequireToken(tokenizer, &token, TOK_PERCENT, NULL, false)) {
         if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "include")) exit(1);
         if (!RequireToken(tokenizer, &token, TOK_STRING)) exit(1);
@@ -454,6 +455,17 @@ ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack
       if (RequireToken(tokenizer, &token, TOK_LBRACK, NULL, false)) {
         comp.params = ParseCompParams(tokenizer, stack);
         if (!RequireToken(tokenizer, &token, TOK_RBRACK)) exit(1);
+      }
+
+
+      // TODO: make the order of the keywords AT ROTATED JUMP WHEN GROUP EXTEND be irrelevant,
+      //       e.g. implemented by getting a keyword, then if/elseif'in on its value
+
+
+      // JUMP [OPTIONAL]
+      if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "JUMP", false)) {
+        if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(1);
+        AllocTokenValue(&comp.jump, &token, stack);
       }
 
       // WHEN - NOTE: sometimes, the when block is not bracket, thus the added complexity
@@ -592,6 +604,7 @@ void PrintInstrumentParse(InstrDef instr) {
       printf("    %s = %s\n", param->name, param->value);
     }
     printf("  group: %s\n", comp->group);
+    printf("  jump: %s\n", comp->jump);
     printf("  when: %s\n", comp->when);
     printf("  at:      (%s, %s, %s) %s\n", comp->at.x, comp->at.y, comp->at.z, comp->at_relative);
     printf("  rotated: (%s, %s, %s) %s\n", comp->rot.x, comp->rot.y, comp->rot.z, comp->rot_relative);
@@ -630,7 +643,7 @@ void TestParseMcStasInstrExamplesFolder(int argc, char **argv) {
   ArrayListT<char*> filepaths = GetFilesInFolderPaths(folder, &stack_files);
 
   //for (int i = 0; i < filepaths.len; ++i) {
-  for (int i = 0; i < 50; ++i) {
+  for (int i = 0; i < 60; ++i) {
     stack_work.Clear();
 
     char *filename = *filepaths.At(i);

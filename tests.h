@@ -729,10 +729,10 @@ void RunTests(int argc, char **argv) {
   //TestParseStructMembers();
   //TestParseUntilEndOfExpression();
   //TestCountCommaSeparatedStuff();
-  TestParseWeirdExpression();
+  //TestParseWeirdExpression();
 
   //TestParseMcStasInstr(argc, argv);
-  //TestParseMcStasInstrExamplesFolder(argc, argv);
+  TestParseMcStasInstrExamplesFolder(argc, argv);
 }
 
 
