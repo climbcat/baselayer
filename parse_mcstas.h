@@ -128,6 +128,7 @@ struct CompDecl {
   char *copy_name = NULL;
   char *copy_type = NULL;
   char *jump = NULL;
+  char *iterate = NULL;
   char *when = NULL;
   bool removable = false;
   ArrayListT<CompParam> params;
@@ -579,6 +580,10 @@ ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack
         else if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "JUMP", false)) {
           if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(1);
           AllocTokenValue(&comp.jump, &token, stack);
+          if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "ITERATE", false)) {
+            ParseExpression_McStasEndConditions(tokenizer, &token);
+            AllocTokenValue(&comp.iterate, &token, stack);
+          }
           continue;
         }
 
@@ -722,6 +727,7 @@ void PrintInstrumentParse(InstrDef instr) {
     }
     printf("  group: %s\n", comp->group);
     printf("  jump: %s\n", comp->jump);
+    printf("  iterate: %s\n", comp->iterate);
     printf("  when: %s\n", comp->when);
     printf("  at:      (%s, %s, %s) %s\n", comp->at.x, comp->at.y, comp->at.z, comp->at_relative);
     printf("  rotated: (%s, %s, %s) %s\n", comp->rot.x, comp->rot.y, comp->rot.z, comp->rot_relative);
@@ -773,14 +779,63 @@ bool IsInstrFile(char *filename) {
   return true;
 }
 
-void TestParseMcStasInstrExamplesFolder(int argc, char **argv) {
-  char *folder = (char*) "/usr/share/mcstas/3.0-dev/examples";
+void Main_ParseInstr(char *filepath) {
+
+}
+
+void Main_ParseInstrFolder(char *foldername) {
   StackAllocator stack_files(MEGABYTE);
   StackAllocator stack_work(MEGABYTE);
 
-  ArrayListT<char*> filepaths = GetFilesInFolderPaths(folder, &stack_files);
+  ArrayListT<char*> filepaths = GetFilesInFolderPaths(foldername, &stack_files);
 
   for (int i = 0; i < filepaths.len; ++i) {
+    stack_work.Clear();
+
+    char *filename = *filepaths.At(i);
+    if (!IsInstrFile(filename)) {
+      printf("skipping #%.3d: %s\n", i, filename);
+      continue;
+    }
+
+    char *text = LoadFile(filename, false, &stack_files);
+    if (text == NULL) {
+      printf("is null  #%.3d: %s\n", i, filename);
+      continue;
+    }
+    Tokenizer tokenizer = {};
+    tokenizer.Init(text);
+
+    printf("parsing  #%.3d: %s  ", i, filename);
+
+    InstrDef instr = ParseInstrument(&tokenizer, &stack_work);
+    printf("  %s\n", instr.name);
+
+    // no not print
+    bool print_exit = 0;
+    if (1 == print_exit) {
+      PrintInstrumentParse(instr);
+      exit(0);
+    }
+  }
+}
+
+void TestParseMcStasInstrExamplesFolder(int argc, char **argv) {
+  char *folder = (char*) "/usr/share/mcstas/3.0-dev/examples";
+
+  //Main_ParseInstrFolder(folder);
+  //exit(0);
+
+  //char *input = folder;
+  //if (IsInstrFile(input)) {
+  //}
+
+  StackAllocator stack_files(10 * MEGABYTE);
+  StackAllocator stack_work(10 * MEGABYTE);
+
+  ArrayListT<char*> filepaths = GetFilesInFolderPaths(folder, &stack_files);
+
+  for (int i = 219; i < filepaths.len; ++i) {
     stack_work.Clear();
 
     char *filename = *filepaths.At(i);
@@ -801,7 +856,7 @@ void TestParseMcStasInstrExamplesFolder(int argc, char **argv) {
     InstrDef instr = ParseInstrument(&tokenizer, &stack_work);
     printf("  %s\n", instr.name);
 
-    bool print_exit = 0;
+    bool print_exit = 1;
     if (1 == print_exit) {
       PrintInstrumentParse(instr);
       exit(0);
