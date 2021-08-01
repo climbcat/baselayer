@@ -781,7 +781,13 @@ bool IsInstrFile(char *filename) {
 
 void TestParseMcStasInstrExamplesFolder(int argc, char **argv) {
   //char *input = (char*) "/usr/share/mcstas/3.0-dev/examples";
-  char *input = (char*) "/usr/share/mcstas/3.0-dev/examples/ILL_D2B_noenv.instr";
+  //char *input = (char*) "/usr/share/mcstas/3.0-dev/examples/ILL_D2B_noenv.instr";
+  char *input = argv[1];
+
+  if (argc != 2) {
+    printf("Input folder or file.\n");
+    exit(0);
+  }
 
   StackAllocator stack_files(10 * MEGABYTE);
   StackAllocator stack_work(10 * MEGABYTE);
