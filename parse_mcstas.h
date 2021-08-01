@@ -122,6 +122,7 @@ struct Vector3Strings {
 struct CompDecl {
   char *type = NULL;
   char *name = NULL;
+  char *split = NULL;
   char *extend = NULL;
   char *group = NULL;
   char *copy_name = NULL;
@@ -129,7 +130,6 @@ struct CompDecl {
   char *jump = NULL;
   char *when = NULL;
   bool removable = false;
-  u32 split = 0;
   ArrayListT<CompParam> params;
   Vector3Strings at;
   Vector3Strings rot;
@@ -332,10 +332,10 @@ char* ParseAbsoluteRelative(Tokenizer *tokenizer, StackAllocator *stack) {
   Token token;
   if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(1);
 
-  if (TokenEquals(&token, "ABSOLUTE") || TokenEquals(&token, "absolute")) {
+  if (TokenEquals(&token, "ABSOLUTE", true)) {
     AllocTokenValue(&result, &token, stack);
   }
-  else if (TokenEquals(&token, "RELATIVE") || TokenEquals(&token, "relative")) {
+  else if (TokenEquals(&token, "RELATIVE", true)) {
     if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(1);
     AllocTokenValue(&result, &token, stack);
   }
@@ -412,14 +412,14 @@ bool ParseExpression_McStasEndConditions(Tokenizer *tokenizer, Token *token) {
       case TOK_IDENTIFIER: {
         result = true;
 
-        if (TokenEquals(&token, "AT")
-            || TokenEquals(&token, "ROTATED")
-            || TokenEquals(&token, "GROUP")
-            || TokenEquals(&token, "JUMP")
-            || TokenEquals(&token, "WHEN")
-            || TokenEquals(&token, "COMPONENT")
-            || TokenEquals(&token, "END")
-            || TokenEquals(&token, "EXTEND")) {
+        if (TokenEquals(&token, "AT", true)
+            || TokenEquals(&token, "ROTATED", true)
+            || TokenEquals(&token, "GROUP", true)
+            || TokenEquals(&token, "JUMP", true)
+            || TokenEquals(&token, "WHEN", true)
+            || TokenEquals(&token, "COMPONENT", true)
+            || TokenEquals(&token, "END", true)
+            || TokenEquals(&token, "EXTEND", true)) {
           tokenizer->at -= token.len;
           parsing = false;
         }
@@ -438,7 +438,6 @@ bool ParseExpression_McStasEndConditions(Tokenizer *tokenizer, Token *token) {
   token->len = RTrimText(token->text, token->len);
   return result;
 }
-
 
 ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack) {
   ArrayListT<CompDecl> result;
@@ -459,13 +458,13 @@ ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack
       } break;
 
       case TOK_IDENTIFIER: {
-        if (TokenEquals(&token, "COMPONENT")) {
+        if (TokenEquals(&token, "COMPONENT", true)) {
           ++count;
         }
-        else if (TokenEquals(&token, "FINALIZE")) {
+        else if (TokenEquals(&token, "FINALIZE", true)) {
           parsing = false;
         }
-        else if (TokenEquals(&token, "END")) {
+        else if (TokenEquals(&token, "END", true)) {
           parsing = false;
         }
       } break;
@@ -495,15 +494,11 @@ ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack
 
       // split [OPTIONAL]
       if (RequireToken(tokenizer, &token, TOK_IDENTIFIER, "SPLIT", false)) {
-        comp.split = 1;
-        if (RequireToken(tokenizer, &token, TOK_INT, NULL, false)) {
-          char split[10];
-          strncpy(split, token.text, token.len);
-          comp.split = atoi(split);
-          if (comp.split == 0) {
-            PrintLineError(tokenizer, &token, "Expected a positive integer");
-            exit(1);
-          }
+        if (ParseExpression_McStasEndConditions(tokenizer, &token)) {
+          AllocIdentifierField(&comp.split, &token, stack);
+        }
+        else {
+          AllocString(&comp.split, "1", stack);
         }
       }
 
@@ -517,7 +512,7 @@ ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack
       // name
       if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(1);
       // copy name [OPTIONAL]
-      if (TokenEquals(&token, "COPY")) {
+      if (TokenEquals(&token, "COPY", true)) {
         if (!RequireToken(tokenizer, &token, TOK_LBRACK)) exit(1);
         if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(1);
         // TODO: whenever there is a copy, the type must be set by a post-processing step
@@ -531,7 +526,7 @@ ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack
       // type
       if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(1);
       // copy type [OPTIONAL]
-      if (TokenEquals(&token, "COPY")) {
+      if (TokenEquals(&token, "COPY", true)) {
         if (!RequireToken(tokenizer, &token, TOK_LBRACK)) exit(1);
         if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER)) exit(1);
         // TODO: whenever there is a copy, the type must be set by a post-processing step
@@ -717,7 +712,7 @@ void PrintInstrumentParse(InstrDef instr) {
     printf("  copy_name: %s\n", comp->copy_name);
     printf("  copy_type: %s\n", comp->copy_type);
     printf("  name: %s\n", comp->name);
-    printf("  split: %d\n", comp->split);
+    printf("  split: %s\n", comp->split);
     printf("  removable: %d\n", comp->removable);
     printf("  params:\n");
     auto lstp = comp->params;
@@ -757,6 +752,27 @@ void TestParseMcStasInstr(int argc, char **argv) {
   PrintInstrumentParse(instr);
 }
 
+bool IsInstrFile(char *filename) {
+  // check lenth / get expected location
+  u32 len = strlen(filename);
+  if (len < 7) {
+    return false;
+  }
+
+  const char *match = ".instr";
+  char cf;
+  char cm;
+  for (int i = 0; i < 6; i++) {
+    cf = filename[i + len - 6];
+    cm = match[i];
+    if (cf != cm) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 void TestParseMcStasInstrExamplesFolder(int argc, char **argv) {
   char *folder = (char*) "/usr/share/mcstas/3.0-dev/examples";
   StackAllocator stack_files(MEGABYTE);
@@ -764,11 +780,15 @@ void TestParseMcStasInstrExamplesFolder(int argc, char **argv) {
 
   ArrayListT<char*> filepaths = GetFilesInFolderPaths(folder, &stack_files);
 
-  //for (int i = 0; i < filepaths.len; ++i) {
-  for (int i = 58; i < 60; ++i) {
+  for (int i = 0; i < filepaths.len; ++i) {
     stack_work.Clear();
 
     char *filename = *filepaths.At(i);
+    if (!IsInstrFile(filename)) {
+      printf("skipping #%.3d: %s\n", i, filename);
+      continue;
+    }
+
     char *text = LoadFile(filename, false, &stack_files);
     if (text == NULL) {
       continue;
@@ -776,7 +796,7 @@ void TestParseMcStasInstrExamplesFolder(int argc, char **argv) {
     Tokenizer tokenizer = {};
     tokenizer.Init(text);
 
-    printf("parsing #%.3d: %s  ", i, filename);
+    printf("parsing  #%.3d: %s  ", i, filename);
 
     InstrDef instr = ParseInstrument(&tokenizer, &stack_work);
     printf("  %s\n", instr.name);

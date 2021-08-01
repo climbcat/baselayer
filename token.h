@@ -301,13 +301,21 @@ void EatWhiteSpacesAndComments(Tokenizer* tokenizer) {
   }
 }
 
-bool TokenEquals(Token* token, const char* match) { 
+bool TokenEquals(Token* token, const char* match, bool token_to_upper = false) { 
   char* at = (char*) match;
   if (token->len != strlen(match)) {
     return false;
   }
+  char ctok;
+  char cmatch;
   for (int idx = 0; idx < token->len; idx++, at++) {
-    if (token->text[idx] != *at) {
+    ctok = token->text[idx];
+    cmatch = *at;
+    if (token_to_upper) {
+      ctok = toupper(ctok);
+      cmatch = toupper(cmatch);
+    }
+    if (ctok != cmatch) {
       return false;
     }
   }
@@ -739,7 +747,7 @@ bool RequireToken(Tokenizer* tokenizer, Token *token_dest, TokenType desired_typ
   }
   bool result =  token.type == desired_type;
   if (desired_value != NULL) {
-    result = result && TokenEquals(&token, desired_value);
+    result = result && TokenEquals(&token, desired_value, true);
   }
 
   if (result == false) {
@@ -772,6 +780,11 @@ inline
 void AllocTokenValueAssertType(char **dest, Token *token, TokenType type_assert, StackAllocator *stack) {
   assert( token->type == type_assert );
   AllocTokenValue(dest, token, stack);
+}
+
+void AllocString(char** dest, const char *string, StackAllocator* stack) {
+  *dest = (char*) stack->Alloc(strlen(string) + 1);
+  strcpy(*dest, string);
 }
 
 void AllocStringField(char** dest, Token* token, StackAllocator* stack) {
