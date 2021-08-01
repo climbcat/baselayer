@@ -779,15 +779,24 @@ bool IsInstrFile(char *filename) {
   return true;
 }
 
-void Main_ParseInstr(char *filepath) {
+void TestParseMcStasInstrExamplesFolder(int argc, char **argv) {
+  //char *input = (char*) "/usr/share/mcstas/3.0-dev/examples";
+  char *input = (char*) "/usr/share/mcstas/3.0-dev/examples/ILL_D2B_noenv.instr";
 
-}
+  StackAllocator stack_files(10 * MEGABYTE);
+  StackAllocator stack_work(10 * MEGABYTE);
+  ArrayListT<char*> filepaths;
 
-void Main_ParseInstrFolder(char *foldername) {
-  StackAllocator stack_files(MEGABYTE);
-  StackAllocator stack_work(MEGABYTE);
+  bool print_detailed = false;
 
-  ArrayListT<char*> filepaths = GetFilesInFolderPaths(foldername, &stack_files);
+  if (IsInstrFile(input)) {
+    filepaths.Init(stack_files.Alloc(sizeof(char*) * 1));
+    filepaths.Add(&input);
+    print_detailed = true;
+  }
+  else {
+    filepaths = GetFilesInFolderPaths(input, &stack_files);
+  }
 
   for (int i = 0; i < filepaths.len; ++i) {
     stack_work.Clear();
@@ -800,7 +809,6 @@ void Main_ParseInstrFolder(char *foldername) {
 
     char *text = LoadFile(filename, false, &stack_files);
     if (text == NULL) {
-      printf("is null  #%.3d: %s\n", i, filename);
       continue;
     }
     Tokenizer tokenizer = {};
@@ -811,56 +819,9 @@ void Main_ParseInstrFolder(char *foldername) {
     InstrDef instr = ParseInstrument(&tokenizer, &stack_work);
     printf("  %s\n", instr.name);
 
-    // no not print
-    bool print_exit = 0;
-    if (1 == print_exit) {
+    if (print_detailed) {
       PrintInstrumentParse(instr);
       exit(0);
     }
   }
-}
-
-void TestParseMcStasInstrExamplesFolder(int argc, char **argv) {
-  char *folder = (char*) "/usr/share/mcstas/3.0-dev/examples";
-
-  //Main_ParseInstrFolder(folder);
-  //exit(0);
-
-  //char *input = folder;
-  //if (IsInstrFile(input)) {
-  //}
-
-  StackAllocator stack_files(10 * MEGABYTE);
-  StackAllocator stack_work(10 * MEGABYTE);
-
-  ArrayListT<char*> filepaths = GetFilesInFolderPaths(folder, &stack_files);
-
-  for (int i = 219; i < filepaths.len; ++i) {
-    stack_work.Clear();
-
-    char *filename = *filepaths.At(i);
-    if (!IsInstrFile(filename)) {
-      printf("skipping #%.3d: %s\n", i, filename);
-      continue;
-    }
-
-    char *text = LoadFile(filename, false, &stack_files);
-    if (text == NULL) {
-      continue;
-    }
-    Tokenizer tokenizer = {};
-    tokenizer.Init(text);
-
-    printf("parsing  #%.3d: %s  ", i, filename);
-
-    InstrDef instr = ParseInstrument(&tokenizer, &stack_work);
-    printf("  %s\n", instr.name);
-
-    bool print_exit = 1;
-    if (1 == print_exit) {
-      PrintInstrumentParse(instr);
-      exit(0);
-    }
-  }
-
 }
