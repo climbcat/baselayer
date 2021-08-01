@@ -428,12 +428,12 @@ struct ArrayListT {
     this->lst = (T*) memloc;
     this->element_size = sizeof(T);
   }
-  void Add(void* item) {
+  void Add(T* item) {
     assert(element_size != 0);
     this->len++;
     ArrayPut(this->lst, this->element_size, this->len, this->len - 1, item);
   }
-  void Insert(void* item, u32 at_idx) {
+  void Insert(T* item, u32 at_idx) {
     assert(element_size != 0);
     ArrayShift(this->lst, this->element_size, this->len, at_idx, 1);
     this->len++;
