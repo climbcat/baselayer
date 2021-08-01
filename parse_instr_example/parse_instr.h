@@ -1,6 +1,10 @@
 #ifndef __PARSE_INSTR_H__
 #define __PARSE_INSTR_H__
 
+//
+// Written by Jakob Garde, july 2021.
+//
+
 #include <cstdint>
 #include <ctype.h>
 #include <unistd.h>
@@ -230,7 +234,7 @@ ArrayListT<char*> GetFilesInFolderPaths(char *rootpath, StackAllocator *stack) {
 
       u32 len = rootpath_len + int(needslash) + strlen(dir->d_name) + 1;
       char* path = (char*) stack->Alloc( len );
-      
+
       strcpy(path, rootpath);
       if (needslash) {
         strcat(path, "/");
@@ -288,7 +292,7 @@ enum TokenType {
   TOK_STRING,
   TOK_INT, // 123
   TOK_FLOAT, // 24.5748
-  TOK_SCI, // 2.4e21 
+  TOK_SCI, // 2.4e21
   TOK_IDENTIFIER,
 
   TOK_MCSTAS_END,
@@ -452,7 +456,7 @@ bool IsNumericSymbol(char c) {
 
 inline
 bool IsAlphaOrUnderscore(char c) {
-  bool result = 
+  bool result =
     (c == '_') || ((c >= 'a') && (c <= 'z')) || ((c >= 'A') && (c <= 'Z'));
   return result;
 }
@@ -539,7 +543,7 @@ void EatWhiteSpacesAndComments(Tokenizer* tokenizer) {
   }
 }
 
-bool TokenEquals(Token* token, const char* match, bool token_to_upper = false) { 
+bool TokenEquals(Token* token, const char* match, bool token_to_upper = false) {
   char* at = (char*) match;
   if (token->len != strlen(match)) {
     return false;
@@ -784,7 +788,7 @@ Token GetToken(Tokenizer* tokenizer) {
 
     case '\'' : {
       token.type = TOK_CHAR;
-  
+
       while (tokenizer->at[0] != '\0' && tokenizer->at[0] != '\'' && !IsEndOfLine(tokenizer->at[0])) {
         if (tokenizer->at[0] == '\\' && tokenizer->at[1]) {
           ++tokenizer->at;
@@ -1234,7 +1238,7 @@ void ParseAllocCommaSeparatedListOfStrings(StringList* lst, Tokenizer* tokenizer
       } break;
 
       case TOK_DOT: {
-        // TODO: extend the tokenizer - this could be a float 
+        // TODO: extend the tokenizer - this could be a float
         assert( 1 == 0 );
       } break;
 
@@ -1245,7 +1249,7 @@ void ParseAllocCommaSeparatedListOfStrings(StringList* lst, Tokenizer* tokenizer
   }
   *lst = (StringList) stack->Alloc(list_len * sizeof(StringList));
 
-  // reset 
+  // reset
   u32 idx = 0;
   *tokenizer = save;
   while (idx < list_len) {
