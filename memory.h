@@ -2,8 +2,8 @@
 #define __MEMORY_H__
 
 #include <cstdlib>
+#include <cstring>
 #include <assert.h>
-#include <iostream>
 
 #include "types.h"
 
@@ -41,9 +41,9 @@ void ListInit(MemoryBlock* first) {
 }
 void ListPrintSizes(MemoryBlock* from) {
   MemoryBlock* itm = from->next;
-  u64 i = 0;
+  u32 i = 0;
   while (itm != from) {
-    std::cout << "element #" << i << " size=" <<  itm->total_size << std::endl;
+    printf("element #%u size=%d", i, itm->total_size);
     itm = itm->next;
     ++i;
   }
@@ -299,16 +299,13 @@ public:
     this->used = 0;
     this->root = malloc(this->max_size);
   }
-
   ~StackAllocator() {
     free(this->root);
   }
-
   void Clear() {
     this->used = 0;
     this->num_blocks = 0;
   }
-
   void* Alloc(u32 size) {
     assert(this->locked == false);
 
@@ -320,21 +317,18 @@ public:
     this->num_blocks++;
     return retval;
   }
-
   void* AllocOpenEnded() {
     assert(this->locked == false);
 
     this->locked = true;
     return (u8*) this->root + this->used;
   }
-
   void CloseOpenEnded(u32 final_size) {
     assert(this->locked == true);
 
     this->locked == false;
     this->Alloc(final_size);
   }
-
   bool Free(void* addr) {
     u32 relative_location = (u8*) addr - (u8*) this->root;
     assert(relative_location >= 0);
@@ -355,13 +349,15 @@ public:
 /**
 * ArrayList base functions.
 */
-inline void ArrayPut(void* lst, u32 element_size, u32 array_len, u32 at_idx, void* item) {
+inline
+void ArrayPut(void* lst, u32 element_size, u32 array_len, u32 at_idx, void* item) {
   assert(at_idx <= array_len);
 
   u8* dest = (u8*) lst + at_idx * element_size;
   memcpy(dest, item, element_size);
 }
-inline void ArrayShift(void* lst, int element_size, u32 array_len, int at_idx, int offset) {
+inline
+void ArrayShift(void* lst, int element_size, u32 array_len, int at_idx, int offset) {
   // TODO: go back to using u32! (args were converted to int to enable arithmetics)
   assert(at_idx >= 0);
 
@@ -422,26 +418,24 @@ public:
 template<typename T>
 struct ArrayListT {
   T* lst = NULL;
-  u32 element_size = 0;
   u32 len = 0;
   void Init(void* memloc) {
     this->lst = (T*) memloc;
-    this->element_size = sizeof(T);
   }
   void Add(T* item) {
     assert(element_size != 0);
     this->len++;
-    ArrayPut(this->lst, this->element_size, this->len, this->len - 1, item);
+    ArrayPut(this->lst, sizeof(T), this->len, this->len - 1, item);
   }
   void Insert(T* item, u32 at_idx) {
     assert(element_size != 0);
-    ArrayShift(this->lst, this->element_size, this->len, at_idx, 1);
+    ArrayShift(this->lst, sizeof(T), this->len, at_idx, 1);
     this->len++;
-    ArrayPut(this->lst, this->element_size, this->len, at_idx, item);
+    ArrayPut(this->lst, sizeof(T), this->len, at_idx, item);
   }
   void Remove(u32 at_idx) {
     assert(element_size != 0);
-    ArrayShift(this->lst, this->element_size, this->len, at_idx, -1);
+    ArrayShift(this->lst, sizeof(T), this->len, at_idx, -1);
     this->len--;
   }
   T* At(u32 idx) {

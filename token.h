@@ -1,6 +1,7 @@
 #ifndef __TOKEN_H__
 #define __TOKEN_H__
 
+
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
