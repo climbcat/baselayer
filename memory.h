@@ -423,23 +423,19 @@ struct ArrayListT {
     this->lst = (T*) memloc;
   }
   void Add(T* item) {
-    assert(element_size != 0);
     this->len++;
     ArrayPut(this->lst, sizeof(T), this->len, this->len - 1, item);
   }
   void Insert(T* item, u32 at_idx) {
-    assert(element_size != 0);
     ArrayShift(this->lst, sizeof(T), this->len, at_idx, 1);
     this->len++;
     ArrayPut(this->lst, sizeof(T), this->len, at_idx, item);
   }
   void Remove(u32 at_idx) {
-    assert(element_size != 0);
     ArrayShift(this->lst, sizeof(T), this->len, at_idx, -1);
     this->len--;
   }
   T* At(u32 idx) {
-    assert(element_size != 0);
     return this->lst + idx;
   }
 };
