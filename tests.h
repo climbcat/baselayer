@@ -706,6 +706,21 @@ void TestParseWeirdExpression() {
   printf("parse: %.*s\n", token.len, token.text);
 }
 
+void TestSaveToFile() {
+  char *text = (char*) "\
+    (lambda = 2.5666,\n\
+    R = 0.87 and a bunc of stuff(),\n\
+    string filename = \"Na2Ca3Al2F14.laz\",\n\
+    D_PHI=6,\n\
+    SHIFT=0,\n\
+    PACK=0.7,\n\
+    Dw=0.8,\n\
+    BARNS=1)\n";
+  char *filename = (char*) "test_save_to_file.txt";
+
+  SaveToFile(filename, text);    
+}
+
 void RunTests(int argc, char **argv) {
   //TestRandGen();
   //TestLoadFile();
@@ -730,9 +745,10 @@ void RunTests(int argc, char **argv) {
   //TestParseUntilEndOfExpression();
   //TestCountCommaSeparatedStuff();
   //TestParseWeirdExpression();
+  TestSaveToFile();
 
   //TestParseMcStasInstr(argc, argv);
-  TestParseMcStasInstrExamplesFolder(argc, argv);
+  //TestParseMcStasInstrExamplesFolder(argc, argv);
 }
 
 
