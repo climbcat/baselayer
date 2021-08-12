@@ -737,6 +737,14 @@ void TestSaveToFile() {
   SaveToFile(filename, text);    
 }
 
+void TestSleep() {
+  for (int i = 0; i < 5; ++i) {
+    printf("sleeping ...\n");
+    //sleep(1);
+    Sleep(200);
+  }
+}
+
 void RunTests(int argc, char **argv) {
   //TestRandGen();
   //TestRandStats();
@@ -762,7 +770,8 @@ void RunTests(int argc, char **argv) {
   //TestParseUntilEndOfExpression();
   //TestCountCommaSeparatedStuff();
   //TestParseWeirdExpression();
-  TestSaveToFile();
+  //TestSaveToFile();
+  TestSleep();
 
   //TestParseMcStasInstr(argc, argv);
   //TestParseMcStasInstrExamplesFolder(argc, argv);

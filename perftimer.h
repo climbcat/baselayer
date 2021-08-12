@@ -9,9 +9,6 @@
 /** 
 * Function based convenient, but inaccurate, perftimer and sleep.
 */
-void Sleep(u32 ms) {
-  usleep(1000 * ms);
-}
 std::chrono::steady_clock::time_point g_tick;
 void StartTimer() {
   g_tick = std::chrono::steady_clock::now();

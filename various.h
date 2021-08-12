@@ -145,4 +145,9 @@ ArrayListT<char*> GetFilesInFolderPaths(char *rootpath, StackAllocator *stack) {
 }
 
 
+void Sleep(u32 time_ms) {
+    usleep(time_ms * 1000);
+}
+
+
 #endif
