@@ -6,6 +6,8 @@
 #include <cstring>
 #include <cstdio>
 
+#include <iostream>
+
 #include "types.h"
 #include "memory.h"
 #include "random.h"
@@ -19,53 +21,53 @@
 void TestRandGen() {
   RandInit();
 
-  std::cout << "rand01():" << std::endl;
+  printf("Rand01():");
   for (int i = 0; i<20; i++) {
-    std::cout << Rand01() << " ";
+    printf("%f ", Rand01());
   }
-  std::cout << std::endl << std::endl;
+  printf("\n");
 
-  std::cout << "randpm1():" << std::endl;
+  printf("Randpm1():");
   for (int i = 0; i<20; i++) {
-    std::cout << RandPM1() << " ";
+    printf("%f ", RandPM1());
   }
-  std::cout << std::endl << std::endl;
+  printf("\n");
 
-  std::cout << "rand0max(10):" << std::endl;
+  printf("Rand0Max(10):");
   for (int i = 0; i<20; i++) {
-    std::cout << Rand0Max(10) << " ";
+    printf("%f ", Rand0Max(10));
   }
-  std::cout << std::endl << std::endl;
+  printf("\n");
 
-  std::cout << "randminmax(100, 200):" << std::endl;
+  printf("RandminMax(100, 200):");
   for (int i = 0; i<20; i++) {
-    std::cout << RandMinMax(100, 200) << " ";
+    printf("%f ", RandMinMax(100, 200));
   }
-  std::cout << std::endl << std::endl;
+  printf("\n");
 
-  std::cout << "randtriangle():" << std::endl;
+  printf("RandTriangle():");
   for (int i = 0; i<20; i++) {
-    std::cout << RandTriangle() << " ";
+    printf("%f ", RandTriangle());
   }
-  std::cout << std::endl << std::endl;
+  printf("\n");
 
-  std::cout << "randnorm():" << std::endl;
+  printf("RandNorm():");
   for (int i = 0; i<20; i++) {
-    std::cout << RandNorm() << " ";
+    printf("%f ", RandNorm());
   }
-  std::cout << std::endl << std::endl;
+  printf("\n");
 
-  std::cout << "gaussian_double():" << std::endl;
+  printf("RandGaussianDouble():");
   for (int i = 0; i<20; i++) {
-    std::cout << RandGaussianDouble() << " ";
+    printf("%f ", RandGaussianDouble());
   }
-  std::cout << std::endl << std::endl;
+  printf("\n");
 
-  std::cout << "randminmax_i(10, 20):" << std::endl;
+  printf("RandMinMaxI(10, 20):");
   for (int i = 0; i<20; i++) {
-    std::cout << RandMinMaxI(10, 20) << " ";
+    printf("%d ", RandMinMaxI(10, 20));
   }
-  std::cout << std::endl << std::endl;
+  printf("\n");
 }
 
 
@@ -749,7 +751,7 @@ void RunTests(int argc, char **argv) {
   //TestRandGen();
   //TestRandStats();
   //TestLoadFile();
-  //TestPerfTimer();
+  TestPerfTimer();
   //TestWriteRandomStr();
 
   //TestPoolAlloc();
@@ -771,7 +773,7 @@ void RunTests(int argc, char **argv) {
   //TestCountCommaSeparatedStuff();
   //TestParseWeirdExpression();
   //TestSaveToFile();
-  TestSleep();
+  //TestSleep();
 
   //TestParseMcStasInstr(argc, argv);
   //TestParseMcStasInstrExamplesFolder(argc, argv);

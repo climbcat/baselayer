@@ -3,7 +3,6 @@
 
 
 #include <chrono>
-#include <iostream>
 
 
 /** 
@@ -21,8 +20,9 @@ u32 StopTimer(bool print = false, bool highres = false) {
     unit = (char*) " µs";
   }
   auto retval = ((std::chrono::steady_clock::now() - g_tick).count()) / res;
-  if (print == true)
-    std::cout << retval << unit << std::endl;
+  if (print == true) {
+    printf("%f%s\n", retval, unit);
+  }
   return retval;
 }
 
@@ -38,8 +38,9 @@ public:
     this->tick = std::chrono::steady_clock::now();
   }
   ~PerfTimerScoped() {
-    if (this->print_time)
-      std::cout << ((std::chrono::steady_clock::now() - this->tick).count()) / 1000.0 << " µs" << std::endl;
+    if (this->print_time) {
+      printf("%f µs\n", ((std::chrono::steady_clock::now() - this->tick).count()) / 1000.0);
+    }
   }
   u32 GetTimeMicroS() {
     return ((std::chrono::steady_clock::now() - this->tick).count()) / 1000.0;
