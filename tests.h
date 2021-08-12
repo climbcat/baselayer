@@ -69,6 +69,20 @@ void TestRandGen() {
 }
 
 
+void TestRandStats() {
+  RandInit();
+
+  u32 iterations = 1000000;
+  float sum = 0;
+  for (int i = 0; i < iterations; ++i) {
+    sum += Rand01();
+  }
+  float average = sum / iterations;
+
+  printf("averate over %d iterations: %f\n", iterations, average);
+}
+
+
 struct Entity {
   char* name;
   char* body;
@@ -158,6 +172,8 @@ void TestPoolAlloc() {
   PoolAllocator palloc(sizeof(PoolAllocTestStruct), batch_size);
 
   void* ptrs[batch_size];
+
+
   std::cout << "pool load: " << palloc.load << " element size: " << sizeof(PoolAllocTestStruct) << std::endl;
 
   // allocate items
@@ -723,6 +739,7 @@ void TestSaveToFile() {
 
 void RunTests(int argc, char **argv) {
   //TestRandGen();
+  //TestRandStats();
   //TestLoadFile();
   //TestPerfTimer();
   //TestWriteRandomStr();

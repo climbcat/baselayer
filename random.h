@@ -5,7 +5,9 @@
 #include <math.h>
 #include <sys/time.h>
 
-/* Certaim details inspired by McStas/McXtrace - see mcstas.org */
+#ifndef ULONG_MAX
+#  define ULONG_MAX ((unsigned long)0xffffffffffffffffUL)
+#endif
 
 /* Random number algorithm from: http://www.helsbreth.org/random/rng_kiss.html */
 void Kiss_SRandom(unsigned long state[7], unsigned long seed) {
@@ -28,13 +30,7 @@ unsigned long Kiss_Random(unsigned long state[7]) {
   state[4] = state[5] >> 30;
   return state[0] + state[1] + state[3];
 }
-
-
-#ifndef ULONG_MAX
-#  define ULONG_MAX ((unsigned long)0xffffffffffffffffUL)
-#endif
-typedef unsigned long randstate_t;
-randstate_t _hash(randstate_t x) {
+unsigned long _hash(unsigned long x) {
   x = ((x >> 16) ^ x) * 0x45d9f3b;
   x = ((x >> 16) ^ x) * 0x45d9f3b;
   x = ((x >> 16) ^ x);
@@ -43,10 +39,9 @@ randstate_t _hash(randstate_t x) {
 
 
 // single-threaded easy-to-use random numbers
-randstate_t g_state[7];
+unsigned long g_state[7];
 bool g_didinit = false;
 #define Random() Kiss_Random(g_state)
-
 // easy rand init
 void RandInit() {
   if (g_didinit == true)
@@ -60,6 +55,10 @@ void RandInit() {
   g_didinit = true;
 }
 
+
+/* Inspired by McStas/McXtrace - see mcstas.org */
+
+// TODO: speed up by cashing invers numbers for multiplication, rather than division
 
 // return a random number between 0 and 1
 double Rand01() {
