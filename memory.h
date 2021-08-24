@@ -345,6 +345,11 @@ public:
   }
 };
 
+char *AllocConstString(const char* word, StackAllocator *stack) {
+    char *dest = (char*) stack->Alloc(strlen(word) + 1);
+    strcpy(dest, word);
+    return dest;
+}
 
 /**
 * ArrayList base functions.
