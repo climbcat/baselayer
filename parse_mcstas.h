@@ -12,8 +12,8 @@ struct StructMember {
     char *defval = NULL;
 };
 
-ArrayListT<StructMember> ParseStructMembers(Tokenizer *tokenizer, StackAllocator *stack) {
-    ArrayListT<StructMember> lst;
+List<StructMember> ParseStructMembers(Tokenizer *tokenizer, StackAllocator *stack) {
+    List<StructMember> lst;
     u32 count = CountTokenSeparatedStuff(tokenizer->at, TOK_SEMICOLON, TOK_ENDOFSTREAM, TOK_UNKNOWN, TOK_COMMA);
     lst.Init(stack->Alloc(sizeof(StructMember) * count));
 
@@ -92,12 +92,12 @@ struct InstrParam {
 
 struct DeclareDef {
     char *text = NULL;
-    ArrayListT<StructMember> decls;
+    List<StructMember> decls;
 };
 
 struct UservarsDef {
     char *text = NULL;
-    ArrayListT<StructMember> decls;
+    List<StructMember> decls;
 };
 
 struct InitializeDef {
@@ -131,7 +131,7 @@ struct CompDecl {
     char *iterate = NULL;
     char *when = NULL;
     bool removable = false;
-    ArrayListT<CompParam> params;
+    List<CompParam> params;
     Vector3Strings at;
     Vector3Strings rot;
     char *at_relative = NULL; // value can be ABSOLUTE or a comp name
@@ -141,12 +141,12 @@ struct CompDecl {
 
 struct TraceDef {
     char *text = NULL;
-    ArrayListT<CompDecl> comps;
+    List<CompDecl> comps;
 };
 
 struct InstrDef {
     char *name = NULL;
-    ArrayListT<InstrParam> params;
+    List<InstrParam> params;
     char *dependency;
     DeclareDef declare;
     UservarsDef uservars;
@@ -155,9 +155,9 @@ struct InstrDef {
     FinalizeDef finalize;
 };
 
-ArrayListT<InstrParam> ParseInstrParams(Tokenizer *tokenizer, StackAllocator *stack) {
+List<InstrParam> ParseInstrParams(Tokenizer *tokenizer, StackAllocator *stack) {
     u32 count = CountCommaSeparatedSequenceOfExpresions(tokenizer->at);
-    ArrayListT<InstrParam> lst;
+    List<InstrParam> lst;
     lst.Init(stack->Alloc(sizeof(InstrParam) * count));
 
     Token token;
@@ -235,10 +235,10 @@ char* CopyBracketedTextBlock(Tokenizer *tokenizer, TokenType type_start, TokenTy
     return text;
 }
 
-ArrayListT<CompParam> ParseCompParams(Tokenizer *tokenizer, StackAllocator *stack) {
+List<CompParam> ParseCompParams(Tokenizer *tokenizer, StackAllocator *stack) {
     u32 count = CountCommaSeparatedSequenceOfExpresions(tokenizer->at);
 
-    ArrayListT<CompParam> lst;
+    List<CompParam> lst;
     lst.Init(stack->Alloc(sizeof(CompParam) * count));
     Token token;
 
@@ -439,8 +439,8 @@ bool ParseExpression_McStasEndConditions(Tokenizer *tokenizer, Token *token) {
     return result;
 }
 
-ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack) {
-    ArrayListT<CompDecl> result;
+List<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack) {
+    List<CompDecl> result;
     Tokenizer save = *tokenizer;
     Token token = {};
 
@@ -476,7 +476,7 @@ ArrayListT<CompDecl> ParseTraceComps(Tokenizer *tokenizer, StackAllocator *stack
 
     // prepare
     *tokenizer = save;
-    ArrayListT<CompDecl> lst;
+    List<CompDecl> lst;
     lst.Init(stack->Alloc(sizeof(CompDecl) * count));
 
     // parse comps
@@ -789,7 +789,7 @@ void TestParseMcStasInstrExamplesFolder(int argc, char **argv) {
 
     StackAllocator stack_files(10 * MEGABYTE);
     StackAllocator stack_work(10 * MEGABYTE);
-    ArrayListT<char*> filepaths;
+    List<char*> filepaths;
 
     bool print_detailed = false;
 

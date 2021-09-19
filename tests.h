@@ -284,7 +284,8 @@ void TestGPAOccupancy() {
 
     RandInit();
     StackAllocator stack( total_alloc / 50 * sizeof(char*) );
-    ArrayList list(stack.AllocOpenEnded(), sizeof(char*));
+    List<char*> list;
+    list.Init(stack.AllocOpenEnded());
 
     // time it
     StartTimer();
@@ -346,8 +347,9 @@ struct ArrayListTestStruct {
 
 
 void TestArrayList() {
-    StackAllocator alloc( KILOBYTE );
-    ArrayList list(alloc.AllocOpenEnded(), sizeof(ArrayListTestStruct));
+    StackAllocator alloc(KILOBYTE);
+    List<ArrayListTestStruct> list;
+    list.Init(alloc.AllocOpenEnded());
 
     // put some elements into the list
     ArrayListTestStruct s1;
@@ -599,7 +601,7 @@ void TestParseStructMembers() {
     StackAllocator stack(MEGABYTE);
     Tokenizer tokenizer = {};
     tokenizer.Init( (char*) text );
-    ArrayListT<StructMember> decls = ParseStructMembers(&tokenizer, &stack);
+    List<StructMember> decls = ParseStructMembers(&tokenizer, &stack);
 
     printf("declare members:\n");
     for (int i = 0; i < decls.len; ++i) {
@@ -660,7 +662,7 @@ void TestGetFilenamesInFolder() {
     char *folder = (char*) "/usr/share/mcstas/3.0-dev/examples";
     StackAllocator stack(MEGABYTE);
 
-    ArrayListT<char*> filepaths = GetFilesInFolderPaths(folder, &stack);
+    List<char*> filepaths = GetFilesInFolderPaths(folder, &stack);
 
     for (int i = 0; i < filepaths.len; ++i) {
         printf("%s\n", *filepaths.At(i));

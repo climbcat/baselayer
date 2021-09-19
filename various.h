@@ -104,8 +104,8 @@ bool SaveToFile(char *filename, char *text) {
     return true;
 }
 
-ArrayListT<char*> GetFilesInFolderPaths(char *rootpath, StackAllocator *stack) {
-    ArrayListT<char*> result;
+List<char*> GetFilesInFolderPaths(char *rootpath, StackAllocator *stack) {
+    List<char*> result;
     struct dirent *dir;
     u32 count = 0;
     u32 rootpath_len = strlen(rootpath);

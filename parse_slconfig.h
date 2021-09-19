@@ -202,8 +202,10 @@ void TestParseConfig() {
     }
 
     StackAllocator stack(SIXTEEN_K);
-    ArrayList nodes(stack.Alloc(sizeof(Node) * num_nodes), sizeof(Node));
-    ArrayList apps(stack.Alloc(sizeof(App) * num_apps), sizeof(App));
+    List<Node> nodes;
+    nodes.Init(stack.Alloc(sizeof(Node) * num_nodes));
+    List<App> apps;
+    apps.Init(stack.Alloc(sizeof(App) * num_apps));
 
     tokenizer.Init(text);
     parsing_mode = IDLE;

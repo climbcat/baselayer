@@ -351,6 +351,7 @@ char *AllocConstString(const char* word, StackAllocator *stack) {
     return dest;
 }
 
+
 /**
 * ArrayList base functions.
 */
@@ -384,44 +385,11 @@ void ArrayShift(void* lst, int element_size, u32 array_len, int at_idx, int offs
 
 
 /**
-* ArrayList is basically a header with an array pointer and a lenth, which
-* provides Add(), Insert() and Remove() functionality to arrays, but no max length.
-* Use to hanlde arrays as though they were expanding lists, almost.
-*/
-class ArrayList {
-public:
-    void* lst = NULL;
-    u32 element_size;
-    u32 len = 0;
-    ArrayList(void* list, u32 element_size, u32 current_len = 0) {
-        this->lst = list;
-        this->element_size = element_size;
-        this->len = current_len;
-    }
-    void Add(void* item) {
-        this->len++;
-        ArrayPut(this->lst, this->element_size, this->len, this->len - 1, item);
-    }
-    void Insert(void* item, u32 at_idx) {
-        ArrayShift(this->lst, this->element_size, this->len, at_idx, 1);
-        this->len++;
-        ArrayPut(this->lst, this->element_size, this->len, at_idx, item);
-    }
-    void Remove(u32 at_idx) {
-        ArrayShift(this->lst, this->element_size, this->len, at_idx, -1);
-        this->len--;
-    }
-
-    // TODO: consider adding max_len
-    // TODO: consider adding overwrite, multi-insert and multi-delete
-};
-
-
-/**
-* ArrayList which uses a single template argument for safety and ease of use.
+* ArrayList is basically a header with an array pointer and a lenth, providing
+* Add(), Insert() and Remove().
 */
 template<typename T>
-struct ArrayListT {
+struct List {
     T* lst = NULL;
     u32 len = 0;
     void Init(void* memloc) {
@@ -444,46 +412,6 @@ struct ArrayListT {
         return this->lst + idx;
     }
 };
-
-
-/**
-* ArrayList which locks a stack allocator and closes it at the right length @ destruction.
-*/
-class ArrayListStackClose {
-public:
-    void* lst;
-    u32 element_size;
-    u32 len;
-    StackAllocator* stack;
-    ArrayListStackClose(StackAllocator* stack, u32 element_size) {
-        this->stack = stack;
-        this->lst = stack->AllocOpenEnded();
-        this->element_size = element_size;
-        this->len = 0;
-    }
-    ~ArrayListStackClose() {
-        this->stack->CloseOpenEnded(this->len);
-    }
-    void Add(void* item) {
-        this->len++;
-        ArrayPut(this->lst, this->element_size, this->len, this->len - 1, item);
-    }
-    void Insert(void* item, u32 at_idx) {
-        ArrayShift(this->lst, this->element_size, this->len, at_idx, 1);
-        this->len++;
-        ArrayPut(this->lst, this->element_size, this->len, at_idx, item);
-    }
-    void Remove(u32 at_idx) {
-        ArrayShift(this->lst, this->element_size, this->len, at_idx, -1);
-        this->len--;
-    }
-
-    // TODO: consider adding max_len
-    // TODO: consider adding overwrite, multi-insert and multi-delete
-};
-
-
-// TODO: consider adding ArrayList<T> and TempArrayList, which will Free @ destruction.
 
 
 #endif
