@@ -146,31 +146,31 @@ ArrayListT<char*> GetFilesInFolderPaths(char *rootpath, StackAllocator *stack) {
 
 inline
 float MinF(float a, float b) {
-  if (a <= b)
-    return a;
-  else
-    return b;
+    if (a <= b)
+        return a;
+    else
+        return b;
 }
 inline
 float MaxF(float a, float b) {
-  if (a >= b)
-    return a;
-  else
-    return b;
+    if (a >= b)
+        return a;
+    else
+        return b;
 }
 inline
 int MinI(int a, int b) {
-  if (a <= b)
-    return a;
-  else
-    return b;
+    if (a <= b)
+        return a;
+    else
+        return b;
 }
 inline
 int MaxI(int a, int b) {
-  if (a >= b)
-    return a;
-  else
-    return b;
+    if (a >= b)
+       return a;
+    else
+        return b;
 }
 
 void Sleep(u32 time_ms) {
