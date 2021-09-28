@@ -308,13 +308,13 @@ public:
     }
     void* Alloc(u32 size) {
         assert(this->locked == false);
-
-        if (size > this->max_size - this->used)
-            return NULL;
+        assert(size <= this->max_size - this->used && "checking stack size limit");
 
         void* retval = (u8*) this->root + this->used;
-        this->used += size;
-        this->num_blocks++;
+        if (size > 0) {
+            this->used += size;
+            this->num_blocks++;
+        }
         return retval;
     }
     void* AllocOpenEnded() {
@@ -326,7 +326,7 @@ public:
     void CloseOpenEnded(u32 final_size) {
         assert(this->locked == true);
 
-        this->locked == false;
+        this->locked = false;
         this->Alloc(final_size);
     }
     bool Free(void* addr) {
