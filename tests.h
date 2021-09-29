@@ -741,11 +741,107 @@ void TestSleep() {
     }
 }
 
+struct Sounding {
+    float lon;
+    float lat;
+    float dep;
+};
+
+int ParseWktMultiPoint(StackAllocator *stack, Tokenizer *tokenizer, Sounding** ptr_sound) {
+    Token token;
+    if (!RequireToken(tokenizer, &token, TOK_IDENTIFIER, "MULTIPOINT")) return 1;
+    if (!RequireToken(tokenizer, &token, TOK_LBRACK)) return 1;
+
+    Sounding *sound = (Sounding*) stack->AllocOpenEnded();
+    *ptr_sound = sound;
+
+    char buff[100];
+    u8 flag = 0;
+    u32 count = 0;
+    bool parsing = true;
+    while (parsing) {
+        Token token = GetToken(tokenizer);
+
+        if (token.type == TOK_ENDOFSTREAM) {
+            parsing = false;
+        }
+        else if (token.type == TOK_RBRACK) {
+            parsing = false;
+        }
+        else if (token.type == TOK_COMMA) {
+            if (flag == 3) {
+                flag = 0;
+                ++sound;
+                ++count;
+            }
+        }
+        else if (token.type == TOK_INT || token.type == TOK_FLOAT) {
+            if (flag == 0) {
+                memcpy(buff, token.text, token.len);
+                buff[token.len] = '\0';
+
+                sound->lon = std::stof( buff );
+            }
+            else if (flag == 1) {
+                memcpy(buff, token.text, token.len);
+                buff[token.len] = '\0';
+                
+                sound->lat = std::stof( buff );
+            }
+            else if (flag == 2) {
+                memcpy(buff, token.text, token.len);
+                buff[token.len] = '\0';
+                
+                sound->dep = std::stof( buff );
+            }
+            ++flag;
+        }
+        else {
+            assert(1 == 0 && "ParseWktMultiPoint: Unknown token");
+        }
+    }
+    printf("num points: %d\n", count);
+
+    stack->CloseOpenEnded(count * sizeof(Sounding));
+    return count;
+}
+
+void TestParseWktMultiPoint() {
+    printf("TestParseWktMultiPoint\n");
+
+    const char *wkt = "MULTIPOINT (\
+9.76693 55.67447 10.6,9.7382907 55.536398 35,9.777 55.67108 10.9,9.6543338 55.514093 \
+7.9,9.7149562 55.5119485 21,9.5784003 55.4936361 4.1,9.74862 55.67485 10.9,9.6600027 \
+55.483076 32,9.7466827 55.5251385 32,9.7840684 55.5533976 43,9.6534218 55.4849482 6.1,9.7221862 \
+55.4745241 4.5,9.7390135 55.5303778 8.2,9.7016454 55.5165957 4.1,9.6824957 55.4766989 \
+30.5,9.7959095 55.5565982 35,9.6516091 55.5063065 60,9.78163 55.67299 10.6,9.7048781 \
+55.5194383 38,9.7463445 55.5312759 32,9.6980408 55.518178 6.7,9.7802603 55.5514051 \
+33,9.6583086 55.4936607 2.8,9.6967121 55.4692928 35,9.7421196 55.5393628 33,9.7646895 \
+55.5528116 41,9.6761681 55.5159619 7.6,9.7395648 55.5406143 31,9.7371767 55.5441577 \
+32,9.7159034 55.4519844 45,9.702115 55.4941065 2.6,9.6229 55.69598 6.5,9.86264 55.67153 \
+20.7,9.7070515 55.4608754 35,9.7722 55.67921 5,9.6982588 55.5212224 39,9.7106128 55.4547242 \
+44,9.7438891 55.5350773 37,9.761912 55.5375451 7.9,9.6412602 55.508605 11.1,9.7206316 55.4386768 \
+33,9.7432159 55.5113609 34,9.7560042 55.5542098 41,9.6747112 55.5202813 39,9.663298 55.5151607 \
+34,9.84654 55.66663 20.1,9.6563036 55.4840644 15,9.7487438 55.5173941 35,9.741267 55.5260876 5.8,\
+9.7474776 55.5141503 37,9.7504619 55.5204722 35,9.6923895 55.498039 3.5,9.7715509 55.5515478 \
+32,9.85372 55.66833 20.7,9.7134224 55.4491095 35,9.6864241 55.5035575 2.8,9.7192724 55.4492106 31)";
+    Tokenizer tokenizer;
+    tokenizer.Init((char*) wkt);
+
+    StackAllocator stack(MEGABYTE);
+    Sounding *sound;
+    u32 count = ParseWktMultiPoint(&stack, &tokenizer, &sound);
+
+    for (int i = 0; i < count; ++i) {
+        printf("%.4f %.4f %.1f\n", sound->lon, sound->lat, sound->dep);
+    }
+}
+
 void RunTests(int argc, char **argv) {
     //TestRandGen();
     //TestRandStats();
     //TestLoadFile();
-    TestPerfTimer();
+    //TestPerfTimer();
     //TestWriteRandomStr();
 
     //TestPoolAlloc();
@@ -769,8 +865,7 @@ void RunTests(int argc, char **argv) {
     //TestSaveToFile();
     //TestSleep();
 
-    //TestParseMcStasInstr(argc, argv);
-    //TestParseMcStasInstrExamplesFolder(argc, argv);
+    TestParseWktMultiPoint();
 }
 
 
