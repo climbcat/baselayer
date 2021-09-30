@@ -176,12 +176,11 @@ struct Token {
     char* text;
     u16 len;
     void PrintValue(bool newline = true) {
-    printf("%.*s", len, text);
-    if (newline) {
-        printf("\n");
+        printf("%.*s", len, text);
+        if (newline) {
+            printf("\n");
+        }
     }
-}
-
 };
 
 inline
