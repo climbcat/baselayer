@@ -436,4 +436,66 @@ struct List {
 };
 
 
+// TODO: Refactor into a header struct UnevenList<P,C> with a little state (root, len, iter) and 
+//      methods functionality for iteration, e.g. InterStart(), IterNext(). Attempt to internalize
+//      pointer calculations for generating an UnevenList.
+
+template<typename P, typename C>
+struct ForwardLinkedArray {
+    P properties;
+    int num_children = 0;
+    ForwardLinkedArray *next;
+    C *children;
+
+    u32 InitInlineRequiresPadding(u32 size_bytes) {
+        // empty guard
+        if (size_bytes == 0) {
+            num_children = 0;
+            next = NULL;
+            return 0;
+        }
+
+        // NOTE: input data must have an 8/16 byte spacing to make room for our "next" and "children" pointers
+        assert(size_bytes > sizeof(ForwardLinkedArray) && "ForwardLinkedArray: Invalid size_bytes, below minimum");
+
+        u32 num_objs = 0;
+        u32 read_bytes = 0;
+        ForwardLinkedArray *current = this;
+        while (current != NULL) {
+            ++num_objs;
+            current->children = (C*) ((u8*) current + sizeof(ForwardLinkedArray));
+            current->next = (ForwardLinkedArray *) ((u8*) current->children + current->num_children * sizeof(C));
+            read_bytes += (u8*) current->next - (u8*) current;
+            assert(read_bytes <= size_bytes && "ForwardLinkedArray: Data size corruption");
+            if (read_bytes == size_bytes) {
+                current->next = NULL;
+                current = NULL;
+            }
+            else {
+                current = current->next;
+            }
+        }
+        return num_objs;
+    }
+    void AttachTail(ForwardLinkedArray *tail) {
+        if (this == NULL) {
+            return;
+        }
+        ForwardLinkedArray *current = this;
+        while (current->next != NULL) {
+            current = current->next;
+        }
+        current->next = tail;
+    }
+    ForwardLinkedArray *CalculateNextPtr(u32 num_children) {
+        u32 sz = sizeof(ForwardLinkedArray) + num_children * sizeof(C);
+        return (ForwardLinkedArray *) ((u8*) this + sz);
+    }
+    C *CalculateChildrenPtr() {
+        u32 sz = sizeof(ForwardLinkedArray);
+        return (C*) ((u8*) this + sz);
+    }
+};
+
+
 #endif
