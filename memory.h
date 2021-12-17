@@ -182,11 +182,6 @@ public:
 };
 
 
-/**
-* Allocates and frees same-sized blocks of memory.
-* Use to keep a fixed memory footprint with full memory freedom
-* with equally (or similarly) sized objects.
-*/
 class PoolAllocator {
 public:
     void* root;
@@ -279,11 +274,6 @@ public:
 };
 
 
-/**
-* Stack allocation w. reverse unwinding. Allocation pointer can be kept open-ended, unlock
-* Stack by providing a size.
-*/
-// TODO: refactor into a struct.
 class StackAllocator {
 public:
     void* root = NULL;
@@ -373,9 +363,6 @@ void *_AllocStructVar(StackAllocator *stack, void *src, u32 size) {
 }
 
 
-/**
-* ArrayList base functions.
-*/
 inline
 void ArrayPut(void* lst, u32 element_size, u32 array_len, u32 at_idx, void* item) {
     assert(at_idx <= array_len);
@@ -403,7 +390,6 @@ void ArrayShift(void* lst, int element_size, u32 array_len, int at_idx, int offs
 
     memmove(dest, src, (array_len - at_idx) * element_size);
 }
-
 
 template<typename T>
 struct List {
@@ -436,10 +422,50 @@ struct List {
 };
 
 
-// TODO: Refactor into a header struct UnevenList<P,C> with a little state (root, len, iter) and 
-//      methods functionality for iteration, e.g. InterStart(), IterNext(). Attempt to internalize
-//      pointer calculations for generating an UnevenList.
+template<typename T>
+struct LinkedList {
+    bool root = false;
+    LinkedList *next = NULL;
+    LinkedList *prev = NULL;
+    T element;
 
+    void Init() {
+        root = true;
+        next = this;
+        prev = this;
+    }
+    bool Insert(LinkedList *l) {
+        if (l == NULL) {
+            return false;
+        }
+        l->prev = this;
+        l->next = next;
+        next->prev = l;
+        next = l;
+        return true;
+    }
+    bool Remove() {
+        if (this->root == true) {
+            return false;
+        }
+        else {
+            prev->next = next;
+            next->prev = prev;
+            return true;
+        }
+    }
+    LinkedList *Iter() {
+        if (next->root == true) {
+            return NULL;
+        }
+        else {
+            return next;
+        }
+    }
+};
+
+
+// TODO: Refactor into UnevenList<P,C> with iteration
 template<typename P, typename C>
 struct ForwardLinkedArray {
     P properties;
@@ -448,14 +474,11 @@ struct ForwardLinkedArray {
     C *children;
 
     u32 InitInlineRequiresPadding(u32 size_bytes) {
-        // empty guard
         if (size_bytes == 0) {
             num_children = 0;
             next = NULL;
             return 0;
         }
-
-        // NOTE: input data must have an 8/16 byte spacing to make room for our "next" and "children" pointers
         assert(size_bytes > sizeof(ForwardLinkedArray) && "ForwardLinkedArray: Invalid size_bytes, below minimum");
 
         u32 num_objs = 0;
