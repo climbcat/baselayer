@@ -280,12 +280,10 @@ public:
 
 
 /**
-* Stack allocation is very fast, but must be unwinded in reverse order (twice as fast as
-* malloc for allocation and unwinding). Allocation pointer can be kept open-ended, which locks
-* the thing until released, enabling users to not have to predict sizes in advance. Combines
-* well with ArrayList.
+* Stack allocation w. reverse unwinding. Allocation pointer can be kept open-ended, unlock
+* Stack by providing a size.
 */
-// TODO: transform into a struct and use optional create / destroy buttons, enabling more versatility
+// TODO: refactor into a struct.
 class StackAllocator {
 public:
     void* root = NULL;
@@ -329,13 +327,16 @@ public:
         this->locked = false;
         this->Alloc(final_size);
     }
+    void CancelOpenEnded() {
+        this->locked = false;
+    }
     bool Free(void* addr) {
         u32 relative_location = (u8*) addr - (u8*) this->root;
         assert(relative_location >= 0);
         assert(relative_location < this->max_size);
 
         if (relative_location >= this->used)
-            return false;
+        return false;
 
         memset((u8*) this->root + relative_location, this->used - relative_location, 0);
 
@@ -351,6 +352,26 @@ char *AllocConstString(const char* word, StackAllocator *stack) {
     return dest;
 }
 
+char *AllocConstStringPrefixed(char* prefix, const char* word, StackAllocator *stack) {
+    char *dest = (char*) stack->Alloc(strlen(prefix) + strlen(word) + 1);
+    strcpy(dest, prefix);
+    strcat(dest, word);
+    return dest;
+}
+
+char *AllocConstStringAffixed(const char* word, char* affix, StackAllocator *stack) {
+    char *dest = (char*) stack->Alloc(strlen(word) + strlen(affix) + 1);
+    strcpy(dest, word);
+    strcat(dest, affix);
+    return dest;
+}
+
+void *_AllocStructVar(StackAllocator *stack, void *src, u32 size) {
+    void* result = stack->Alloc(size);
+    memcpy(result, src, size);
+    return result;
+}
+
 
 /**
 * ArrayList base functions.
@@ -362,9 +383,9 @@ void ArrayPut(void* lst, u32 element_size, u32 array_len, u32 at_idx, void* item
     u8* dest = (u8*) lst + at_idx * element_size;
     memcpy(dest, item, element_size);
 }
+
 inline
 void ArrayShift(void* lst, int element_size, u32 array_len, int at_idx, int offset) {
-    // TODO: go back to using u32! (args were converted to int to enable arithmetics)
     assert(at_idx >= 0);
 
     u8* src = (u8*) lst + at_idx * element_size;
@@ -374,20 +395,16 @@ void ArrayShift(void* lst, int element_size, u32 array_len, int at_idx, int offs
         src = (u8*) lst + abs(offset) * element_size;
     }
 
-    assert(src - (u8*) lst > 0);
+    assert(src - (u8*) lst >= 0);
     assert(dest - (u8*) lst >= 0);
     assert(src - (u8*) lst <= array_len * element_size);
     assert(dest - (u8*) lst < array_len * element_size);
-    assert(array_len - at_idx > 0);
+    assert(array_len - at_idx >= 0);
 
     memmove(dest, src, (array_len - at_idx) * element_size);
 }
 
 
-/**
-* ArrayList is basically a header with an array pointer and a lenth, providing
-* Add(), Insert() and Remove().
-*/
 template<typename T>
 struct List {
     T* lst = NULL;
@@ -405,8 +422,13 @@ struct List {
         ArrayPut(this->lst, sizeof(T), this->len, at_idx, item);
     }
     void Remove(u32 at_idx) {
-        ArrayShift(this->lst, sizeof(T), this->len, at_idx, -1);
+        ArrayShift(this->lst, sizeof(T), this->len, at_idx + 1, -1);
         this->len--;
+    }
+    List<T> Collapse(List<T> tail) {
+        assert( &lst[len + 1] == &tail.lst[0] && "tail must be located precisely after head/this");
+        List<T> result { lst, len + tail.len };
+        return result;
     }
     T* At(u32 idx) {
         return this->lst + idx;
