@@ -8,9 +8,6 @@
 #include "types.h"
 
 
-/**
-* Linked list supporting mainly the GPA.
-*/
 struct MemoryBlock {
     MemoryBlock* next;
     MemoryBlock* prev;
@@ -59,13 +56,6 @@ u32 ListLen(MemoryBlock* from) {
 }
 
 
-/**
-* General memory management, can manage memory blocks of different sizes.
-* Use to keep a fixed memory footprint with full memory freedom.
-*
-* Note that the current linked-list based impl. is quite slow, when used with a
-* significant amount of blocks/elements.
-*/
 class GeneralPurposeAllocator {
 public:
     MemoryBlock* blocks;
@@ -186,13 +176,13 @@ class PoolAllocator {
 public:
     void* root;
     MemoryBlock* blocks;
-    size_t block_size;
-    size_t pool_size;
-    size_t min_block_size;
+    u32 block_size;
+    u32 pool_size;
+    u32 min_block_size;
 
     unsigned long load = 0;
 
-    PoolAllocator(size_t block_size, size_t pool_size) {
+    PoolAllocator(u32 block_size, u32 pool_size) {
         this->min_block_size = sizeof(MemoryBlock);
         assert(block_size >= this->min_block_size);
 
@@ -356,7 +346,7 @@ char *AllocConstStringAffixed(const char* word, char* affix, StackAllocator *sta
     return dest;
 }
 
-void *_AllocStructVar(StackAllocator *stack, void *src, u32 size) {
+void *AllocStructVar(StackAllocator *stack, void *src, u32 size) {
     void* result = stack->Alloc(size);
     memcpy(result, src, size);
     return result;
@@ -391,18 +381,22 @@ void ArrayShift(void* lst, int element_size, u32 array_len, int at_idx, int offs
     memmove(dest, src, (array_len - at_idx) * element_size);
 }
 
+// TODO: Add a max_len parameter and member and checks to not exceed it during Add, Insert and At
 template<typename T>
 struct List {
     T* lst = NULL;
     u32 len = 0;
     void Init(void* memloc) {
         this->lst = (T*) memloc;
+        this->len = 0;
     }
-    void Add(T* item) {
+    T* Add(T* item) {
         this->len++;
         ArrayPut(this->lst, sizeof(T), this->len, this->len - 1, item);
+        return At(this->len - 1);
     }
     void Insert(T* item, u32 at_idx) {
+        // TODO: make sure the last element is not mem-cpd outside of the range of len.
         ArrayShift(this->lst, sizeof(T), this->len, at_idx, 1);
         this->len++;
         ArrayPut(this->lst, sizeof(T), this->len, at_idx, item);
@@ -418,6 +412,63 @@ struct List {
     }
     T* At(u32 idx) {
         return this->lst + idx;
+    }
+};
+
+
+template<typename T>
+struct Stack {
+    T* lst = NULL;
+    u32 len = 0;
+    void Init(void* memloc) {
+        this->lst = (T*) memloc;
+    }
+    void Push(T* item) {
+        this->len++;
+        ArrayPut(this->lst, sizeof(T), this->len, this->len - 1, item);
+    }
+    T Pop() {
+        if (this->len == 0) {
+            return NULL;
+        }
+        this->len--;
+        return *(this->lst + this->len);
+    }
+};
+
+
+template<typename T>
+struct TreeIterDF {
+    T *_stack[100];
+    Stack<T*> stack { &_stack[0], 0 };
+    void Init(T *root, bool iter_root = true) {
+        if (root->enabled == false) {
+            return;
+        }
+        if (iter_root == true) {
+            this->stack.Push(&root);
+        }
+        else {
+            for (int i = 0; i < root->children.len; ++i) {
+                T *element = root->children.lst[i];
+                if (element->enabled == true) {
+                    this->stack.Push(root->children.lst + i);
+                }
+            }
+        }
+    }
+    T *Next() {
+        T *current = this->stack.Pop();
+        if (current == NULL) {
+            return NULL;
+        }
+        for (int i = 0; i < current->children.len; ++i) {
+            T *element = current->children.lst[i];
+            if (element->enabled == true) {
+                this->stack.Push(current->children.lst + i);
+            }
+        }
+        return current;
     }
 };
 
@@ -455,22 +506,25 @@ struct LinkedList {
         }
     }
     LinkedList *Iter() {
-        if (next->root == true) {
+        if (next != NULL && next->root == true) {
             return NULL;
         }
         else {
             return next;
         }
     }
+    bool IsEmpty() {
+        assert((this->next == this && this->prev == this) || (this->next != this && this->prev != this) && "check ll local integrity");
+        return this->next == this;
+    }
 };
 
 
-// TODO: Refactor into UnevenList<P,C> with iteration
 template<typename P, typename C>
-struct ForwardLinkedArray {
+struct UnevenList {
     P properties;
     int num_children = 0;
-    ForwardLinkedArray *next;
+    UnevenList *next;
     C *children;
 
     u32 InitInlineRequiresPadding(u32 size_bytes) {
@@ -479,17 +533,20 @@ struct ForwardLinkedArray {
             next = NULL;
             return 0;
         }
-        assert(size_bytes > sizeof(ForwardLinkedArray) && "ForwardLinkedArray: Invalid size_bytes, below minimum");
+
+        assert(size_bytes >= sizeof(UnevenList) && "UnevenList: Invalid size_bytes, below minimum (input data must have an 8/16 byte spacing to make room for our next and children pointers)");
 
         u32 num_objs = 0;
         u32 read_bytes = 0;
-        ForwardLinkedArray *current = this;
+        UnevenList *current = this;
         while (current != NULL) {
             ++num_objs;
-            current->children = (C*) ((u8*) current + sizeof(ForwardLinkedArray));
-            current->next = (ForwardLinkedArray *) ((u8*) current->children + current->num_children * sizeof(C));
+            current->children = (C*) ((u8*) current + sizeof(UnevenList<P,C>));
+            current->next = (UnevenList *) (current->children + current->num_children);
+
             read_bytes += (u8*) current->next - (u8*) current;
-            assert(read_bytes <= size_bytes && "ForwardLinkedArray: Data size corruption");
+
+            assert(read_bytes <= size_bytes && "UnevenList: Data size corruption");
             if (read_bytes == size_bytes) {
                 current->next = NULL;
                 current = NULL;
@@ -500,23 +557,42 @@ struct ForwardLinkedArray {
         }
         return num_objs;
     }
-    void AttachTail(ForwardLinkedArray *tail) {
+    void AttachTail(UnevenList *tail) {
         if (this == NULL) {
             return;
         }
-        ForwardLinkedArray *current = this;
+        UnevenList *current = this;
         while (current->next != NULL) {
             current = current->next;
         }
         current->next = tail;
     }
-    ForwardLinkedArray *CalculateNextPtr(u32 num_children) {
-        u32 sz = sizeof(ForwardLinkedArray) + num_children * sizeof(C);
-        return (ForwardLinkedArray *) ((u8*) this + sz);
+    UnevenList *CalculateNextPtr(u32 num_children) {
+        u32 sz = sizeof(UnevenList) + num_children * sizeof(C);
+        return (UnevenList *) ((u8*) this + sz);
     }
-    C *CalculateChildrenPtr() {
-        u32 sz = sizeof(ForwardLinkedArray);
+        C *CalculateChildrenPtr() {
+        u32 sz = sizeof(UnevenList);
         return (C*) ((u8*) this + sz);
+    }
+};
+
+
+// TODO: Internalize pointer calculations for UnevenList generation. Think of this object as the equivalent of the List<T> struct.
+template<typename P, typename C>
+struct UnevenListHeader {
+    UnevenList<P,C> *root;
+    u32 max_size = 0;
+    u32 len = 0;
+    u32 iter = 0;
+    void Init(u8* memloc, u32 max_size) {
+        max_size = max_size;
+    }
+    UnevenList<P,C> *IterStart() {
+        // TODO: impl.
+    }
+    UnevenList<P,C> *IterNext() {
+        // TODO: impl.
     }
 };
 

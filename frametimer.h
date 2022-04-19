@@ -8,9 +8,6 @@
 using std::chrono::steady_clock;
 
 
-/**
-* Use to tick the frame/event loop.
-*/
 class FrameTimer {
 public:
     int interval_ms;
@@ -30,8 +27,8 @@ public:
     double _GetDurationSinceTickMs() {
         return ((std::chrono::steady_clock::now() - this->tick).count()) / 1000000.0;
     }
-    // returns true if frametime has elapsed since last tick
     bool FrameElapsed(bool autoreset_on_success=true, int* duration_ms=NULL) {
+        // returns true if frametime has elapsed since last tick
         double duration = this->_GetDurationSinceTickMs();
 
         // time warp
@@ -55,8 +52,8 @@ public:
 
         return false;
     }
-    // returns true if a wait was executed, otherwise false
     bool WaitForFrame() {
+        // returns true if a wait was executed, otherwise false
         double duration = this->_GetDurationSinceTickMs();
         double rem_ftime = this->interval_ms - duration;
 
@@ -79,6 +76,5 @@ public:
         return true;
     }
 };
-
 
 #endif // FRAMETIMER_H

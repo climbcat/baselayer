@@ -47,25 +47,24 @@ void WriteRandomHexStr(char* dest, int strlen, bool put_nullchar = true, bool do
 }
 
 
-
 char* LoadFilePath(char* filepath, StackAllocator *stack = NULL) {
     char * buffer = NULL;
     long length;
     FILE * f = fopen(filepath, "rb");
 
-    if (f)
-    {
+    if (f) {
         fseek (f, 0, SEEK_END);
-        length = ftell (f);
+        length = ftell(f);
         fseek (f, 0, SEEK_SET);
         if (stack != NULL) {
-          buffer = (char*) stack->Alloc(length);
+            buffer = (char*) stack->Alloc(length);
         }
         else {
-          buffer = (char*) malloc(length);
+            buffer = (char*) malloc(length);
         }
-        if (buffer)
-          fread (buffer, 1, length, f);
+        if (buffer) {
+            fread (buffer, 1, length, f);
+        }
         fclose (f);
     }
 
@@ -90,6 +89,7 @@ char* LoadFile(char* filename, bool use_cwd = true, StackAllocator *stack = NULL
         return LoadFilePath(filename, stack);
 }
 
+
 bool SaveToFile(char *filename, char *text) {
     FILE *file = fopen(filename, "w");
 
@@ -103,6 +103,39 @@ bool SaveToFile(char *filename, char *text) {
 
     return true;
 }
+
+
+u32 LoadFilePathBin(char* filepath, u8* dest) {
+    assert(dest != NULL && "data destination must be valid");
+    u32 len = 0;
+
+    FILE * f = fopen(filepath, "rb");
+    if (f) {
+        fseek(f, 0, SEEK_END);
+        len = ftell(f);
+        fseek(f, 0, SEEK_SET);
+        fread(dest, 1, len, f);
+        fclose(f);
+    }
+
+    return len;
+}
+
+
+bool SaveToFileBin(char *filepath, u8 *data, u32 len) {
+    FILE *f = fopen(filepath, "w");
+
+    if (f == NULL) {
+        printf("Could not open file %s\n", filepath);
+        return false;
+    }
+
+    fwrite(data, len, 1, f);
+    fclose(f);
+
+    return true;
+}
+
 
 List<char*> GetFilesInFolderPaths(char *rootpath, StackAllocator *stack) {
     List<char*> result;
@@ -143,6 +176,67 @@ List<char*> GetFilesInFolderPaths(char *rootpath, StackAllocator *stack) {
 
     return result;
 }
+
+
+bool NameHasExtension(char *name, const char *ext) {
+    u32 len = strlen(name);
+    if (len < 5) {
+        return false;
+    }
+
+    bool result;
+    if (ext == NULL) {
+        result = name[len-4] != '.';
+    }
+    else {
+        result = name[len-4] == '.'
+            && name[len-3] == ext[0]
+            && name[len-2] == ext[1]
+            && name[len-1] == ext[2];
+    }
+    return result;
+}
+
+
+List<char*> GetFilesWithExtension(StackAllocator *stack, char *dirpath, const char *ext, bool include_dirpath = false) {
+    if (ext != NULL) {
+        assert(strlen(ext) == 3 && "ext must be a three-char string");
+    }
+
+    u8 buff[10000];
+    List<char*> result { (char**) &buff[0], 0 };
+    u32 dirpath_len = strlen(dirpath);
+
+    struct dirent *entry;
+    DIR *d = opendir(dirpath);
+    if (d) {
+        while ((entry = readdir(d)) != NULL) {
+            if (NameHasExtension(entry->d_name, ext)) {
+                char *loc;
+                if (include_dirpath == true) {
+                    loc = (char*) stack->Alloc( dirpath_len + strlen(entry->d_name) + 1 );
+                    strcpy(loc, dirpath);
+                    strcat(loc, entry->d_name);
+                }
+                else {
+                    loc = (char*) stack->Alloc( strlen(entry->d_name) + 1 );
+                    strcpy(loc, entry->d_name);
+                }
+                result.Add(&loc);
+            }
+        }
+        closedir(d);
+    }
+
+    u32 bytelen = sizeof(char*) * result.len;
+    void *dest = stack->Alloc(bytelen);
+    memcpy(dest, result.lst, bytelen);
+    result.lst = (char**) dest;
+
+    return result;
+}
+
+
 
 inline
 float MinF(float a, float b) {
