@@ -172,6 +172,9 @@ public:
 };
 
 
+// TODO: Write templated struct versions of PoolAllocor and StackAllocator.
+
+
 class PoolAllocator {
 public:
     void* root;
@@ -401,6 +404,7 @@ struct List {
         this->len++;
         ArrayPut(this->lst, sizeof(T), this->len, at_idx, item);
     }
+    // TODO: should be a non-order preserving rm, whiches out the last entry
     void Remove(u32 at_idx) {
         ArrayShift(this->lst, sizeof(T), this->len, at_idx + 1, -1);
         this->len--;
@@ -413,6 +417,7 @@ struct List {
     T* At(u32 idx) {
         return this->lst + idx;
     }
+    // TODO: Creat a "New" function, which gives a point to a new, correctly initialized entry, and incs the list.
 };
 
 
@@ -593,6 +598,120 @@ struct UnevenListHeader {
     }
     UnevenList<P,C> *IterNext() {
         // TODO: impl.
+    }
+};
+
+
+//
+// Ring buffer: Lock-less, single-reader, single-writer thread safe.
+
+
+#include <atomic>
+#include <condition_variable>
+#include <cstring>
+
+template <typename T>
+struct LLRingBuffer
+{
+    T *buffer;
+    size_t _el_size;
+    std::atomic<int> pos_in = 1;
+    std::atomic<int> pos_out = 1;
+    std::atomic_flag lread1;
+    std::atomic_flag lwrite1;
+
+    unsigned int overflow = 0;
+    int size;
+
+    void Init(int size, int element_size = -1)
+    {
+        this->pos_in = 1;
+        this->pos_out = 1;
+
+        this->size = size;
+        this->_el_size = sizeof(T);
+        if (element_size > 0)
+            this->_el_size = element_size;
+        this->buffer = (T *)malloc((this->_el_size + this->_customsz_num_bytes) * this->size);
+
+        lwrite1.clear(std::memory_order_release);
+        lread1.clear(std::memory_order_release);
+    }
+
+    bool _push_conflict()
+    {
+        return (pos_in == pos_out - 1) || (pos_in == size - 1 && pos_out == 0);
+    }
+    void _inc(std::atomic<int> *pos)
+    {
+        (*pos)++;
+        if (*pos % size == 0)
+            *pos = 0;
+    }
+
+    void put(T *src, int copy_size = 0)
+    {
+        while (lwrite1.test_and_set(std::memory_order_acquire))
+            ;
+
+        uint8_t *buffer_loc = (uint8_t *) this->buffer + this->pos_in * this->_el_size;
+        if (copy_size <= 0 || copy_size > this->_el_size)
+            copy_size = this->_el_size;
+        memcpy(buffer_loc + this->_customsz_num_bytes, src, copy_size);
+
+        if (_push_conflict())
+        {
+            // conflict: incrementing pos_in would result in pos_in == pos_out
+            while (lread1.test_and_set(std::memory_order_acquire))
+                ;
+            // buffer full, discard old
+            _inc(&pos_out);
+            ++overflow;
+            lread1.clear(std::memory_order_release);
+        }
+
+        _inc(&pos_in);
+        lwrite1.clear(std::memory_order_release);
+    }
+
+    bool get(T *dest, int *size_out = nullptr)
+    {
+        while (lread1.test_and_set(std::memory_order_acquire))
+            ;
+        if (pos_out == pos_in)
+        {
+            // queue was empty
+            lread1.clear(std::memory_order_release);
+            return false;
+        }
+        // since lread1 is set, we may assume that pos_out has not been incremented
+
+        uint8_t *buffer_loc = (uint8_t *)this->buffer + this->pos_out * this->_el_size;
+        size_t copy_size = this->_el_size;
+        memcpy(dest, buffer_loc, copy_size);
+
+        _inc(&pos_out);
+
+        lread1.clear(std::memory_order_release);
+        return true;
+    }
+
+    inline bool empty()
+    {
+        return (pos_in == pos_out);
+    }
+
+    int current_load()
+    {
+        int diff = this->pos_in - this->pos_out;
+        if (diff >= 0) 
+        {
+            return diff;
+        }
+        else
+        {
+            return this->size + diff;
+        }
     }
 };
 

@@ -10,9 +10,6 @@
 #include "memory.h"
 
 
-/**
-* NOTE: Does not count the null char in strlen (just like the C function).
-*/
 
 void WriteRandomHexStr(char* dest, int strlen, bool put_nullchar = true, bool do_randinit = false) {
     if (do_randinit)
@@ -269,6 +266,92 @@ int MaxI(int a, int b) {
 
 void Sleep(u32 time_ms) {
     usleep(time_ms * 1000);
+}
+
+
+#include <chrono>
+
+
+std::chrono::steady_clock::time_point g_tick;
+void StartTimer() {
+    g_tick = std::chrono::steady_clock::now();
+}
+u32 StopTimer(bool print = false, bool highres = false) {
+    double res = 1000000.0;
+    char* unit = (char*) " ms";
+    if (highres == true) {
+        res = 1000.0;
+        unit = (char*) " µs";
+    }
+    auto retval = ((std::chrono::steady_clock::now() - g_tick).count()) / res;
+    if (print == true) {
+        printf("%f%s\n", retval, unit);
+    }
+    return retval;
+}
+
+
+class PerfTimerScoped {
+public:
+    std::chrono::steady_clock::time_point tick;
+    bool print_time;
+    PerfTimerScoped(bool print_time = true) : print_time(print_time) {
+        this->tick = std::chrono::steady_clock::now();
+    }
+    ~PerfTimerScoped() {
+        if (this->print_time) {
+            printf("%f µs\n", ((std::chrono::steady_clock::now() - this->tick).count()) / 1000.0);
+        }
+    }
+    u32 GetTimeMicroS() {
+        return ((std::chrono::steady_clock::now() - this->tick).count()) / 1000.0;
+    }
+};
+
+
+//
+// Parsing cmd-line args
+
+
+bool ContainsArg(const char *search, int argc, char **argv, int *idx = NULL) {
+    for (int i = 0; i < argc; ++i) {
+        char *arg = argv[i];
+        if (!strcmp(argv[i], search)) {
+            if (idx != NULL) {
+                *idx = i;
+            }
+            return true;
+        }
+    }
+    return false;
+}
+
+bool ContainsArgs(const char *search_a, const char *search_b, int argc, char **argv) {
+    bool found_a = false;
+    bool found_b = false;
+    for (int i = 0; i < argc; ++i) {
+        if (!strcmp(argv[i], search_a)) {
+            found_a = true;
+        }
+        if (!strcmp(argv[i], search_b)) {
+            found_b = true;
+        }
+    }
+    return found_a && found_b;
+}
+
+char *GetArgValue(const char *key, int argc, char **argv) {
+    int i;
+    bool error = !ContainsArg(key, argc, argv, &i) || i == argc - 1;;
+    if (error == false) {
+        char *val = argv[i+1];
+        error = strlen(val) > 1 && val[0] == '-' && val[1] == '-';
+    }
+    if (error == true) {
+        printf("KW arg %s must be followed by a value arg\n", key);
+        exit(0);
+    }
+    return argv[i+1];
 }
 
 
