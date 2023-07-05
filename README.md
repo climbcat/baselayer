@@ -1,10 +1,33 @@
-# memory basics
+# baselayer
 
-g++ main.cpp
+Evolving base layer written in C-style C++.
 
-### Some light-weight base layer ingredients:
+Simple code intended to cover basic needs.
 
-- Memory management: General purpose, pool and stack allocators
-- A fixed-size array
-- RNG
-- Parser & example that parses mcstas .instr files
+- Memory allocators
+- Dynamic and fixed-size arrays
+- Randon numbers
+- Tokenizer
+- Vector3
+- String: Length based strings
+- Linked List
+- Types & macros
+- Profiler / Performance timing
+- Utils (file I/O, cmd-line args)
+
+# C-style
+
+Code should be simple and self-contained.
+
+What's included from C++:
+
+- Easy struct declaration
+- Operator overloading
+
+Only on special occations: 
+
+- Classes
+-- destructor mechanism
+-- abstract base class / interface polymorphism
+- Templates
+-- template args for generic types
