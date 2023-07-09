@@ -8,10 +8,10 @@
 #include <sys/mman.h>
 
 #include "base.c"
+#include "profile.c"
 #include "memory.c"
 #include "utils.c"
 #include "string.c"
-#include "profile.c"
 
 void RunProgram() {
     printf("Just a baselayer entry point\n");
@@ -67,15 +67,17 @@ void RunTests() {
 }
 
 int main (int argc, char **argv) {
+    TimeProgram;
+
     if (CLAContainsArg("--help", argc, argv)) {
         printf("Usage:\n        <example>\n");
-        exit(0);
     }
-    if (CLAContainsArg("--test", argc, argv)) {
+    else if (CLAContainsArg("--test", argc, argv)) {
         RunTests();
-        exit(0);
     }
-    RunProgram();
+    else {
+        RunProgram();
+    }
 
     TimePrint;
 }
