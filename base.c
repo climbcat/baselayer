@@ -2,7 +2,7 @@
 
 
 //
-// types
+// basics
 
 
 typedef uint8_t u8;
@@ -27,8 +27,9 @@ typedef double f64;
 #define GIGABYTE 1024 * 1024 * 1024
 
 
-//
-// basics
+#define PI 3.14159
+f32 deg2rad = PI / 180;
+f32 rad2deg = 180 / PI;
 
 
 inline u8 MinU8(u8 a, u8 b) { return (a <= b) ? a : b; }
@@ -79,15 +80,15 @@ inline u32 strlen(char *str) {
     }
     return i;
 }
-inline bool strcmp(const char *str1, const char *str2) {
+inline u32 strcmp(const char *str1, const char *str2) {
     u32 i = 0;
-    while (true) {
-        if (str1[i] != str2[i] || str1[i] != '\0' || str2[i] == '\0') {
-            return false;
+    while (str1[i] != '\0' || str2[i] != '\0') {
+        if (str1[i] != str2[i]) {
+            return 1;
         }
         ++i;
     }
-    return true;
+    return 0;
 }
 
 
@@ -215,6 +216,12 @@ f64 ParseDouble(char *str, u8 len) {
 //
 // cmd-line args
 
+s32 g_argc;
+char **g_argv;
+void CLAInit(s32 argc, char **argv) {
+    g_argc = argc;
+    g_argv = argv;
+}
 
 bool CLAContainsArg(const char *search, int argc, char **argv, int *idx = NULL) {
     for (int i = 0; i < argc; ++i) {
