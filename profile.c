@@ -1,3 +1,10 @@
+#define PROFILE 1
+
+#ifndef PROFILE
+#define PROFILE 0
+#endif
+
+
 u64 ReadSystemTimerMySec() {
     u64 systime;
     struct timeval tm;
@@ -11,6 +18,8 @@ u64 ReadCPUTimer() {
     return ticks;
 }
 
+
+#if PROFILE == 1 // enable profiler
 
 struct ProfilerBlock {
     u64 elapsed_atroot_tsc;
@@ -109,3 +118,14 @@ static Profiler g_prof;
 #define TimeProgram ProfileInitAndPrintMechanism __prof_init__(&g_prof);
 #define TimeFunction ProfileScopeMechanism __prof_mechanism__(&g_prof, __FUNCTION__, __COUNTER__ + 1);
 #define TimeBlock(tag) ProfileScopeMechanism __prof_mechanism__(&g_prof, "<" tag ">", __COUNTER__ + 1);
+
+
+#else // disable profiler, empty macros
+
+// TODO: retain timing the entire program run as a very light-weight thing
+
+#define TimeProgram ;
+#define TimeFunction ;
+#define TimeBlock(tag) ;
+
+#endif
