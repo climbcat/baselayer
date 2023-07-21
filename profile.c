@@ -11,13 +11,7 @@ u64 ReadCPUTimer() {
     return ticks;
 }
 
-struct Profiler {
-    u64 total_tsc;
-    u64 total_systime;
-    float cpu_freq;
-    u32 count;
-    u32 active;
-};
+
 struct ProfilerBlock {
     u64 elapsed_atroot_tsc;
     u64 elapsed_tsc;
@@ -25,9 +19,14 @@ struct ProfilerBlock {
     const char *tag;
     u32 hits;
 };
-static Profiler g_prof;
-static ProfilerBlock g_prof_blocks[1024];
-
+struct Profiler {
+    u64 total_tsc;
+    u64 total_systime;
+    float cpu_freq;
+    u32 count;
+    u32 active;
+    ProfilerBlock blocks[1024];
+};
 void ProfilerStart(Profiler *p) {
     p->total_systime = ReadSystemTimerMySec();
     p->total_tsc = ReadCPUTimer();
@@ -45,8 +44,8 @@ void ProfilerPrint(Profiler *p) {
 
     float pct_sum = 0;
     ProfilerBlock *current;
-    for (int i = 1; i < g_prof.count + 1; ++i) {
-        current = g_prof_blocks + i;
+    for (int i = 1; i < p->count + 1; ++i) {
+        current = p->blocks + i;
         printf("  %s: ", current->tag);
 
         u64 self_tsc = current->elapsed_tsc - current->elapsed_children_tsc;
@@ -56,11 +55,9 @@ void ProfilerPrint(Profiler *p) {
 
         u32 hits = current->hits;
         printf("%lu (%.2f%%) self, %lu (%.2f%%) tot %u hits)\n", self_tsc, self_pct, total_tsc, total_pct, hits);
-
-        //pct_sum += self_pct;
     }
-    //printf("%%sum: %f\n", pct_sum);
 }
+
 
 class ProfileInitAndPrintMechanism {
 public:
@@ -74,37 +71,41 @@ public:
         ProfilerPrint(p);
     }
 };
-
 class ProfileScopeMechanism {
 public:
+    Profiler *p;
     u32 slot;
     u64 start;
     u64 elapsed_atroot;
     u32 parent;
-    ProfileScopeMechanism(const char *tag, u32 slot) {
+    ProfileScopeMechanism(Profiler *p, const char *tag, u32 slot) {
+        this->p = p;
+
         this->start = ReadCPUTimer();
-        this->elapsed_atroot = g_prof_blocks[slot].elapsed_atroot_tsc;
+        this->elapsed_atroot = this->p->blocks[slot].elapsed_atroot_tsc;
         this->slot = slot;
-        this->parent = g_prof.active;
+        this->parent = this->p->active;
 
-        g_prof_blocks[slot].tag = tag;
-        g_prof_blocks[slot].hits += 1;
+        this->p->blocks[slot].tag = tag;
+        this->p->blocks[slot].hits += 1;
 
-        g_prof.count = MaxU32(g_prof.count, slot);
-        g_prof.active = slot;
+        this->p->count = MaxU32(this->p->count, slot);
+        this->p->active = slot;
     }
     ~ProfileScopeMechanism() {
         u64 diff = ReadCPUTimer() - this->start;
-        g_prof_blocks[this->slot].elapsed_tsc += diff;
-        g_prof_blocks[this->slot].elapsed_atroot_tsc = this->elapsed_atroot + diff;
+        this->p->blocks[this->slot].elapsed_tsc += diff;
+        this->p->blocks[this->slot].elapsed_atroot_tsc = this->elapsed_atroot + diff;
         
         if (this->parent) {
-            g_prof_blocks[this->parent].elapsed_children_tsc += diff;
+            this->p->blocks[this->parent].elapsed_children_tsc += diff;
         }
-        g_prof.active = parent;
+        this->p->active = parent;
     }
 };
 
+
+static Profiler g_prof;
 #define TimeProgram ProfileInitAndPrintMechanism __prof_init__(&g_prof);
-#define TimeFunction ProfileScopeMechanism __prof_mechanism__(__FUNCTION__, __COUNTER__ + 1);
-#define TimeBlock(tag) ProfileScopeMechanism __prof_mechanism__("<" tag ">", __COUNTER__ + 1);
+#define TimeFunction ProfileScopeMechanism __prof_mechanism__(&g_prof, __FUNCTION__, __COUNTER__ + 1);
+#define TimeBlock(tag) ProfileScopeMechanism __prof_mechanism__(&g_prof, "<" tag ">", __COUNTER__ + 1);
