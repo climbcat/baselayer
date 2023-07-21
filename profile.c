@@ -62,6 +62,19 @@ void ProfilerPrint(Profiler *p) {
     //printf("%%sum: %f\n", pct_sum);
 }
 
+class ProfileInitAndPrintMechanism {
+public:
+    Profiler *p;
+    ProfileInitAndPrintMechanism(Profiler *p) {
+        this->p = p;
+        ProfilerStart(p);
+    }
+    ~ProfileInitAndPrintMechanism() {
+        ProfilerStop(p);
+        ProfilerPrint(p);
+    }
+};
+
 class ProfileScopeMechanism {
 public:
     u32 slot;
@@ -92,7 +105,6 @@ public:
     }
 };
 
-#define TimeProgram ProfilerStart(&g_prof);
+#define TimeProgram ProfileInitAndPrintMechanism __prof_init__(&g_prof);
 #define TimeFunction ProfileScopeMechanism __prof_mechanism__(__FUNCTION__, __COUNTER__ + 1);
 #define TimeBlock(tag) ProfileScopeMechanism __prof_mechanism__("<" tag ">", __COUNTER__ + 1);
-#define TimePrint ProfilerStop(&g_prof); ProfilerPrint(&g_prof);
