@@ -192,45 +192,54 @@ List ListCreateS32(s32 *mem, u32 max_len) { return ListCreate((u8*) mem, sizeof(
 List ListCreateS364(s64 *mem, u32 max_len) { return ListCreate((u8*) mem, sizeof(s64), max_len); }
 
 
-
 //
-// C-style list: Array subscripting is done on the actual pointer, using the C native syntax.
-// The pointer is associated with a len and a capacity/max_len
-//
-// NOTE: the macros below rely on implicit casts from void* (the return value of lst__grow), which
-// is not allowed in C++. Can this style of list even work in C++ ?
-// TODO: fix !
-
-
 // Stretchy buffer
-
+//
+// Subscripting on the native C pointer.
+// The pointer is associated with a len and a capacity/max_len stored before the actual array.
+// e.g.:
 /*
-u32 *mylst = NULL;
+    s32 *lst = NULL;
+    lst_push(lst, 42);
+    lst_push(lst, -15);
+
+    for (int i = 0; i < lst_len(lst); ++i) {
+        printf("%d\n", lst[i]);
+    }
+*/
+// TODO: allow the virtual memory -style of growing, for pointer stability (and maybe performance)
+// TODO: adopt "double internal storage space" convention
+
 struct LstHdr {
     u32 len;
     u32 cap;
-    u8* lst;
+    u8* list;
 };
 
-#define lst__hdr(lst)     ( lst ? ((LstHdr*) ( (u8*) lst - offsetof(LstHdr, lst) )) : 0 )
-#define lst__fits(lst, n) ( lst_cap(lst) >= lst_len(lst) + n )
-#define lst__fit(lst, n)  ( lst__fits(lst, n) ? 0 : lst = lst__grow(lst__hdr(lst), lst_len(lst) + n, sizeof(*lst)) )
+#define lst__hdr(lst)     ( lst ? ((LstHdr*) ( (u8*) lst - sizeof(LstHdr) )) : 0 )
+#define lst__fits(lst, n) ( lst ? lst__cap(lst) >= lst_len(lst) + n : 0 )
+#define lst__fit(lst, n)  ( lst__fits(lst, n) ? 0 : lst = lst__grow(lst, n) )
+#define lst__cap(lst)      ( lst ? *((u32*)lst__hdr(lst) + 1) : 0 )
 
 #define lst_len(lst)      ( lst ? *((u32*)lst__hdr(lst)) : 0 )
-#define lst_cap(lst)      ( lst ? *((u32*)lst__hdr(lst) + 1) : 0 )
-#define lst_push(lst, e)  ( lst__fit(lst, 1), lst[lst_len(lst)++] = e )
+#define lst_push(lst, e)  ( lst__fit(lst, 1), lst[lst_len(lst)] = e, lst__hdr(lst)->len++ )
+//#define lst_free(lst)     ( lst ? free(lst__hdr(lst)) : void )
+#define lst_free(lst)     ( free(lst__hdr(lst)) )
+#define lst_print(lst)    ( lst ? printf("len: %u, cap: %u\n", lst__hdr(lst)->len, lst__hdr(lst)->cap) : 0 )
 
-void *lst__grow(LstHdr *hdr, u32 new_len, size_t e_sz) {
-    u32 tot_len = new_len*e_sz + sizeof(LstHdr);
-    if (hdr == NULL) {
-        hdr = (LstHdr*) malloc(tot_len);
-        hdr->lst = (u8*) hdr + offsetof(LstHdr, lst);
+template<class T>
+T *lst__grow(T *lst, u32 add_len) {
+    LstHdr *hdr = NULL;
+    if (lst == NULL) {
+        hdr = (LstHdr*) malloc(add_len * sizeof(T) + sizeof(LstHdr));
+        hdr->len = 0;
+        hdr->cap = add_len;
     }
     else {
-        hdr->lst = (u8*) realloc(hdr, tot_len);
+        hdr = lst__hdr(lst);
+        hdr = (LstHdr*) realloc(hdr, add_len + hdr->cap + sizeof(LstHdr));
+        hdr->cap += add_len;
     }
-    return hdr->lst;
+    hdr->list = (u8*) hdr + sizeof(LstHdr);
+    return (T*) hdr->list;
 }
-*/
-
-
