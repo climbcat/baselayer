@@ -223,7 +223,6 @@ struct LstHdr {
 
 #define lst_len(lst)      ( lst ? *((u32*)lst__hdr(lst)) : 0 )
 #define lst_push(lst, e)  ( lst__fit(lst, 1), lst[lst_len(lst)] = e, lst__hdr(lst)->len++ )
-//#define lst_free(lst)     ( lst ? free(lst__hdr(lst)) : void )
 #define lst_free(lst)     ( free(lst__hdr(lst)) )
 #define lst_print(lst)    ( lst ? printf("len: %u, cap: %u\n", lst__hdr(lst)->len, lst__hdr(lst)->cap) : 0 )
 
@@ -231,14 +230,15 @@ template<class T>
 T *lst__grow(T *lst, u32 add_len) {
     LstHdr *hdr = NULL;
     if (lst == NULL) {
-        hdr = (LstHdr*) malloc(add_len * sizeof(T) + sizeof(LstHdr));
+        hdr = (LstHdr*) malloc((add_len + 1) * sizeof(T) + sizeof(LstHdr));
         hdr->len = 0;
         hdr->cap = add_len;
     }
     else {
         hdr = lst__hdr(lst);
-        hdr = (LstHdr*) realloc(hdr, add_len + hdr->cap + sizeof(LstHdr));
-        hdr->cap += add_len;
+        u32 new_cap = MaxU32(2 * hdr->cap, add_len + hdr->cap);
+        hdr = (LstHdr*) realloc(hdr, new_cap + sizeof(LstHdr));
+        hdr->cap += new_cap;
     }
     hdr->list = (u8*) hdr + sizeof(LstHdr);
     return (T*) hdr->list;
