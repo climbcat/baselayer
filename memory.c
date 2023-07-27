@@ -9,6 +9,7 @@
 // TODO: arena de-allocation that shrinks commited memory (useful when e.g. closing large files)
 // TODO: scratch arenas
 // TODO: be able to wrap a finite-sized arena around an array arg (could be a static array e.g.)
+// TODO: with arena_open/close, have a way to ensure enough commited space via some reserve param or such
 
 
 

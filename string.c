@@ -143,3 +143,68 @@ String StrJoinInsertChar(MArena *a, StringList *strs, char insert) {
     ArenaClose(a, join.len);
     return join;
 }
+
+
+//
+// string list builder functions, another take
+
+struct Str {
+    char *str = NULL;
+    u32 len = 0;
+};
+
+struct StrLst {
+    StrLst *next = NULL;
+    char *str = NULL;
+    u32 len = 0;
+};
+
+StrLst *StrLstStart(MArena *a) {
+    return (StrLst*) ArenaAlloc(a, 0);
+}
+StrLst *StrLstPut(MArena *a, char *str, StrLst *after = NULL) {
+    StrLst _;
+    StrLst *lst = (StrLst*) ArenaPush(a, &_, sizeof(StrLst)); // can we have an ArenaPush(type) for this ideom? T
+    lst->len = strlen(str);
+    lst->str = (char*) ArenaAlloc(a, lst->len); // TODO: would be easy to put a T here to avoid the cast
+    for (int i = 0; i < lst->len; ++i) {
+        lst->str[i] = str[i];
+    }
+    if (after != NULL) {
+        after->next = lst;
+    }
+    return lst;
+}
+void StrLstPrint(StrLst lst) {
+    // print lines of strs
+    StrLst *iter = &lst;
+    do {
+        u8 format_str_max_len = 255;
+        char buff[iter->len + format_str_max_len];
+        sprintf(buff, "%.*s", iter->len, iter->str);
+        printf("%s\n", buff);
+    }
+    while ((iter = iter->next) != NULL);
+}
+
+// NOTE: "Hot" arena usage infers an assumption of pointer contguity.
+//       E.g. our ptr, here "to", was the most recently allocated on a.
+void StrCatHot(MArena *a, char *str, StrLst *to) {
+    u8 *dest = (u8*) ArenaAlloc(a, strlen(str));
+
+    assert(to != NULL);
+    assert(dest == (u8*) to->str + to->len);
+
+    while (*str != '\0') {
+        to->str[to->len++] = *str;
+        ++str;
+    }
+}
+void StrCatHot(MArena *a, char c, StrLst *to) {
+    u8 *dest = (u8*) ArenaAlloc(a, 1);
+
+    assert(to != NULL);
+    assert(dest == (u8*) to->str + to->len); // contiguity
+
+    to->str[to->len++] = c;
+}
