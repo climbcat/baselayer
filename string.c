@@ -7,18 +7,20 @@
 // NOTE: the string list is in fact an LList1, maybe use the functions from base.c
 
 
-struct String {
+struct Str {
     char *str = NULL;
     u32 len = 0;
 };
 
-struct StringList {
-    StringList *next = NULL;
-    String value;
+struct StrLst {
+    StrLst *next = NULL;
+    char *str = NULL;
+    u32 len = 0;
 };
 
-String StrLiteral(MArena *a, const char *lit) {
-    String s;
+Str StrLiteral(MArena *a, const char *lit) {
+    // TODO: make into StrPut
+    Str s;
     s.len = 0;
     while (*(lit + s.len) != '\0') {
         ++s.len;
@@ -28,16 +30,26 @@ String StrLiteral(MArena *a, const char *lit) {
 
     return s;
 }
-void StrPrint(const char *format, String s) {
+// TODO: get variadic
+void StrPrint(const char *format, Str s) {
     u8 format_str_max_len = 255;
     char buff[s.len + format_str_max_len];
     sprintf(buff, "%.*s", s.len, s.str);
     printf(format, buff);
 }
-void StrPrint(String s) {
+inline void StrPrint(Str s) {
     printf("%.*s", s.len, s.str);
 }
-bool StrEqual(String a, String b) {
+inline void StrPrint(StrLst s) {
+    printf("%.*s", s.len, s.str);
+}
+inline void StrPrint(Str *s) {
+    printf("%.*s", s->len, s->str);
+}
+inline void StrPrint(StrLst *s) {
+    printf("%.*s", s->len, s->str);
+}
+bool StrEqual(Str a, Str b) {
     u32 i = 0;
     u32 len = MinU32(a.len, b.len);
     while (i < len) {
@@ -49,8 +61,8 @@ bool StrEqual(String a, String b) {
 
     return a.len == b.len;
 }
-String StrCat(MArena *arena, String a, String b) {
-    String cat;
+Str StrCat(MArena *arena, Str a, Str b) {
+    Str cat;
     cat.len = a.len + b.len;
     cat.str = (char*) ArenaAlloc(arena, cat.len);
     memcpy(cat.str, a.str, a.len);
@@ -58,17 +70,18 @@ String StrCat(MArena *arena, String a, String b) {
 
     return cat;
 }
-void StrLstPrint(StringList *lst) {
+void StrLstPrint(StrLst *lst) {
     while (lst != NULL) {
-        StrPrint(lst->value);
+        StrPrint(lst); // TODO: fix
         printf(", ");
         lst = lst->next;
     }
 }
-StringList *StrSplit(MArena *arena, String base, char split_at_and_remove) {
-    StringList *first;
-    StringList *node;
-    StringList *prev = NULL;
+StrLst *StrSplit(MArena *arena, Str base, char split_at_and_remove) {
+    // TODO: reimpl. using StrLstPut
+    StrLst *first;
+    StrLst *node;
+    StrLst *prev = NULL;
     u32 i = 0;
 
     while (true) {
@@ -79,9 +92,9 @@ StringList *StrSplit(MArena *arena, String base, char split_at_and_remove) {
             return first;
         }
 
-        node = (StringList *) ArenaAlloc(arena, sizeof(StringList));
-        node->value.str = (char*) ArenaOpen(arena);
-        node->value.len = 0;
+        node = (StrLst *) ArenaAlloc(arena, sizeof(StrLst));
+        node->str = (char*) ArenaOpen(arena);
+        node->len = 0;
 
         if (prev != NULL) {
             prev->next = node;
@@ -92,13 +105,13 @@ StringList *StrSplit(MArena *arena, String base, char split_at_and_remove) {
 
         int j = 0;
         while (base.str[i] != split_at_and_remove && i < base.len) {
-            ++node->value.len;
-            node->value.str[j] = base.str[i];
+            ++node->len;
+            node->str[j] = base.str[i];
             ++i;
             ++j;
         }
 
-        ArenaClose(arena, node->value.len);
+        ArenaClose(arena, node->len);
         prev = node;
         if (i < base.len) {
             ++i; // skip the split char
@@ -112,28 +125,28 @@ StringList *StrSplit(MArena *arena, String base, char split_at_and_remove) {
 //     ArenaAlloc() to see which one is most readable, I expect it to be better
 // StringList *StrSplit(MArena *arena, String base, char split) {}
 
-String StrJoin(MArena *a, StringList *strs) {
-    String join;
+Str StrJoin(MArena *a, StrLst *strs) {
+    Str join;
     join.str = (char*) ArenaOpen(a);
     join.len = 0;
 
     while (strs != NULL) {
-        memcpy(join.str + join.len, strs->value.str, strs->value.len);
-        join.len += strs->value.len;
+        memcpy(join.str + join.len, strs->str, strs->len);
+        join.len += strs->len;
         strs = strs->next;
     }
 
     ArenaClose(a, join.len);
     return join;
 }
-String StrJoinInsertChar(MArena *a, StringList *strs, char insert) {
-    String join;
+Str StrJoinInsertChar(MArena *a, StrLst *strs, char insert) {
+    Str join;
     join.str = (char*) ArenaOpen(a);
     join.len = 0;
 
     while (strs != NULL) {
-        memcpy(join.str + join.len, strs->value.str, strs->value.len);
-        join.len += strs->value.len;
+        memcpy(join.str + join.len, strs->str, strs->len);
+        join.len += strs->len;
         strs = strs->next;
 
         if (strs != NULL) {
@@ -149,17 +162,6 @@ String StrJoinInsertChar(MArena *a, StringList *strs, char insert) {
 
 //
 // string list builder functions, another take
-
-struct Str {
-    char *str = NULL;
-    u32 len = 0;
-};
-
-struct StrLst {
-    StrLst *next = NULL;
-    char *str = NULL;
-    u32 len = 0;
-};
 
 StrLst *StrLstStart(MArena *a) {
     return (StrLst*) ArenaAlloc(a, 0);

@@ -21,9 +21,9 @@ void RunTests() {
     MArena *a = &arena;
 
     printf("StrLiteral\n");
-    String s1 = StrLiteral(&arena, "hello");
-    String s2 = StrLiteral(&arena, "hello_noteq");
-    String s3 = StrLiteral(&arena, "hello");
+    Str s1 = StrLiteral(&arena, "hello");
+    Str s2 = StrLiteral(&arena, "hello_noteq");
+    Str s3 = StrLiteral(&arena, "hello");
 
     printf("StrPrint - ");
     StrPrint("%s", s1);
@@ -37,16 +37,16 @@ void RunTests() {
     printf("\n");
 
     printf("StrSplit / StrLstPrint - ");
-    String to_split = StrLiteral(a, "...Hello.I..Have.Been.Split..");
+    Str to_split = StrLiteral(a, "...Hello.I..Have.Been.Split..");
     printf("splitting: ");
     StrPrint("%s", to_split);
     printf(" into: ");
-    StringList *lst = StrSplit(a, to_split, '.');
+    StrLst *lst = StrSplit(a, to_split, '.');
     StrLstPrint(lst);
     printf("\n");
 
     printf("StrJoin - ");
-    String join = StrJoin(a, lst);
+    Str join = StrJoin(a, lst);
     StrPrint("%s", join);
     printf("\n");
     join = StrJoinInsertChar(a, lst, '/');
