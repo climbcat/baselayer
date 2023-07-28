@@ -1,9 +1,11 @@
-//#include "base.c"
-//#include "memory.c"
+#include <cstdio>
+#include <cassert>
+
 
 // NOTE: currently no "string list header" struct, which means that strings and str lst are
 //       treated a bit differently: Strings are passed as a struct, but str lists as a pointer.
 // NOTE: the string list is in fact an LList1, maybe use the functions from base.c
+
 
 struct String {
     char *str = NULL;
@@ -200,7 +202,7 @@ void StrCatHot(MArena *a, char *str, StrLst *to) {
         ++str;
     }
 }
-void StrCatHot(MArena *a, char c, StrLst *to) {
+void StrAppendHot(MArena *a, char c, StrLst *to) {
     u8 *dest = (u8*) ArenaAlloc(a, 1);
 
     assert(to != NULL);

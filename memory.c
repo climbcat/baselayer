@@ -1,6 +1,7 @@
-//#include <sys/mman.h>
-//#include <cstddef>
-
+#include <cstddef>
+#include <cstdlib>
+#include <cassert>
+#include <sys/mman.h>
 
 // NOTE: The pool de-alloc function does not check whether the element was ever allocated. I am not
 // sure how to do this - perhaps with an occupation list. However tis adds complexity tremendously.
@@ -79,7 +80,7 @@ void ArenaClose(MArena *a, u64 len) {
 
 
 //
-// Memory pool allocator / slot-based allocation with a free-list
+// Memory pool allocator / slot based allocation with a free-list
 
 
 struct MPool {
@@ -159,39 +160,6 @@ struct ListX {
         return (T*)arena.mem + idx;
     }
 };
-
-
-
-// Wrapped list using void* and sizes:
-//
-// - wraps around existing pointer
-// - separate constructor function for each simple types
-/*
-    u8 memarr[1024];
-    List lst = ListCreate(memarr, sizeof(u32), 1024 / 4);
-*/
-struct List {
-    void *mem;
-    u32 element_sz;
-    u32 len;
-    u32 max_len;
-};
-List ListCreate(u8* mem, u32 element_sz, u32 max_len) {
-    List lst;
-    lst.mem = mem;
-    lst.element_sz = element_sz;
-    lst.len = 0;
-    lst.max_len = max_len;
-    return lst;
-}
-List ListCreateU8(u8 *mem, u32 max_len) { return ListCreate((u8*) mem, sizeof(u8), max_len); }
-List ListCreateU16(u16 *mem, u32 max_len) { return ListCreate((u8*) mem, sizeof(u16), max_len); }
-List ListCreateU32(u32 *mem, u32 max_len) { return ListCreate((u8*) mem, sizeof(u32), max_len); }
-List ListCreateU364(u64 *mem, u32 max_len) { return ListCreate((u8*) mem, sizeof(u64), max_len); }
-List ListCreateS16(s16 *mem, u32 max_len) { return ListCreate((u8*) mem, sizeof(s16), max_len); }
-List ListCreateS32(s32 *mem, u32 max_len) { return ListCreate((u8*) mem, sizeof(s32), max_len); }
-List ListCreateS364(s64 *mem, u32 max_len) { return ListCreate((u8*) mem, sizeof(s64), max_len); }
-
 
 //
 // Stretchy buffer

@@ -1,17 +1,11 @@
-#include <cstdlib>
 #include <cstdio>
-
-#include <cstdint>
 #include <cassert>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <sys/mman.h>
 
 #include "base.c"
 #include "profile.c"
 #include "memory.c"
-#include "utils.c"
 #include "string.c"
+#include "utils.c"
 
 void RunProgram() {
     printf("Just a baselayer entry point\n");
@@ -64,6 +58,25 @@ void RunTests() {
         printf("OK");
     }
     printf("\n");
+
+    // test get files in folder & a bit of str lst 
+    StrLst files = GetFilesInFolderPaths(a, (char*) "/home");
+    StrLstPrint(files);
+
+    // templated list
+    ListX<u32> lst_T;
+    lst_T.Add(14);
+    lst_T.Add(222);
+    lst_T.At(1);
+
+    // stretchy buffer 
+    s32 *elst = NULL;
+    lst_push(elst, 42);
+    lst_push(elst, -15);
+    for (int i = 0; i < lst_len(elst); ++i) {
+        printf("%d\n", elst[i]);
+    }
+    lst_free(elst);
 }
 
 int main (int argc, char **argv) {
@@ -78,6 +91,4 @@ int main (int argc, char **argv) {
     else {
         RunProgram();
     }
-
-    TimePrint;
 }
