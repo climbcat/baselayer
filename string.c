@@ -7,6 +7,10 @@
 // NOTE: the string list is in fact an LList1, maybe use the functions from base.c
 
 
+//
+// Str and StrLst
+
+
 struct Str {
     char *str = NULL;
     u32 len = 0;

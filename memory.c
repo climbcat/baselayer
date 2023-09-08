@@ -1,7 +1,13 @@
 #include <cstddef>
 #include <cstdlib>
 #include <cassert>
-#include <sys/mman.h>
+
+// Linux:
+//#include <sys/mman.h>
+// Windows:
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
 
 // NOTE: The pool de-alloc function does not check whether the element was ever allocated. I am not
 // sure how to do this - perhaps with an occupation list. However tis adds complexity tremendously.
@@ -11,7 +17,6 @@
 // TODO: scratch arenas
 // TODO: be able to wrap a finite-sized arena around an array arg (could be a static array e.g.)
 // TODO: with arena_open/close, have a way to ensure enough commited space via some reserve param or such
-
 
 
 //
@@ -30,21 +35,32 @@ struct MArena {
 #define ARENA_COMMIT_CHUNK SIXTEEN_KB
 
 u64 MemoryProtect(void *from, u64 amount) {
-    mprotect(from, amount, PROT_READ | PROT_WRITE);
+    // Linux:
+    //mprotect(from, amount, PROT_READ | PROT_WRITE);
+    // Windows:
+    VirtualAlloc(from, amount, MEM_COMMIT, PAGE_READWRITE);
+
     return amount;
 }
-void *MemoryReserve(u64 reserve_size) {
-    void *result = mmap(NULL, ARENA_RESERVE_SIZE, PROT_NONE, MAP_PRIVATE | MAP_ANON, -1, 0);
+void *MemoryReserve(u64 amount) {
+    void *result;
+
+    // Linux:
+    // a.mem = (u8*) mmap(NULL, ARENA_RESERVE_SIZE, PROT_NONE, MAP_PRIVATE | MAP_ANON, -1, 0);
+    // Windows:
+    result = VirtualAlloc(NULL, amount, MEM_RESERVE, PAGE_NOACCESS);
+
     return result;
 }
 MArena ArenaCreate() {
     MArena a;
-
-    a.mem = (u8*) mmap(NULL, ARENA_RESERVE_SIZE, PROT_NONE, MAP_PRIVATE | MAP_ANON, -1, 0);
-    a.mapped = ARENA_RESERVE_SIZE;
-    mprotect(a.mem, ARENA_COMMIT_CHUNK, PROT_READ | PROT_WRITE);
-    a.committed = ARENA_COMMIT_CHUNK;
     a.used = 0;
+
+    a.mem = (u8*) MemoryReserve(ARENA_RESERVE_SIZE);
+    a.mapped = ARENA_RESERVE_SIZE;
+
+    MemoryProtect(a.mem, ARENA_COMMIT_CHUNK);
+    a.committed = ARENA_COMMIT_CHUNK;
 
     return a;
 }
@@ -97,7 +113,7 @@ MPool PoolCreate(u32 block_size_min, u32 nblocks) {
 
     MPool p;
     p.block_size = MPOOL_CACHE_LINE_SIZE * (block_size_min / MPOOL_CACHE_LINE_SIZE + 1);
-    p.mem = (u8*) mmap(NULL, p.block_size * nblocks, PROT_READ | PROT_WRITE, MAP_PRIVATE, -1, 0);
+    p.mem = (u8*) MemoryProtect(NULL, p.block_size * nblocks);  // mmap(NULL, p.block_size * nblocks, PROT_READ | PROT_WRITE, MAP_PRIVATE, -1, 0);
     p.free_list = (LList1*) p.mem;
 
     LList1 *current = p.free_list;

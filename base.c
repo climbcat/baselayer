@@ -5,6 +5,35 @@
 // basics
 
 
+/*
+inline void memcpy(void *dest, const void *src, size_t size) {
+    u8 *s = (u8*) src;
+    u8 *d = (u8*) dest;
+
+    for (u32 i = 0; i < size; ++i) {
+        d[i] = s[i];
+    }
+}
+inline u32 strlen(char *str) {
+    u32 i = 0;
+    while (str[i] != '\0') {
+        ++i;
+    }
+    return i;
+}
+inline u32 strcmp(const char *str1, const char *str2) {
+    u32 i = 0;
+    while (str1[i] != '\0' || str2[i] != '\0') {
+        if (str1[i] != str2[i]) {
+            return 1;
+        }
+        ++i;
+    }
+    return 0;
+}
+*/
+
+
 typedef uint8_t u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
@@ -59,37 +88,17 @@ inline f32 MaxF32(f32 a, f32 b) { return (a > b) ? a : b; }
 inline f64 MaxF64(f64 a, f64 b) { return (a > b) ? a : b; }
 
 
-inline void memcpy(void *dest, const void *src, size_t size) {
-    u8 *s = (u8*) src;
-    u8 *d = (u8*) dest;
+//
+// qol
 
-    for (u32 i = 0; i < size; ++i) {
-        d[i] = s[i];
-    }
-}
+
 inline void memzero(void *dest, size_t n) {
     u8 *d = (u8*) dest;
     for (u32 i = 0; i < n; ++i) {
         d[i] = 0;
     }
 }
-inline u32 strlen(char *str) {
-    u32 i = 0;
-    while (str[i] != '\0') {
-        ++i;
-    }
-    return i;
-}
-inline u32 strcmp(const char *str1, const char *str2) {
-    u32 i = 0;
-    while (str1[i] != '\0' || str2[i] != '\0') {
-        if (str1[i] != str2[i]) {
-            return 1;
-        }
-        ++i;
-    }
-    return 0;
-}
+
 
 
 //
