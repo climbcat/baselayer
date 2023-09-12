@@ -2,11 +2,12 @@
 #include <cstdlib>
 #include <cassert>
 
-// Linux:
-//#include <sys/mman.h>
-// Windows:
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+#ifdef __linux__
+    #include <sys/mman.h>
+#elif __WIN64
+    #define WIN32_LEAN_AND_MEAN
+    #include <windows.h>
+#endif
 
 
 // NOTE: The pool de-alloc function does not check whether the element was ever allocated. I am not
@@ -35,20 +36,22 @@ struct MArena {
 #define ARENA_COMMIT_CHUNK SIXTEEN_KB
 
 u64 MemoryProtect(void *from, u64 amount) {
-    // Linux:
-    //mprotect(from, amount, PROT_READ | PROT_WRITE);
-    // Windows:
-    VirtualAlloc(from, amount, MEM_COMMIT, PAGE_READWRITE);
+    #ifdef __linux__
+        mprotect(from, amount, PROT_READ | PROT_WRITE);
+    #elif __WIN64
+        VirtualAlloc(from, amount, MEM_COMMIT, PAGE_READWRITE);
+    #endif
 
     return amount;
 }
 void *MemoryReserve(u64 amount) {
     void *result;
 
-    // Linux:
-    // a.mem = (u8*) mmap(NULL, ARENA_RESERVE_SIZE, PROT_NONE, MAP_PRIVATE | MAP_ANON, -1, 0);
-    // Windows:
-    result = VirtualAlloc(NULL, amount, MEM_RESERVE, PAGE_NOACCESS);
+    #ifdef __linux__
+        result = (u8*) mmap(NULL, ARENA_RESERVE_SIZE, PROT_NONE, MAP_PRIVATE | MAP_ANON, -1, 0);
+    #elif __WIN64
+        result = VirtualAlloc(NULL, amount, MEM_RESERVE, PAGE_NOACCESS);
+    #endif
 
     return result;
 }
