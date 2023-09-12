@@ -2,6 +2,13 @@
 #include <windows.h>
 #include <fileapi.h>
 
+
+// TODO: win impl. GetFilesInFolder, LoadFile, LoadFileMMAP, ReadSystemTimerMySec, ReadCPUTimer / QueryPerformanceCounter 
+// TODO: linux impl. LoadFile
+// TODO: put function headers in one place (platform.c?)
+// TODO: test random numbers / gettimeofday or make a platform function that does something else on windows 
+
+
 //
 // memory.c
 
@@ -30,7 +37,7 @@ u64 ReadCPUTimer() {
 //
 // utils.c
 
-char *LoadFileMMAP(char *filepath, u64 *size_bytes = NULL) {
+char *LoadFileMMAP(char *filepath, u64 *size_bytes) {
     // TODO: finish impl.
     /*
     char *szName = "somefile.bin";
@@ -54,7 +61,7 @@ char *LoadFileMMAP(char *filepath, u64 *size_bytes = NULL) {
     }
     return NULL;
 }
-char *LoadFile(char *filepath, u64 *size_bytes = NULL) {
+char *LoadFile(char *filepath, u64 *size_bytes) {
     /*
     char *szName = "somefile.bin";
     char *szMsg = "Message from first process.";

@@ -61,8 +61,8 @@ void RunTests() {
     printf("\n");
 
     // test get files in folder & a bit of str lst 
-    StrLst files = GetFilesInFolderPaths(a, (char*) "/home");
-    StrLstPrint(files);
+    //StrLst files = GetFilesInFolderPaths(a, (char*) "/home");
+    //StrLstPrint(files);
 
     // templated list
     ListX<u32> lst_T;
