@@ -6,6 +6,7 @@
 #include "memory.c"
 #include "string.c"
 #include "utils.c"
+#include "platform.c"
 
 void RunProgram() {
     printf("Just a baselayer entry point\n");

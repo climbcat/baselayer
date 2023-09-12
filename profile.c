@@ -8,18 +8,8 @@
 #endif
 
 
-u64 ReadSystemTimerMySec() {
-    u64 systime;
-    struct timeval tm;
-    gettimeofday(&tm, NULL);
-    systime = (u32) tm.tv_sec*1000000 + tm.tv_usec; // microsecs 
-
-    return systime;
-}
-u64 ReadCPUTimer() {
-    u64 ticks = __builtin_ia32_rdtsc(); // gcc
-    return ticks;
-}
+u64 ReadSystemTimerMySec();
+u64 ReadCPUTimer();
 
 
 #if PROFILE == 1 // enable profiler

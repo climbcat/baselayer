@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <cassert>
 
+
 //
 // basics
 
@@ -96,7 +97,6 @@ inline void memzero(void *dest, size_t n) {
         d[i] = 0;
     }
 }
-
 
 
 //

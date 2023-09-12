@@ -2,13 +2,6 @@
 #include <cstdlib>
 #include <cassert>
 
-#ifdef __linux__
-    #include <sys/mman.h>
-#elif __WIN64
-    #define WIN32_LEAN_AND_MEAN
-    #include <windows.h>
-#endif
-
 
 // NOTE: The pool de-alloc function does not check whether the element was ever allocated. I am not
 // sure how to do this - perhaps with an occupation list. However tis adds complexity tremendously.
@@ -18,6 +11,14 @@
 // TODO: scratch arenas
 // TODO: be able to wrap a finite-sized arena around an array arg (could be a static array e.g.)
 // TODO: with arena_open/close, have a way to ensure enough commited space via some reserve param or such
+
+
+//
+// platform dependent impl.:
+
+
+u64 MemoryProtect(void *from, u64 amount);
+void *MemoryReserve(u64 amount);
 
 
 //
@@ -35,26 +36,7 @@ struct MArena {
 #define ARENA_RESERVE_SIZE GIGABYTE
 #define ARENA_COMMIT_CHUNK SIXTEEN_KB
 
-u64 MemoryProtect(void *from, u64 amount) {
-    #ifdef __linux__
-        mprotect(from, amount, PROT_READ | PROT_WRITE);
-    #elif __WIN64
-        VirtualAlloc(from, amount, MEM_COMMIT, PAGE_READWRITE);
-    #endif
 
-    return amount;
-}
-void *MemoryReserve(u64 amount) {
-    void *result;
-
-    #ifdef __linux__
-        result = (u8*) mmap(NULL, ARENA_RESERVE_SIZE, PROT_NONE, MAP_PRIVATE | MAP_ANON, -1, 0);
-    #elif __WIN64
-        result = VirtualAlloc(NULL, amount, MEM_RESERVE, PAGE_NOACCESS);
-    #endif
-
-    return result;
-}
 MArena ArenaCreate() {
     MArena a;
     a.used = 0;
