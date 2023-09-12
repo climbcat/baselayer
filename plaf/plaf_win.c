@@ -49,6 +49,10 @@ char *LoadFileMMAP(char *filepath, u64 *size_bytes = NULL) {
                 0,
                 BUF_SIZE);
     */
+    if (size_bytes != NULL) {
+        *size_bytes = 0;
+    }
+    return NULL;
 }
 char *LoadFile(char *filepath, u64 *size_bytes = NULL) {
     /*
@@ -66,6 +70,10 @@ char *LoadFile(char *filepath, u64 *size_bytes = NULL) {
     printf("%d\n", filesz);
     ReadFileEx(hFile, ReadBuffer, BUFFERSIZE-1, &ol, FileIOCompletionRoutine);
     */
+    if (size_bytes != NULL) {
+        *size_bytes = 0;
+    }
+    return NULL;
 }
 
 
@@ -74,10 +82,10 @@ char *LoadFile(char *filepath, u64 *size_bytes = NULL) {
 
 
 // MSVC defines this in winsock2.h!?
-struct timeval {
-    long tv_sec;
-    long tv_usec;
-};
+//struct timeval {
+//    long tv_sec;
+//    long tv_usec;
+//};
 int gettimeofday(struct timeval * tp, struct timezone * tzp)
 {
     // Note: some broken versions only have 8 trailing zero's, the correct epoch has 9 trailing zero's

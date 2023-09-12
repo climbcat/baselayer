@@ -30,7 +30,7 @@ Str StrLiteral(MArena *a, const char *lit) {
         ++s.len;
     }
     s.str = (char*) ArenaAlloc(a, s.len);
-    memcpy(s.str, lit, s.len);
+    _memcpy(s.str, lit, s.len);
 
     return s;
 }
@@ -69,8 +69,8 @@ Str StrCat(MArena *arena, Str a, Str b) {
     Str cat;
     cat.len = a.len + b.len;
     cat.str = (char*) ArenaAlloc(arena, cat.len);
-    memcpy(cat.str, a.str, a.len);
-    memcpy(cat.str + a.len, b.str, b.len);
+    _memcpy(cat.str, a.str, a.len);
+    _memcpy(cat.str + a.len, b.str, b.len);
 
     return cat;
 }
@@ -135,7 +135,7 @@ Str StrJoin(MArena *a, StrLst *strs) {
     join.len = 0;
 
     while (strs != NULL) {
-        memcpy(join.str + join.len, strs->str, strs->len);
+        _memcpy(join.str + join.len, strs->str, strs->len);
         join.len += strs->len;
         strs = strs->next;
     }
@@ -149,7 +149,7 @@ Str StrJoinInsertChar(MArena *a, StrLst *strs, char insert) {
     join.len = 0;
 
     while (strs != NULL) {
-        memcpy(join.str + join.len, strs->str, strs->len);
+        _memcpy(join.str + join.len, strs->str, strs->len);
         join.len += strs->len;
         strs = strs->next;
 
@@ -173,7 +173,7 @@ StrLst *StrLstStart(MArena *a) {
 StrLst *StrLstPut(MArena *a, char *str, StrLst *after = NULL) {
     StrLst _;
     StrLst *lst = (StrLst*) ArenaPush(a, &_, sizeof(StrLst)); // can we have an ArenaPush(type) for this ideom? T
-    lst->len = strlen(str);
+    lst->len = _strlen(str);
     lst->str = (char*) ArenaAlloc(a, lst->len); // TODO: would be easy to put a T here to avoid the cast
     for (int i = 0; i < lst->len; ++i) {
         lst->str[i] = str[i];
@@ -198,7 +198,7 @@ void StrLstPrint(StrLst lst) {
 // NOTE: "Hot" arena usage infers an assumption of pointer contguity.
 //       E.g. our ptr, here "to", was the most recently allocated on a.
 void StrCatHot(MArena *a, char *str, StrLst *to) {
-    u8 *dest = (u8*) ArenaAlloc(a, strlen(str));
+    u8 *dest = (u8*) ArenaAlloc(a, _strlen(str));
 
     assert(to != NULL);
     assert(dest == (u8*) to->str + to->len);

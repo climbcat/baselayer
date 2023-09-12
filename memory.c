@@ -63,7 +63,7 @@ void *ArenaAlloc(MArena *a, u64 len) {
 }
 void *ArenaPush(MArena *a, void *data, u32 len) {
     void *dest = ArenaAlloc(a, len);
-    memcpy(dest, data, len);
+    _memcpy(dest, data, len);
     return dest;
 }
 void *ArenaOpen(MArena *a) {
@@ -116,7 +116,7 @@ void *PoolAlloc(MPool *p) {
     }
     void *retval = p->free_list;
     p->free_list = p->free_list->next;
-    memzero(retval, MPOOL_CACHE_LINE_SIZE);
+    _memzero(retval, MPOOL_CACHE_LINE_SIZE);
 
     return retval;
 }
