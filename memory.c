@@ -183,13 +183,13 @@ struct ListX {
 struct LstHdr {
     u32 len;
     u32 cap;
-    u8* list;
+    u8 list[];
 };
 
 #define lst__hdr(lst)     ( lst ? ((LstHdr*) ( (u8*) lst - sizeof(LstHdr) )) : 0 )
 #define lst__fits(lst, n) ( lst ? lst__cap(lst) >= lst_len(lst) + n : 0 )
 #define lst__fit(lst, n)  ( lst__fits(lst, n) ? 0 : lst = lst__grow(lst, n) )
-#define lst__cap(lst)      ( lst ? *((u32*)lst__hdr(lst) + 1) : 0 )
+#define lst__cap(lst)     ( lst ? *((u32*)lst__hdr(lst) + 1) : 0 )
 
 #define lst_len(lst)      ( lst ? *((u32*)lst__hdr(lst)) : 0 )
 #define lst_push(lst, e)  ( lst__fit(lst, 1), lst[lst_len(lst)] = e, lst__hdr(lst)->len++ )
@@ -198,18 +198,18 @@ struct LstHdr {
 
 template<class T>
 T *lst__grow(T *lst, u32 add_len) {
-    LstHdr *hdr = NULL;
+
+    u32 new_cap = MaxU32(2 * lst__cap(lst), MaxU32(add_len, 16));
+    u32 new_size = new_cap * sizeof(T) + offsetof(LstHdr, list);
+
+    LstHdr *new_hdr = NULL;
     if (lst == NULL) {
-        hdr = (LstHdr*) malloc((add_len + 1) * sizeof(T) + sizeof(LstHdr));
-        hdr->len = 0;
-        hdr->cap = add_len;
+        new_hdr = (LstHdr*) malloc(new_size);
+        new_hdr->len = 0;
     }
     else {
-        hdr = lst__hdr(lst);
-        u32 new_cap = MaxU32(2 * hdr->cap, add_len + hdr->cap);
-        hdr = (LstHdr*) realloc(hdr, new_cap + sizeof(LstHdr));
-        hdr->cap += new_cap;
+        new_hdr = (LstHdr*) realloc(lst__hdr(lst), new_size);
     }
-    hdr->list = (u8*) hdr + sizeof(LstHdr);
-    return (T*) hdr->list;
+    new_hdr->cap = new_cap;
+    return (T*) new_hdr->list;
 }

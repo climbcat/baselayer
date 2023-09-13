@@ -72,10 +72,11 @@ void RunTests() {
 
     // stretchy buffer 
     s32 *elst = NULL;
-    lst_push(elst, 42);
-    lst_push(elst, -15);
-    for (int i = 0; i < lst_len(elst); ++i) {
-        printf("%d\n", elst[i]);
+    for (int i = 0; i < 10000; ++i) {
+        lst_push(elst, i);
+        if (i > 10000 - 5) {
+            printf("%d\n", elst[i]);
+        }
     }
     lst_free(elst);
 }
