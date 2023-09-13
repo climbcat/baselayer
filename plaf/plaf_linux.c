@@ -6,6 +6,10 @@
 
 #include <cstdlib>
 
+
+// TODO: experiment with <x86intrin.h> alongside <sys/time.h> for the straight up __rdtsc() call
+// TODO: impl. LoadFile
+
 //
 // memory.c
 
@@ -33,6 +37,7 @@ u64 ReadSystemTimerMySec() {
 }
 u64 ReadCPUTimer() {
     u64 ticks = __builtin_ia32_rdtsc(); // gcc
+    // TODO: test __rdtsc(); with x86intrin.h ! (might increase compile time by a lot)
     return ticks;
 }
 

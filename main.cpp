@@ -1,12 +1,7 @@
 #include <cstdio>
 #include <cassert>
 
-#include "base.c"
-#include "profile.c"
-#include "memory.c"
-#include "string.c"
-#include "utils.c"
-#include "platform.c"
+#include "baselayer.h"
 
 void RunProgram() {
     printf("Just a baselayer entry point\n");
@@ -79,6 +74,13 @@ void RunTests() {
         }
     }
     lst_free(elst);
+
+    // random numbers
+    RandInit();
+    for (int i = 0; i < 10; ++i)  {
+        f64 r = Rand01();
+        printf("Rand01: %f\n", r);
+    }
 }
 
 int main (int argc, char **argv) {

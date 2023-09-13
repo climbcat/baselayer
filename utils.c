@@ -54,9 +54,7 @@ u32 RandInit(u32 seed = 0) {
         return 0;
 
     if (seed == 0) {
-        timeval tm;
-        gettimeofday(&tm, NULL);
-        seed = _hash((unsigned long) tm.tv_sec*1000000 + tm.tv_usec);
+        seed = _hash(ReadCPUTimer());
     }
     Kiss_SRandom(g_state, seed);
 
