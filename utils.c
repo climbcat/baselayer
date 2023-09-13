@@ -8,7 +8,36 @@
 
 char *LoadFileMMAP(char *filepath, u64 *size_bytes = NULL);
 StrLst GetFilesInFolderPaths(MArena *a, char *rootpath);
-char *LoadFile(char *filepath, u64 *size_bytes = NULL);
+
+
+u32 LoadFileFSeek(char* filepath, u8* dest) {
+    assert(dest != NULL && "data destination must be valid");
+    u32 len = 0;
+
+    FILE * f = fopen(filepath, "rb");
+    if (f) {
+        fseek(f, 0, SEEK_END);
+        len = ftell(f);
+        fseek(f, 0, SEEK_SET);
+        fread(dest, 1, len, f);
+        fclose(f);
+    }
+
+    return len;
+}
+bool SaveFile(char *filepath, u8 *data, u32 len) {
+    FILE *f = fopen(filepath, "w");
+
+    if (f == NULL) {
+        printf("Could not open file %s\n", filepath);
+        return false;
+    }
+
+    fwrite(data, len, 1, f);
+    fclose(f);
+
+    return true;
+}
 
 
 //
@@ -18,7 +47,6 @@ char *LoadFile(char *filepath, u64 *size_bytes = NULL);
 #ifndef ULONG_MAX
 #  define ULONG_MAX ((unsigned long)0xffffffffffffffffUL)
 #endif
-
 
 void Kiss_SRandom(unsigned long state[7], unsigned long seed) {
     if (seed == 0) seed = 1;
@@ -83,4 +111,38 @@ int RandMinMaxI(int min, int max) {
 int RandDice(u32 max) {
     assert(max > 0);
     return Random() % max + 1;
+}
+
+
+void WriteRandomHexStr(char* dest, int nhexchars, bool put_newline_and_nullchar = true) {
+    RandInit();
+
+    for (int i = 0; i < nhexchars ; i++) {
+        switch (RandMinMaxI(0, 15)) {
+            case 0: { *dest = '0'; break; }
+            case 1: { *dest = '1'; break; }
+            case 2: { *dest = '2'; break; }
+            case 3: { *dest = '3'; break; }
+            case 4: { *dest = '4'; break; }
+            case 5: { *dest = '5'; break; }
+            case 6: { *dest = '6'; break; }
+            case 7: { *dest = '7'; break; }
+            case 8: { *dest = '8'; break; }
+            case 9: { *dest = '9'; break; }
+            case 10: { *dest = 'a'; break; }
+            case 11: { *dest = 'b'; break; }
+            case 12: { *dest = 'c'; break; }
+            case 13: { *dest = 'd'; break; }
+            case 14: { *dest = 'e'; break; }
+            case 15: { *dest = 'f'; break; }
+            default: { assert(1==0); break; }
+        };
+        dest++;
+    }
+
+    if (put_newline_and_nullchar) {
+        *dest = '\n';
+        dest++;
+        *dest = '\0';
+    }
 }

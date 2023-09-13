@@ -80,7 +80,16 @@ void RunTests() {
         printf("Rand01: %f\n", r);
     }
     printf("RandDice: %u\n", RandDice(20));
+
+    // save binary data
+    u32 num_chars = 1024*1024 + 1;
+    char data[num_chars];
+    WriteRandomHexStr(data, num_chars, true);
+    char *filepath = "hexdata.txt";
+    SaveFile(filepath, (u8*) data, num_chars);
+    printf("Printed binary hex chars to file hexdata.txt\n");
 }
+
 
 int main (int argc, char **argv) {
     TimeProgram;

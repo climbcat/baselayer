@@ -65,29 +65,6 @@ char *LoadFileMMAP(char *filepath, u64 *size_bytes) {
     }
     return NULL;
 }
-char *LoadFile(char *filepath, u64 *size_bytes) {
-    /*
-    char *szName = "somefile.bin";
-    char *szMsg = "Message from first process.";
-    HANDLE hFile = CreateFile(filepath,               // file to open
-                       GENERIC_READ,          // open for reading
-                       FILE_SHARE_READ,       // share for reading
-                       NULL,                  // default security
-                       OPEN_EXISTING,         // existing file only
-                       FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, // normal file
-                       NULL);                 // no attr. template
-    u32 filesz = GetFileSize(hFile,  NULL);
-
-    printf("%d\n", filesz);
-    ReadFileEx(hFile, ReadBuffer, BUFFERSIZE-1, &ol, FileIOCompletionRoutine);
-    */
-    if (size_bytes != NULL) {
-        *size_bytes = 0;
-    }
-    return NULL;
-}
-
-
 StrLst GetFilesInFolderPaths(MArena *a, char *rootpath) {
     WIN32_FIND_DATA fd_file;
 
@@ -127,6 +104,3 @@ StrLst GetFilesInFolderPaths(MArena *a, char *rootpath) {
 
     return *first;
 }
-
-
-

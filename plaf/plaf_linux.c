@@ -10,8 +10,10 @@
 // TODO: experiment with <x86intrin.h> alongside <sys/time.h> for the straight up __rdtsc() call
 // TODO: impl. LoadFile
 
+
 //
 // memory.c
+
 
 u64 MemoryProtect(void *from, u64 amount) {
     mprotect(from, amount, PROT_READ | PROT_WRITE);
@@ -24,8 +26,10 @@ void *MemoryReserve(u64 amount) {
     return result;
 }
 
+
 //
 // profile.c
+
 
 u64 ReadSystemTimerMySec() {
     u64 systime;
@@ -41,8 +45,10 @@ u64 ReadCPUTimer() {
     return ticks;
 }
 
+
 //
 // utils.c
+
 
 char *LoadFileMMAP(char *filepath, u64 *size_bytes) {
     FILE *f = fopen(filepath, "rb");
