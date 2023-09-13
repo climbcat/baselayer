@@ -67,7 +67,7 @@ char *LoadFileMMAP(char *filepath, u64 *size_bytes) {
     return str;
 }
 StrLst GetFilesInFolderPaths(MArena *a, char *rootpath) {
-    u32 rootpath_len = strlen(rootpath);
+    u32 rootpath_len = _strlen(rootpath);
     bool needslash = rootpath[rootpath_len-1] != '/';
     StrLst *lst = NULL;
     StrLst *first = (StrLst*) ArenaAlloc(a, 0);

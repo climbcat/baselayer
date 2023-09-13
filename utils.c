@@ -57,6 +57,7 @@ u32 RandInit(u32 seed = 0) {
         seed = _hash(ReadCPUTimer());
     }
     Kiss_SRandom(g_state, seed);
+    Kiss_Random(g_state); // flush the first one
 
     g_didinit = true;
     return seed;
@@ -75,8 +76,11 @@ double RandPM1() {
     randnum -= 1;
     return randnum;
 }
-
 int RandMinMaxI(int min, int max) {
     assert(max > min);
     return Random() % (max - min + 1) + min;
+}
+int RandDice(u32 max) {
+    assert(max > 0);
+    return Random() % max + 1;
 }

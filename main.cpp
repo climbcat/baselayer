@@ -81,6 +81,7 @@ void RunTests() {
         f64 r = Rand01();
         printf("Rand01: %f\n", r);
     }
+    printf("RandDice: %u\n", RandDice(20));
 }
 
 int main (int argc, char **argv) {
