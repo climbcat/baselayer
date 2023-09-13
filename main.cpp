@@ -9,10 +9,8 @@ void RunProgram() {
 
 void RunTests() {
     TimeFunction;
-
     printf("Running tests ...\n");
 
-    printf("ArenaCreate\n");
     MArena arena = ArenaCreate();
     MArena *a = &arena;
 
@@ -55,9 +53,9 @@ void RunTests() {
     }
     printf("\n");
 
-    // test get files in folder & a bit of str lst 
-    //StrLst files = GetFilesInFolderPaths(a, (char*) "/home");
-    //StrLstPrint(files);
+    // StrLst & get files in folder
+    StrLst files = GetFilesInFolderPaths(a, (char*) ".");
+    StrLstPrint(files);
 
     // templated list
     ListX<u32> lst_T;

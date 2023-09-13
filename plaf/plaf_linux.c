@@ -77,6 +77,10 @@ StrLst GetFilesInFolderPaths(MArena *a, char *rootpath) {
     if (d) {
         d = opendir(rootpath);
         while ((dir = readdir(d)) != NULL) {
+            // omit "." and ".."
+            if (!_strcmp(dir->d_name, ".") || !_strcmp(dir->d_name, "..")) {
+                continue;
+            }
 
             // next strlst node
             lst = StrLstPut(a, rootpath, lst);
