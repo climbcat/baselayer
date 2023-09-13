@@ -79,15 +79,21 @@ void RunTests() {
         f64 r = Rand01();
         printf("Rand01: %f\n", r);
     }
-    printf("RandDice: %u\n", RandDice(20));
+    printf("RandDice: %u\n\n", RandDice(20));
 
     // save binary data
     u32 num_chars = 1024*1024 + 1;
     char data[num_chars];
     WriteRandomHexStr(data, num_chars, true);
-    char *filepath = "hexdata.txt";
+    char *filepath = (char*) "hexdata.txt";
     SaveFile(filepath, (u8*) data, num_chars);
-    printf("Printed binary hex chars to file hexdata.txt\n");
+    printf("Printed binary hex chars to file hexdata.txt\n\n");
+
+    // load using C fseek
+    u8* dest = (u8*) malloc(num_chars);
+    u32 nbytesloaded = LoadFileFSeek(filepath, dest);
+    assert(num_chars == nbytesloaded);
+    printf("Loaded %d nbytesloaded back in using fseek\n", nbytesloaded);
 }
 
 
