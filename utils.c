@@ -6,7 +6,7 @@
 // file I/O
 
 
-char *LoadFileMMAP(char *filepath, u64 *size_bytes = NULL);
+u8 *LoadFileMMAP(char *filepath, u64 *size_bytes);
 StrLst GetFilesInFolderPaths(MArena *a, char *rootpath);
 
 

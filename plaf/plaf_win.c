@@ -41,29 +41,35 @@ u64 ReadCPUTimer() {
 // utils.c
 
 
-char *LoadFileMMAP(char *filepath, u64 *size_bytes) {
-    // TODO: finish impl.
-    /*
-    char *szName = "somefile.bin";
-    char *szMsg = "Message from first process.";
-    HANDLE mapfileobj = CreateFileMapping(
-                INVALID_HANDLE_VALUE,   // use paging file
-                NULL,                   // default security
-                PAGE_READWRITE,         // read/write access
-                0,                      // maximum object size (high-order DWORD)
-                256,                    // maximum object size (low-order DWORD)
-                szName);                // name of mapping object
-    u8* data = (u8*) MapViewOfFile(
-                mapfileobj,             // handle to map object
-                FILE_MAP_ALL_ACCESS,    // read/write permission
-                0,
-                0,
-                BUF_SIZE);
-    */
-    if (size_bytes != NULL) {
-        *size_bytes = 0;
+u8 *LoadFileMMAP(char *filepath, u64 *size_bytes) {
+    //TCHAR *lpFileName = TEXT("hexdata.txt");
+    HANDLE f, map;
+    LPVOID lpBasePtr;
+    LARGE_INTEGER fsz;
+
+    f = CreateFile(filepath, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+    if (f == INVALID_HANDLE_VALUE) {
+        printf("Could not open file: %s\n", filepath);
+        exit(1);
     }
-    return NULL;
+
+    if (!GetFileSizeEx(f, &fsz)) {
+        fprintf(stderr, "GetFileSize failed with error %d\n", GetLastError());
+        CloseHandle(f);
+        return NULL;
+    }
+    if (size_bytes != NULL) {
+        *size_bytes = fsz.QuadPart;
+    }
+
+    map = CreateFileMapping(f, NULL, PAGE_READONLY, 0, 0, NULL);
+    u8 *data = (u8*) MapViewOfFile(map, FILE_MAP_READ, 0, 0, 0);
+    if (data == NULL) {
+        printf("Could not load file: %s\n", filepath);
+        exit(1);
+    }
+
+    return data;
 }
 StrLst GetFilesInFolderPaths(MArena *a, char *rootpath) {
     WIN32_FIND_DATA fd_file;

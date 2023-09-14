@@ -87,13 +87,19 @@ void RunTests() {
     WriteRandomHexStr(data, num_chars, true);
     char *filepath = (char*) "hexdata.txt";
     SaveFile(filepath, (u8*) data, num_chars);
-    printf("Printed binary hex chars to file hexdata.txt\n\n");
+    printf("Saved binary hex chars to file hexdata.txt\n\n");
 
     // load using C fseek
     u8* dest = (u8*) malloc(num_chars);
     u32 nbytesloaded = LoadFileFSeek(filepath, dest);
     assert(num_chars == nbytesloaded);
-    printf("Loaded %d nbytesloaded back in using fseek\n", nbytesloaded);
+    printf("Loaded %d bytes back in using fseek\n\n", nbytesloaded);
+
+    // memory mapped load
+    u64 num_chars_64 = (u64) num_chars;
+    u8 *data_mmapped = LoadFileMMAP(filepath, &num_chars_64);
+    printf("Memory mapped %d nbytes:\n", num_chars_64);
+    printf("%.1000s\n\n", (char*) data_mmapped);
 }
 
 
