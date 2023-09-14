@@ -98,7 +98,7 @@ void RunTests() {
     // memory mapped load
     u64 num_chars_64 = (u64) num_chars;
     u8 *data_mmapped = LoadFileMMAP(filepath, &num_chars_64);
-    printf("Memory mapped %d nbytes:\n", num_chars_64);
+    printf("Memory mapped %ld nbytes:\n", num_chars_64);
     printf("%.1000s\n\n", (char*) data_mmapped);
 }
 
