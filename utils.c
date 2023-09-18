@@ -14,13 +14,16 @@ u32 LoadFileFSeek(char* filepath, u8* dest) {
     assert(dest != NULL && "data destination must be valid");
     u32 len = 0;
 
-    FILE * f = fopen(filepath, "rb");
+    FILE * f = fopen(filepath, "r");
     if (f) {
         fseek(f, 0, SEEK_END);
         len = ftell(f);
         fseek(f, 0, SEEK_SET);
         fread(dest, 1, len, f);
         fclose(f);
+    }
+    else {
+        printf("LoadFileFSeek: Could not open file: %s\n", filepath);
     }
 
     return len;
@@ -29,11 +32,11 @@ bool SaveFile(char *filepath, u8 *data, u32 len) {
     FILE *f = fopen(filepath, "w");
 
     if (f == NULL) {
-        printf("Could not open file %s\n", filepath);
+        printf("SaveFile: Could not open file %s\n", filepath);
         return false;
     }
 
-    fwrite(data, len, 1, f);
+    fwrite(data, 1, len, f);
     fclose(f);
 
     return true;

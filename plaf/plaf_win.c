@@ -42,7 +42,6 @@ u64 ReadCPUTimer() {
 
 
 u8 *LoadFileMMAP(char *filepath, u64 *size_bytes) {
-    //TCHAR *lpFileName = TEXT("hexdata.txt");
     HANDLE f, map;
     LPVOID lpBasePtr;
     LARGE_INTEGER fsz;

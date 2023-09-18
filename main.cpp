@@ -1,6 +1,3 @@
-#include <cstdio>
-#include <cassert>
-
 #include "baselayer.h"
 
 void RunProgram() {
