@@ -116,9 +116,25 @@ int RandDice(u32 max) {
     return Random() % max + 1;
 }
 
+void PrintHex(u8* data, u32 len) {
+    const char *nibble_to_hex = "0123456789ABCDEF";
+
+    for (int i = 0; i < len; ++i) {
+        u8 byte = data[i];
+        char a = nibble_to_hex[byte >> 4];
+        char b = nibble_to_hex[byte & 0x0F];
+        printf("%c%c ", a, b);
+
+        if (i % 4 == 3 || (i == len + 1)) {
+            printf("\n");
+        }
+    }
+}
 
 void WriteRandomHexStr(char* dest, int nhexchars, bool put_newline_and_nullchar = true) {
     RandInit();
+
+    // TODO: make use of the cool "nibble_to_hex" technique (see PrintHex)
 
     for (int i = 0; i < nhexchars ; i++) {
         switch (RandMinMaxI(0, 15)) {
