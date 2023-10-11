@@ -94,11 +94,16 @@ u32 RandInit(u32 seed = 0) {
     return seed;
 }
 
-double Rand01() {
-    double randnum;
+f64 Rand01() {
+    f64 randnum;
     randnum = (double) Random();
     randnum /= (double) ULONG_MAX + 1;
     return randnum;
+}
+f32 Rand0132() {
+    f64 num = Random();
+    num /= ULONG_MAX + 1;
+    return num;
 }
 double RandPM1() {
     double randnum;

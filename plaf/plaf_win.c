@@ -49,7 +49,7 @@ u8 *LoadFileMMAP(char *filepath, u64 *size_bytes) {
     f = CreateFile(filepath, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
     if (f == INVALID_HANDLE_VALUE) {
         printf("Could not open file: %s\n", filepath);
-        exit(1);
+        return NULL;
     }
 
     if (!GetFileSizeEx(f, &fsz)) {
@@ -65,7 +65,7 @@ u8 *LoadFileMMAP(char *filepath, u64 *size_bytes) {
     u8 *data = (u8*) MapViewOfFile(map, FILE_MAP_READ, 0, 0, 0);
     if (data == NULL) {
         printf("Could not load file: %s\n", filepath);
-        exit(1);
+        return NULL;
     }
 
     return data;
@@ -76,7 +76,7 @@ StrLst GetFilesInFolderPaths(MArena *a, char *rootpath) {
     HANDLE h_find = FindFirstFile(rootpath, &fd_file);
 
     if (h_find == INVALID_HANDLE_VALUE) {
-        printf("invalid\n");
+        printf("invalid: %s\n", rootpath);
     }
 
     u32 rootpath_len = _strlen(rootpath);

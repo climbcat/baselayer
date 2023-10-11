@@ -1,4 +1,12 @@
-#include "baselayer.h"
+#include <cstdio>
+#include <cassert>
+
+#include "base.c"
+#include "profile.c"
+#include "memory.c"
+#include "string.c"
+#include "utils.c"
+#include "platform.c"
 
 void RunProgram() {
     printf("Just a baselayer entry point\n");
@@ -6,8 +14,10 @@ void RunProgram() {
 
 void RunTests() {
     TimeFunction;
+
     printf("Running tests ...\n");
 
+    printf("ArenaCreate\n");
     MArena arena = ArenaCreate();
     MArena *a = &arena;
 
@@ -50,19 +60,16 @@ void RunTests() {
     }
     printf("\n");
 
-    // StrLst & get files in folder
-    printf("files in folder '.': \n");
-    StrLst files = GetFilesInFolderPaths(a, (char*) ".");
-    StrLstPrint(files);
-
+    // test get files in folder & a bit of str lst 
+    //StrLst files = GetFilesInFolderPaths(a, (char*) "/home");
+    //StrLstPrint(files);
     // templated list
     ListX<u32> lst_T;
     lst_T.Add(14);
     lst_T.Add(222);
     lst_T.At(1);
 
-    // stretchy buffer
-    printf("\nstretchy buffer:\n");
+    // stretchy buffer 
     s32 *elst = NULL;
     for (int i = 0; i < 10000; ++i) {
         lst_push(elst, i);
@@ -71,39 +78,13 @@ void RunTests() {
         }
     }
     lst_free(elst);
-
-    // random numbers
-    RandInit();
-    for (int i = 0; i < 10; ++i)  {
-        f64 r = Rand01();
-        printf("Rand01: %f\n", r);
-    }
-    printf("RandDice: %u\n\n", RandDice(20));
-
-    // save binary data
-    u32 num_chars = 1024*1024 + 1;
-    char data[num_chars];
-    WriteRandomHexStr(data, num_chars, true);
-    char *filepath = (char*) "hexdata.txt";
-    SaveFile(filepath, (u8*) data, num_chars);
-    printf("Saved binary hex chars to file hexdata.txt\n\n");
-
-    // load using C fseek
-    u8* dest = (u8*) malloc(num_chars);
-    u32 nbytesloaded = LoadFileFSeek(filepath, dest);
-    assert(num_chars == nbytesloaded);
-    printf("Loaded %d bytes back in using fseek\n\n", nbytesloaded);
-
-    // memory mapped load
-    u64 num_chars_64 = (u64) num_chars;
-    u8 *data_mmapped = LoadFileMMAP(filepath, &num_chars_64);
-    printf("Memory mapped %ld nbytes:\n", num_chars_64);
-    printf("%.1000s\n\n", (char*) data_mmapped);
 }
-
 
 int main (int argc, char **argv) {
     TimeProgram;
+
+    RunTests();
+    exit(0);
 
     if (CLAContainsArg("--help", argc, argv)) {
         printf("Usage:\n        <example>\n");

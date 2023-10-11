@@ -36,10 +36,10 @@ Str StrLiteral(MArena *a, const char *lit) {
 }
 // TODO: get variadic
 void StrPrint(const char *format, Str s) {
-    u8 format_str_max_len = 255;
-    char buff[s.len + format_str_max_len];
-    sprintf(buff, "%.*s", s.len, s.str);
-    printf(format, buff);
+    //u32 format_str_max_len = 255;
+    //char buff[s.len + format_str_max_len];
+    //sprintf(buff, "%.*s", s.len, s.str);
+    //printf(format, buff);
 }
 inline void StrPrint(Str s) {
     printf("%.*s", s.len, s.str);
@@ -184,13 +184,10 @@ StrLst *StrLstPut(MArena *a, char *str, StrLst *after = NULL) {
     return lst;
 }
 void StrLstPrint(StrLst lst) {
-    // print lines of strs
     StrLst *iter = &lst;
     do {
-        u8 format_str_max_len = 255;
-        char buff[iter->len + format_str_max_len];
-        sprintf(buff, "%.*s", iter->len, iter->str);
-        printf("%s\n", buff);
+        StrPrint(iter);
+        printf("\n");
     }
     while ((iter = iter->next) != NULL);
 }
