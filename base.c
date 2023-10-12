@@ -21,12 +21,12 @@ typedef float f32;
 typedef double f64;
 
 #define KILOBYTE 1024
-#define SIXTEEN_KB 16 * 1024
-#define THIRTYTWO_KB 32 * 1024
-#define SIXTYFOUR_KB 64 * 1024
-#define MEGABYTE 1024 * 1024
-#define SIXTEEN_MB 16 * 1024 * 1024
-#define GIGABYTE 1024 * 1024 * 1024
+#define SIXTEEN_KB (16 * 1024)
+#define THIRTYTWO_KB (32 * 1024)
+#define SIXTYFOUR_KB (64 * 1024)
+#define MEGABYTE (1024 * 1024)
+#define SIXTEEN_MB (16 * 1024 * 1024)
+#define GIGABYTE (1024 * 1024 * 1024)
 
 
 #define PI 3.14159

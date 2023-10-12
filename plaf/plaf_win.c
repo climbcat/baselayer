@@ -27,9 +27,9 @@ void *MemoryReserve(u64 amount) {
 
 
 u64 ReadSystemTimerMySec() {
-	LARGE_INTEGER val;
-	QueryPerformanceCounter(&val);
-	return val.QuadPart;
+    LARGE_INTEGER val;
+    QueryPerformanceCounter(&val);
+    return val.QuadPart;
 }
 u64 ReadCPUTimer() {
     u64 rd = __rdtsc();

@@ -54,7 +54,9 @@ void *ArenaAlloc(MArena *a, u64 len) {
     assert(!a->locked && "ArenaAlloc: memory arena is open, use MArenaClose to allocate");
 
     if (a->committed < a->used + len) {
-        MemoryProtect(a->mem + a->committed, (len / ARENA_COMMIT_CHUNK + 1) * SIXTEEN_KB);
+        u64 amount = (len / ARENA_COMMIT_CHUNK + 1) * ARENA_COMMIT_CHUNK;
+        MemoryProtect(a->mem + a->committed, amount);
+        a->committed += amount;
     }
     void *result = a->mem + a->used;
     a->used += len;

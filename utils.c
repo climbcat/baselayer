@@ -1,3 +1,4 @@
+
 #include <cstdlib>
 #include <cassert>
 
@@ -96,19 +97,19 @@ u32 RandInit(u32 seed = 0) {
 
 f64 Rand01() {
     f64 randnum;
-    randnum = (double) Random();
-    randnum /= (double) ULONG_MAX + 1;
+    randnum = (f64) Random();
+    randnum /= (f64) ULONG_MAX + 1;
     return randnum;
 }
 f32 Rand0132() {
     f64 num = Random();
-    num /= ULONG_MAX + 1;
+    num /= (f32) ULONG_MAX + 1;
     return num;
 }
-double RandPM1() {
+f64 RandPM1() {
     double randnum;
-    randnum = (double) Random();
-    randnum /= ((double) ULONG_MAX + 1) / 2;
+    randnum = (f64) Random();
+    randnum /= ((f64) ULONG_MAX + 1) / 2;
     randnum -= 1;
     return randnum;
 }
@@ -117,6 +118,10 @@ int RandMinMaxI(int min, int max) {
     return Random() % (max - min + 1) + min;
 }
 int RandDice(u32 max) {
+    assert(max > 0);
+    return Random() % max + 1;
+}
+int RandIntMax(u32 max) {
     assert(max > 0);
     return Random() % max + 1;
 }
@@ -135,7 +140,6 @@ void PrintHex(u8* data, u32 len) {
         }
     }
 }
-
 void WriteRandomHexStr(char* dest, int nhexchars, bool put_newline_and_nullchar = true) {
     RandInit();
 
