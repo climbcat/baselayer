@@ -1,4 +1,4 @@
-#ifndef __GEOMETRYq_H__
+#ifndef __GEOMETRY_H__
 #define __GEOMETRY_H__
 
 
