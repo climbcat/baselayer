@@ -1,5 +1,5 @@
-#include "../../baselayer/baselayer.h"
-#include "../../baselayer/geometry.h"
+#include "../baselayer.h"
+#include "geometry.h"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"

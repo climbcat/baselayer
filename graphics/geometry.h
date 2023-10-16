@@ -1,0 +1,527 @@
+#ifndef __GEOMETRY_H__
+#define __GEOMETRY_H__
+
+
+#include <math.h>
+#include <assert.h>
+
+
+//
+// Vector
+
+struct Matrix4f {
+    float m[4][4];
+};
+struct Vector4f {
+    float x;
+    float y;
+    float z;
+    float w;
+};
+struct Vector3f {
+    float x;
+    float y;
+    float z;
+
+    inline
+    float Norm() {
+        return sqrt(x*x + y*y + z*z);
+    }
+    inline
+    void ScalarProductOn(float f) {
+        x *= f;
+        y *= f;
+        z *= f;
+    }
+    inline
+    void AddBy(Vector3f v) {
+        x += v.x;
+        y += v.y;
+        z += v.z;
+    }
+    inline
+    void SubtractBy(Vector3f v) {
+        x -= v.x;
+        y -= v.y;
+        z -= v.z;
+    }
+    inline
+    void Normalize() {
+        float f = 1 / Norm();
+        x *= f;
+        y *= f;
+        z *= f;
+    }
+    inline
+    void Invert() {
+        x *= -1;
+        y *= -1;
+        z *= -1;
+    }
+    inline
+    float Dot(Vector3f v) {
+        return x*v.x + y*v.y + z*v.z;
+    }
+    inline
+    Vector3f Cross(Vector3f v) {
+        return Vector3f { y*v.z - z*v.y, z*v.x - x*v.z, x*v.y - y*v.x };
+    }
+
+    // static versions
+    inline
+    static Vector3f Zero() {
+        return Vector3f { 0, 0, 0 };
+    }
+    inline
+    static Vector3f Left() {
+        return Vector3f { 1, 0, 0 };
+    }
+    inline
+    static Vector3f Up() {
+        return Vector3f { 0, 1, 0 };
+    }
+    inline
+    static Vector3f Forward() {
+        return Vector3f { 0, 0, 1 };
+    }
+    inline
+    static Vector3f X() {
+        return Vector3f { 1, 0, 0 };
+    }
+    inline
+    static Vector3f Y() {
+        return Vector3f { 0, 1, 0 };
+    }
+    inline
+    static Vector3f Z() {
+        return Vector3f { 0, 0, 1 };
+    }
+    inline
+    static float NormSquared(Vector3f *a) {
+        return a->x*a->x + a->y*a->y + a->z*a->z;
+    }
+    inline
+    static float Norm(Vector3f *a) {
+        return sqrt(Vector3f::NormSquared(a));
+    }
+    inline
+    static Vector3f ScalarProduct(float f, Vector3f *a) {
+        return Vector3f { f*a->x, f*a->y, f*a->z };
+    }
+    inline
+    static Vector3f Normalize(Vector3f *a) {
+        float norm_inv = 1 / Vector3f::Norm(a);
+        return Vector3f { norm_inv * a->x, norm_inv * a->y, norm_inv * a->z };
+    }
+    inline
+    static Vector3f Subtract(Vector3f *a, Vector3f *b) {
+        return Vector3f { a->x - b->x, a->y - b->y, a->z - b->z };
+    }
+    inline
+    static Vector3f Add(Vector3f *a, Vector3f *b) {
+        return Vector3f { a->x + b->x, a->y + b->y, a->z + b->z };
+    }
+    inline
+    static float Dot(Vector3f *a, Vector3f *b) {
+        return a->z*b->z + a->z*b->z + a->z*b->z;
+    }
+    inline
+    static Vector3f Cross(Vector3f *a, Vector3f *b) {
+        return Vector3f { a->y*b->z - a->z*b->y, a->z*b->x - a->x*b->z, a->x*b->y - a->y*b->x };
+    }
+};
+inline
+Vector3f operator+(Vector3f u, Vector3f v) {
+    return Vector3f::Add(&u, &v);
+}
+inline
+Vector3f operator-(Vector3f u, Vector3f v) {
+    return Vector3f::Subtract(&u, &v);
+}
+inline
+bool operator==(Vector3f u, Vector3f v) {
+    return (u.x == v.x) && (u.y == v.y) && (u.z == v.z);
+}
+inline
+Vector3f operator*(float f, Vector3f v) {
+    return Vector3f::ScalarProduct(f, &v);
+}
+inline
+Vector3f operator-(Vector3f v) {
+    return Vector3f::ScalarProduct(-1, &v);
+}
+
+
+//
+// Matrix
+
+Matrix4f Matrix4f_Zero() {
+    Matrix4f m;
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            m.m[i][j] = 0;
+        }
+    }
+    return m;
+}
+Matrix4f Matrix4f_One() {
+    Matrix4f m;
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            m.m[i][j] = 1;
+        }
+    }
+    return m;
+}
+Matrix4f Matrix4f_Identity() {
+    Matrix4f m;
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            if (i == j) {
+                m.m[i][j] = 1;
+            }
+            else {
+                m.m[i][j] = 0;
+            }
+        }
+    }
+    return m;
+}
+Matrix4f Matrix4f_Diagonal(Vector4f d) {
+    Matrix4f m = Matrix4f_Zero();
+    m.m[0][0] = d.x;
+    m.m[1][1] = d.y;
+    m.m[2][2] = d.z;
+    m.m[3][3] = d.w;
+    return m;
+}
+Matrix4f Matrix4f_Transpose(Matrix4f *m) {
+    Matrix4f result;
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            result.m[i][j] = m->m[j][i];
+        }
+    }
+    return result;
+}
+Matrix4f Matrix4f_Multiply(Matrix4f *a, Matrix4f *b) {
+    Matrix4f result;
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            result.m[i][j] = 0;
+            for (int k = 0; k < 4; ++k) {
+                result.m[i][j] += a->m[i][k]*b->m[k][j];
+            }
+        }
+    }
+    return result;
+}
+Vector4f Matrix4f_MultVector(Matrix4f *a, Vector4f *v) {
+    Vector4f result;
+    result.x = a->m[0][0]*v->x + a->m[0][1]*v->y + a->m[0][2]*v->z + a->m[0][3]*v->w;
+    result.y = a->m[1][0]*v->x + a->m[1][1]*v->y + a->m[1][2]*v->z + a->m[1][3]*v->w;
+    result.z = a->m[2][0]*v->x + a->m[2][1]*v->y + a->m[2][2]*v->z + a->m[2][3]*v->w;
+    result.w = a->m[3][0]*v->x + a->m[3][1]*v->y + a->m[3][2]*v->z + a->m[3][3]*v->w;
+    return result;
+}
+bool Matrix4f_Equals(Matrix4f *a, Matrix4f *b) {
+    bool result = true;
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            result &= a->m[i][j] == b->m[i][j];
+        }
+    }
+    return result;
+}
+inline
+Matrix4f operator*(Matrix4f a, Matrix4f b) {
+    return Matrix4f_Multiply(&a, &b);
+}
+inline
+Vector4f operator*(Matrix4f m, Vector4f v) {
+    return Matrix4f_MultVector(&m, &v);
+}
+inline
+bool operator==(Matrix4f a, Matrix4f b) {
+    return Matrix4f_Equals(&a, &b);
+}
+// TODO: operator[][]
+inline
+void MatrixNf_Transpose(float *dest, float *src, u32 dims) {
+    for (int row = 0; row < dims; ++row) {
+        for (int col = 0; col < dims; ++col) {
+            dest[row*dims + col] = src[col*dims + row];
+        }
+    }
+}
+inline
+void MatrixNf_Multiply(float *dest, float *a, float *b, u32 dims) {
+    for (int i = 0; i < dims; ++i) {
+        for (int j = 0; j < dims; ++j) {
+            u32 I = i*dims;
+            dest[I + j] = 0;
+            for (int k = 0; k < dims; ++k) {
+                dest[I + j] += a[I + k]*b[k*dims + j];
+            }
+        }
+    }
+}
+inline
+void MatrixNf_MultVector(float *dest, float *a, float *v, u32 dims) {
+    for (int i = 0; i < dims; ++i) {
+        dest[i] = 0;
+        for (int k = 0; k < dims; ++k) {
+            dest[i] += a[i*dims + k]*v[k];
+        }
+    }
+}
+inline
+Vector4f ToV4f_Homogeneous(Vector3f v) {
+    return Vector4f { v.x, v.y, v.z, 1 };
+}
+inline
+Vector3f ToV3f_Homogeneous(Vector4f v) {
+    return Vector3f { v.x / v.w, v.y / v.w, v.z / v.w };
+}
+
+
+//
+// Transforms
+
+Matrix4f TransformBuild(Vector3f axis, float angle, Vector3f translate) {
+    Matrix4f result = Matrix4f_Zero();
+
+    float epsilon_f = 0.0000001;
+    assert( abs(axis.Norm() - 1) < epsilon_f );
+
+    // build rot from [axis, angle] - see https://en.wikipedia.org/wiki/Rotation_matrix#Axis_and_angle
+    float x = axis.x;
+    float y = axis.y;
+    float z = axis.z;
+    float c = cos(angle);
+    float s = sin(angle);
+
+    result.m[0][0] = x*x*(1 - c) + c;
+    result.m[0][1] = x*y*(1 - c) - z*s;
+    result.m[0][2] = x*z*(1 - c) + y*s;
+
+    result.m[1][0] = y*x*(1 - c) + z*s;
+    result.m[1][1] = y*y*(1 - c) + c;
+    result.m[1][2] = y*z*(1 - c) - x*s;
+
+    result.m[2][0] = z*x*(1 - c) - y*s;
+    result.m[2][1] = z*y*(1 - c) + x*s;
+    result.m[2][2] = z*z*(1 - c) + c;
+
+    // translation
+    result.m[0][3] = translate.x;
+    result.m[1][3] = translate.y;
+    result.m[2][3] = translate.z;
+    result.m[3][3] = 1;
+
+    return result;
+}
+Matrix4f TransformBuildTranslationOnly(Vector3f translate) {
+    // TODO: TEST: should be equal to a matrix with identity rot, built manually
+    return TransformBuild(Vector3f {1, 0, 0}, 0, translate);
+}
+
+Matrix4f TransformGetInverse(Matrix4f *a) {
+    // M^{-1}: row 0-2: R^{-1}, - R^{-1} * t; row 3: 0^, 1 (where 0^ is the zero vector)
+
+    // 0^, 1
+    Matrix4f result = Matrix4f_Zero();
+    result.m[3][3] = 1;
+
+    // R^{-1}
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            result.m[i][j] = a->m[j][i];
+        }
+    }
+
+    // R^{-1} * t
+    Vector3f t_inv;
+    t_inv.x = result.m[0][0]*a->m[0][3] + result.m[0][1]*a->m[1][3] + result.m[0][2]*a->m[2][3];
+    t_inv.y = result.m[1][0]*a->m[0][3] + result.m[1][1]*a->m[1][3] + result.m[1][2]*a->m[2][3];
+    t_inv.z = result.m[2][0]*a->m[0][3] + result.m[2][1]*a->m[1][3] + result.m[2][2]*a->m[2][3];
+
+    // *= -1 and copy
+    result.m[0][3] = - t_inv.x;
+    result.m[1][3] = - t_inv.y;
+    result.m[2][3] = - t_inv.z;
+
+    // TODO: scale
+    return result;
+}
+Matrix4f TransformGetInverse(Matrix4f a) {
+    return TransformGetInverse(&a);
+}
+Vector3f TransformPoint(Matrix4f *a, Vector3f *v) {
+    // NOTE: Only for isometric transforms ! (Not perspective)
+    Vector3f result;
+
+    // rot / trans
+    result.x = a->m[0][0]*v->x + a->m[0][1]*v->y + a->m[0][2]*v->z + a->m[0][3];
+    result.y = a->m[1][0]*v->x + a->m[1][1]*v->y + a->m[1][2]*v->z + a->m[1][3];
+    result.z = a->m[2][0]*v->x + a->m[2][1]*v->y + a->m[2][2]*v->z + a->m[2][3];
+
+    // TODO: scale
+    return result;
+}
+// TODO: how do I build a vector that does this ?
+Vector3f TransformInversePoint(Matrix4f *a, Vector3f *v) {
+    Vector3f r;
+    Vector3f tmp;
+
+    // translate back
+    tmp.x = v->x - a->m[0][3];
+    tmp.y = v->y - a->m[1][3];
+    tmp.z = v->z - a->m[2][3];
+
+    // rotate back (transpose)
+    r.x = a->m[0][0]*tmp.x + a->m[1][0]*tmp.y + a->m[2][0]*tmp.z;
+    r.y = a->m[0][1]*tmp.x + a->m[1][1]*tmp.y + a->m[2][1]*tmp.z;
+    r.z = a->m[0][2]*tmp.x + a->m[1][2]*tmp.y + a->m[2][2]*tmp.z;
+
+    // TODO: scale back
+    return r;
+}
+Vector3f TransformDirection(Matrix4f *a, Vector3f *d) {
+    Vector3f result;
+
+    // rotate
+    result.x = a->m[0][0]*d->x + a->m[0][1]*d->y + a->m[0][2]*d->z;
+    result.y = a->m[1][0]*d->x + a->m[1][1]*d->y + a->m[1][2]*d->z;
+    result.z = a->m[2][0]*d->x + a->m[2][1]*d->y + a->m[2][2]*d->z;
+
+    // TODO: scale
+    return result;
+}
+Vector3f TransformInverseDirection(Matrix4f *a, Vector3f *d) {
+    Vector3f result;
+
+    // rotate back
+    result.x = a->m[0][0]*d->x + a->m[1][0]*d->y + a->m[2][0]*d->z;
+    result.y = a->m[0][1]*d->x + a->m[1][1]*d->y + a->m[2][1]*d->z;
+    result.z = a->m[0][2]*d->x + a->m[1][2]*d->y + a->m[2][2]*d->z;
+
+    // TODO: scale back
+    return result;
+}
+
+
+//
+// Projections
+
+struct LensParams
+{
+    float fL; // focal length, typically 24 - 200 [mm]
+    float N; // f-number, 1.4 to 60 dimensionless []
+    float c; // circle of confusion (diameter), 0.03 [mm]
+    float w; // sensor width, 35.9 [mm]
+    float h; // sensor height, 24 [mm]
+};
+struct PerspectiveFrustum {
+    float fov; // [degs] (horizontal field of view)
+    float aspect; // [1] (width divided by height)
+    float dist_near; // [m]
+    float dist_far; // [m]
+};
+
+Matrix4f PerspectiveMatrix(PerspectiveFrustum frustum) {
+    // NOTE: This is currently a "naiive" incomplete matrix used for testing
+    // Just a weird test projection, but it does do a perspective
+    float f = frustum.dist_far;
+    float n = frustum.dist_near;
+    float S = 1 / tan( frustum.fov / 2 * deg2rad );
+
+    Matrix4f m = Matrix4f_Zero();
+    m.m[0][0] = S;
+    m.m[1][1] = S;
+    m.m[2][2] = (f + n) / (f - n);
+    m.m[2][3] = - f * n / (f - n);
+    m.m[3][2] = 1;
+
+    return m;
+}
+Matrix4f PerspectiveMatrixOpenGL(PerspectiveFrustum frustum) {
+    float half_angle_h = frustum.fov / 2 * deg2rad;
+
+    float f = frustum.dist_far;
+    float n = frustum.dist_near;
+    float r = frustum.dist_near * sin(half_angle_h);
+    float l = -r;
+    float b = r / frustum.aspect;
+    float t = -b;
+
+    Matrix4f m = Matrix4f_Zero();
+    m.m[0][0] = 2 * n / (r - l);
+    m.m[0][2] = (r + l) / (r - l);
+    m.m[1][1] = 2 * n / (t - b);
+    m.m[1][2] = (t + b) / (t - b);
+    m.m[2][2] = -(f + n) / (f - n);
+    m.m[2][3] = -2 * f * n / (f - n);
+    m.m[3][2] = -1;
+
+    // here we flip the output z component
+    m.m[2][2] *= -1;
+    m.m[3][2] *= -1;
+
+    return m;
+}
+inline Vector3f TransformPerspective(Matrix4f p, Vector3f v) {
+    Vector3f result = ToV3f_Homogeneous(p * ToV4f_Homogeneous(v));
+    return result;
+}
+
+
+//
+// Ray
+
+struct Ray {
+    // points: (x, y, z, 1)
+    // directions: (x, y, z, 0)
+    Vector3f point;
+    Vector3f direction;
+
+    inline
+    static Ray Zero() {
+        return Ray { Vector3f::Zero(), Vector3f::Zero() };
+    }
+};
+Ray TransformRay(Matrix4f *a, Ray *r) {
+    return Ray { TransformPoint(a, &r->point), TransformDirection(a, &r->direction) };
+}
+
+
+//
+// Utility
+
+void PrintMatrix4d(Matrix4f *m) {
+    printf("[");
+    for (int i = 0; i < 4; ++i) {
+        if (i > 0) {
+            printf(" ");
+        }
+        for (int j = 0; j < 4; ++j) {
+            printf(" %f", m->m[i][j]);
+        }
+        if (i < 3) {
+            printf("\n");
+        }
+    }
+    printf(" ]\n");
+}
+
+void PopulateMatrixRandomly(Matrix4f *m) {
+    RandInit();
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            m->m[i][j] = RandMinMaxI(0, 9);
+        }
+    }
+}
+
+
+#endif
