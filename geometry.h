@@ -354,6 +354,9 @@ Matrix4f TransformGetInverse(Matrix4f *a) {
     // TODO: scale
     return result;
 }
+Matrix4f TransformGetInverse(Matrix4f a) {
+    return TransformGetInverse(&a);
+}
 Vector3f TransformPoint(Matrix4f *a, Vector3f *v) {
     // NOTE: Only for isometric transforms ! (Not perspective)
     Vector3f result;
@@ -443,22 +446,29 @@ Matrix4f PerspectiveMatrix(PerspectiveFrustum frustum) {
     return m;
 }
 Matrix4f PerspectiveMatrixOpenGL(PerspectiveFrustum frustum) {
-    /*
+    float half_angle_h = frustum.fov / 2 * deg2rad;
+
     float f = frustum.dist_far;
     float n = frustum.dist_near;
-    float r = // near square right len
-    float l = // near square left len
-    float b = // near square bottom len
-    float t = // near square top len
+    float r = frustum.dist_near * sin(half_angle_h);
+    float l = -r;
+    float b = r / frustum.aspect;
+    float t = -b;
 
     Matrix4f m = Matrix4f_Zero();
-    m.m[0][0] = 
-    m.m[1][1] = 
-    m.m[2][2] = 
-    m.m[2][3] = 
-    m.m[3][2] = 
-    */
-    return Matrix4f_Identity();
+    m.m[0][0] = 2 * n / (r - l);
+    m.m[0][2] = (r + l) / (r - l);
+    m.m[1][1] = 2 * n / (t - b);
+    m.m[1][2] = (t + b) / (t - b);
+    m.m[2][2] = -(f + n) / (f - n);
+    m.m[2][3] = -2 * f * n / (f - n);
+    m.m[3][2] = -1;
+
+    // here we flip the output z component
+    m.m[2][2] *= -1;
+    m.m[3][2] *= -1;
+
+    return m;
 }
 inline Vector3f TransformPerspective(Matrix4f p, Vector3f v) {
     Vector3f result = ToV3f_Homogeneous(p * ToV4f_Homogeneous(v));
