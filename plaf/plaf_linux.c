@@ -50,6 +50,10 @@ u64 ReadCPUTimer() {
 // utils.c
 
 
+void XSleep(u32 ms) {
+    usleep(1000 * ms);
+}
+
 u8 *LoadFileMMAP(char *filepath, u64 *size_bytes) {
     FILE *f = fopen(filepath, "rb");
     if (f == NULL) {

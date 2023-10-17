@@ -41,6 +41,11 @@ u64 ReadCPUTimer() {
 // utils.c
 
 
+void XSleep(u32 ms) {
+    Sleep(ms);
+}
+
+
 u8 *LoadFileMMAP(char *filepath, u64 *size_bytes) {
     HANDLE f, map;
     LPVOID lpBasePtr;

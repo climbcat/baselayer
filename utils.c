@@ -4,6 +4,13 @@
 
 
 //
+// Other
+
+void XSleep(u32 ms);
+
+
+
+//
 // file I/O
 
 
