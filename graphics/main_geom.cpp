@@ -1,7 +1,8 @@
 #include <GL/glew.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
+// #include <glm/glm.hpp>
+// #include <glm/gtc/matrix_transform.hpp>
+// #include <glm/gtc/type_ptr.hpp>
+#define SDL_MAIN_HANDLED
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
 
@@ -92,9 +93,9 @@ void RunProgram() {
     SDL_Window *window = InitOGL(w, h);
     ScreenQuadTextureProgram sqprog;
     sqprog.Init(image, w, h);
-
+    
     while (Running()) {
-        usleep(10000);
+        XSleep(500);
 
         u32 pix_idx, r, g, b;
         for (u32 i = 0; i < h; ++i) {
@@ -129,4 +130,6 @@ int main (int argc, char **argv) {
     }
 
     RunProgram();
+
+    return 0;
 }
