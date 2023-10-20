@@ -1,16 +1,3 @@
-inline
-bool Cull(u32 pos_x, u32 pos_y, u32 w, u32 h) {
-    bool not_result = pos_x >= 0 && pos_x < w && pos_y >= 0 && pos_y < h;
-    return !not_result;
-}
-inline
-u32 Pos2Idx(u32 pos_x, u32 pos_y, u32 width) {
-    u32 result = pos_x + width * pos_y;
-    return result;
-}
-
-
-
 
 void TestPointCloudPerspectiveProj_2() {
     printf("TestPointCloudPerspectiveProj\n");
@@ -266,9 +253,37 @@ void TestRandImage() {
 }
 
 
+void TestRandomImageOGL() {
+    printf("TestRandomImageOGL - Running OpenGL screen texture demo...\n");
+
+    // setup image data
+    u32 w = 1280;
+    u32 h = 800;
+    u32 nchannels = 4;
+    MArena arena = ArenaCreate();
+    MArena *a = &arena;
+    u8 *image = (u8*) ArenaAlloc(a, nchannels * w * h);
+
+    // OGL window & sharder
+    SDL_Window *window = InitOGL(w, h);
+    ScreenQuadTextureProgram screen;
+    screen.Init(image, w, h);
+    
+    while (Running()) {
+        XSleep(50);
+
+        DrawRandomPatternRGBA(image, w, h);
+
+        screen.Draw(image, w, h);
+        SDL_GL_SwapWindow(window);
+    }
+
+}
+
 void Test() {
     //TestRandImage();
     //TestPointCloudBoxProj();
     //TestRotateCamera();
-    TestPointCloudPerspectiveProj_2();
+    //TestPointCloudPerspectiveProj_2();
+    TestRandomImageOGL();
 }
