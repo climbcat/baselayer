@@ -116,6 +116,10 @@ struct ScreenQuadTextureProgram {
     }
 
     void Draw(u8* imgbuffer, u32 width, u32 height) {
+        // clear to black, textures may use opaque pixels
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f );
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
         glUseProgram(program);
 
         glBindVertexArray(vao);

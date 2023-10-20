@@ -34,15 +34,21 @@ void RunProgram() {
     ScreenQuadTextureProgram screen;
     screen.Init(image, w, h);
     
+    float alpha = 0;
+    float dalpha = 0.1;
+    u16 cx = w/2;
+    u16 cy = h/2;
+    u16 px = 0;
+    u16 py = 0;
+    u16 armlen = 400;
     while (Running()) {
-        XSleep(50);
+        XSleep(33);
+        ClearToZeroRGBA(image, w, h);
 
-        DrawLineRGBA(image, w, h, 15, 200, 500, 500);
-        DrawLineRGBA(image, w, h, 1000, 10, 15, 500);
-        DrawLineRGBA(image, w, h, 400, 200, 900, 200);
-        DrawLineRGBA(image, w, h, 800, 10, 800, 500);
-        DrawLineRGBA(image, w, h, 920, 120, 900, 790);
-        DrawLineRGBA(image, w, h, 920, 120, 950, 790);
+        alpha += dalpha;
+        px = floor( cx + cos(alpha) * armlen );
+        py = floor( cy + sin(alpha) * armlen );
+        DrawLineRGBA(image, w, h, cx, cy, px, py);
 
         screen.Draw(image, w, h);
         SDL_GL_SwapWindow(window);

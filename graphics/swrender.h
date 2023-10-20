@@ -12,6 +12,11 @@ u32 Pos2Idx(u32 pos_x, u32 pos_y, u32 width) {
     return result;
 }
 
+void ClearToZeroRGBA(u8* buffer, u32 w, u32 h) {
+    memset(buffer, 0, 4 * w * h);
+}
+
+
 void DrawRandomPatternRGBA(u8* buffer, u32 w, u32 h) {
     RandInit();
     u32 pix_idx, r, g, b;
@@ -96,19 +101,6 @@ void DrawLineRGBA(u8* buffer, u16 w, u16 h, u16 ax, u16 ay, u16 bx, u16 by) {
             buffer[4 * pix_idx + 3] = 255;
         }
     }
-
-    /*
-    for (u32 i = 0; i < h; ++i) {
-        for (u32 j = 0; j < w; ++j) {
-            pix_idx = j + i*w;
-
-            buffer[4 * pix_idx + 0] = 255;
-            buffer[4 * pix_idx + 1] = 255;
-            buffer[4 * pix_idx + 2] = 255;
-            buffer[4 * pix_idx + 3] = 255;
-        }
-    }
-    */
 }
 
 
