@@ -103,5 +103,20 @@ void DrawLineRGBA(u8* buffer, u16 w, u16 h, u16 ax, u16 ay, u16 bx, u16 by) {
     }
 }
 
+void DrawTracePoints(u8* buffer, u16 w, u16 h, u16* points, u32 npoints) {
+
+    u16 prev_x = *points++;
+    u16 prev_y = *points++;
+    u16 next_x;
+    u16 next_y;
+    for (u16 i = 1; i < npoints; ++i) {
+        next_x = *points++;
+        next_y = *points++;
+        DrawLineRGBA(buffer, w, h, prev_x, prev_y, next_x, next_y);
+        prev_x = next_x;
+        prev_y = next_y;
+    }
+}
+
 
 #endif
