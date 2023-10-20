@@ -254,7 +254,7 @@ void TestRandImage() {
 
 
 void TestRandomImageOGL() {
-    printf("TestRandomImageOGL - Running OpenGL screen texture demo...\n");
+    printf("TestRandomImageOGL\n");
 
     // setup image data
     u32 w = 1280;
@@ -280,10 +280,40 @@ void TestRandomImageOGL() {
 
 }
 
+
+void TestRDrawLines() {
+    printf("TestRDrawLines\n");
+
+    u32 w = 1280;
+    u32 h = 800;
+    u32 nchannels = 4;
+    MArena arena = ArenaCreate();
+    MArena *a = &arena;
+    u8 *image = (u8*) ArenaAlloc(a, nchannels * w * h);
+    SDL_Window *window = InitOGL(w, h);
+    ScreenQuadTextureProgram screen;
+    screen.Init(image, w, h);
+    
+    while (Running()) {
+        XSleep(50);
+
+        DrawLineRGBA(image, w, h, 15, 200, 500, 500);
+        DrawLineRGBA(image, w, h, 1000, 10, 15, 500);
+        DrawLineRGBA(image, w, h, 400, 200, 900, 200);
+        DrawLineRGBA(image, w, h, 800, 10, 800, 500);
+        DrawLineRGBA(image, w, h, 920, 120, 900, 790);
+        DrawLineRGBA(image, w, h, 920, 120, 950, 790);
+
+        screen.Draw(image, w, h);
+        SDL_GL_SwapWindow(window);
+    }
+}
+
 void Test() {
     //TestRandImage();
     //TestPointCloudBoxProj();
     //TestRotateCamera();
     //TestPointCloudPerspectiveProj_2();
     TestRandomImageOGL();
+    TestRDrawLines();
 }
