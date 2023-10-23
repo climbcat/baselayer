@@ -48,7 +48,7 @@ void TestPointCloudPerspectiveProj_2() {
     frustum.aspect = 1;
     frustum.dist_near = 0.1;
     frustum.dist_far = 6;
-    Matrix4f proj = PerspectiveMatrixOpenGL(frustum);
+    Matrix4f proj = PerspectiveMatrixOpenGL(frustum, false, false, true);
 
     // camera position
     Vector3f campos { 0, 0, 0 };
@@ -344,36 +344,6 @@ void TestDrawAnimatePrecession() {
     }
 }
 
-void TestTracePoints() {
-    u32 w = 1280;
-    u32 h = 800;
-    u32 nchannels = 4;
-    MArena arena = ArenaCreate();
-    MArena *a = &arena;
-    u8 *image = (u8*) ArenaAlloc(a, nchannels * w * h);
-    SDL_Window *window = InitOGL(w, h);
-    ScreenQuadTextureProgram screen;
-    screen.Init(image, w, h);
-
-    u16 npoints = 25;
-    u16 *points = (u16*) ArenaAlloc(a, npoints * 2 * sizeof(u16));
-    u16 *iter;
-    while (Running()) {
-        XSleep(50);
-        ClearToZeroRGBA(image, w, h);
-        iter = points;
-        for (u16 i = 0; i < npoints; ++i) {
-            *iter++ = (u16) RandDice(w);
-            *iter++ = (u16) RandDice(h);
-        }
-
-        DrawTracePoints(image, w, h, points, npoints);
-
-        screen.Draw(image, w, h);
-        SDL_GL_SwapWindow(window);
-    }
-}
-
 void Test() {
     //TestRandImage();
     //TestPointCloudBoxProj();
@@ -382,5 +352,4 @@ void Test() {
     TestRandomImageOGL();
     TestRDrawLines();
     TestDrawAnimatePrecession();
-    TestTracePoints();
 }

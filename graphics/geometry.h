@@ -327,7 +327,7 @@ Matrix4f TransformBuildTranslationOnly(Vector3f translate) {
 }
 
 Matrix4f TransformGetInverse(Matrix4f *a) {
-    // M^{-1}: row 0-2: R^{-1}, - R^{-1} * t; row 3: 0^, 1 (where 0^ is the zero vector)
+    // M^{-1}: row 0-2: R^{-1}, - R^{-1} * t; row 3: 0^, 1
 
     // 0^, 1
     Matrix4f result = Matrix4f_Zero();
@@ -445,16 +445,16 @@ Matrix4f PerspectiveMatrix(PerspectiveFrustum frustum) {
 
     return m;
 }
-Matrix4f PerspectiveMatrixOpenGL(PerspectiveFrustum frustum) {
-    float half_angle_h = frustum.fov / 2 * deg2rad;
-
+Matrix4f PerspectiveMatrixOpenGL(PerspectiveFrustum frustum, bool flip_x = true, bool flip_y = false, bool flip_z = true) {
+    // gather values
     float f = frustum.dist_far;
     float n = frustum.dist_near;
-    float r = frustum.dist_near * sin(half_angle_h);
+    float r = frustum.dist_near * sin(frustum.fov / 2 * deg2rad);
     float l = -r;
     float b = r / frustum.aspect;
     float t = -b;
 
+    // populate
     Matrix4f m = Matrix4f_Zero();
     m.m[0][0] = 2 * n / (r - l);
     m.m[0][2] = (r + l) / (r - l);
@@ -464,9 +464,23 @@ Matrix4f PerspectiveMatrixOpenGL(PerspectiveFrustum frustum) {
     m.m[2][3] = -2 * f * n / (f - n);
     m.m[3][2] = -1;
 
-    // here we flip the output z component
-    m.m[2][2] *= -1;
-    m.m[3][2] *= -1;
+    // flip the axes (flip to suit desired axis configurations)
+    Matrix4f flip = Matrix4f_Identity();
+    if (flip_x) {
+        flip.m[0][0] = -1;
+        m = flip * m;
+    }
+    if (flip_y) {
+        flip.m[0][0] = 1;
+        flip.m[1][1] = -1;
+        m = flip * m;
+    }
+    if (flip_z) {
+        flip.m[0][0] = 1;
+        flip.m[1][1] = 1;
+        flip.m[2][2] = -1;
+        m = flip * m;
+    }
 
     return m;
 }

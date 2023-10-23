@@ -1,6 +1,13 @@
 #ifndef __SWRENDER_H__
 #define __SWRENDER_H__
 
+
+struct Vector2_u16 {
+    u16 x;
+    u16 y;
+};
+
+
 inline
 bool Cull(u32 pos_x, u32 pos_y, u32 w, u32 h) {
     bool not_result = pos_x >= 0 && pos_x < w && pos_y >= 0 && pos_y < h;
@@ -12,12 +19,12 @@ u32 Pos2Idx(u32 pos_x, u32 pos_y, u32 width) {
     return result;
 }
 
-void ClearToZeroRGBA(u8* buffer, u32 w, u32 h) {
-    memset(buffer, 0, 4 * w * h);
+void ClearToZeroRGBA(u8* image_buffer, u32 w, u32 h) {
+    memset(image_buffer, 0, 4 * w * h);
 }
 
 
-void DrawRandomPatternRGBA(u8* buffer, u32 w, u32 h) {
+void DrawRandomPatternRGBA(u8* image_buffer, u32 w, u32 h) {
     RandInit();
     u32 pix_idx, r, g, b;
     for (u32 i = 0; i < h; ++i) {
@@ -26,15 +33,15 @@ void DrawRandomPatternRGBA(u8* buffer, u32 w, u32 h) {
             r = RandIntMax(255);
             g = RandIntMax(255);
             b = RandIntMax(255);
-            buffer[4 * pix_idx + 0] = r;
-            buffer[4 * pix_idx + 1] = g;
-            buffer[4 * pix_idx + 2] = b;
-            buffer[4 * pix_idx + 3] = 255;
+            image_buffer[4 * pix_idx + 0] = r;
+            image_buffer[4 * pix_idx + 1] = g;
+            image_buffer[4 * pix_idx + 2] = b;
+            image_buffer[4 * pix_idx + 3] = 255;
         }
     }
 }
 
-void DrawLineRGBA(u8* buffer, u16 w, u16 h, u16 ax, u16 ay, u16 bx, u16 by) {
+void DrawLineRGBA(u8* image_buffer, u16 w, u16 h, u16 ax, u16 ay, u16 bx, u16 by) {
 
     // initially working from a to b
     // there are four cases:
@@ -67,10 +74,10 @@ void DrawLineRGBA(u8* buffer, u16 w, u16 h, u16 ax, u16 ay, u16 bx, u16 by) {
             y = ay + floor(slope * i);
 
             pix_idx = x + y*w;
-            buffer[4 * pix_idx + 0] = 255;
-            buffer[4 * pix_idx + 1] = 255;
-            buffer[4 * pix_idx + 2] = 255;
-            buffer[4 * pix_idx + 3] = 255;
+            image_buffer[4 * pix_idx + 0] = 255;
+            image_buffer[4 * pix_idx + 1] = 255;
+            image_buffer[4 * pix_idx + 2] = 255;
+            image_buffer[4 * pix_idx + 3] = 255;
         }
     }
     else {
@@ -95,27 +102,17 @@ void DrawLineRGBA(u8* buffer, u16 w, u16 h, u16 ax, u16 ay, u16 bx, u16 by) {
             x = ax + floor(slope_inv * i);
 
             pix_idx = x + y*w;
-            buffer[4 * pix_idx + 0] = 255;
-            buffer[4 * pix_idx + 1] = 255;
-            buffer[4 * pix_idx + 2] = 255;
-            buffer[4 * pix_idx + 3] = 255;
+            image_buffer[4 * pix_idx + 0] = 255;
+            image_buffer[4 * pix_idx + 1] = 255;
+            image_buffer[4 * pix_idx + 2] = 255;
+            image_buffer[4 * pix_idx + 3] = 255;
         }
     }
 }
 
-void DrawTracePoints(u8* buffer, u16 w, u16 h, u16* points, u32 npoints) {
-
-    u16 prev_x = *points++;
-    u16 prev_y = *points++;
-    u16 next_x;
-    u16 next_y;
-    for (u16 i = 1; i < npoints; ++i) {
-        next_x = *points++;
-        next_y = *points++;
-        DrawLineRGBA(buffer, w, h, prev_x, prev_y, next_x, next_y);
-        prev_x = next_x;
-        prev_y = next_y;
-    }
+inline
+void DrawLineRGBA(u8* image_buffer, u16 w, u16 h, Vector2_u16 a, Vector2_u16 b) {
+    DrawLineRGBA(image_buffer, w, h, a.x, a.y, b.x, b.y);
 }
 
 
