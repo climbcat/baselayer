@@ -370,14 +370,15 @@ void TestAnimateBox() {
     // entities
     Vector3f box_center = Vector3f {0, 1, 4};
     AABox box { box_center, 0.3 };
-    Camera cam { Vector3f {1, 1, -5}, Vector3f {0, 0, 1}, PerspectiveFrustum { 90, (float) w / h, 0.1, 20 } }; // center, dir, fov, aspect, near, far
+    Camera cam { PerspectiveFrustum { 90, (float) w / h, 0.1, 20 } }; // center, dir, fov, aspect, near, far
+    Vector3f cam_position { 1, 1, -5 };
 
     // populate vertex & line buffer
     AABoxGetCorners(box, vertex_buffer);
     AABoxGetLinesIndices(0, lines_idxbuffer);
 
     // build transform
-    Matrix4f view = TransformBuildTranslationOnly(cam.position); // TODO: LOOKAT to incorporate camera view direction
+    Matrix4f view = TransformBuildTranslationOnly(cam_position); // TODO: LOOKAT to incorporate camera view direction
     Matrix4f proj = PerspectiveMatrixOpenGL(cam.frustum, true, false, true);
     Matrix4f model = Matrix4f_Identity();
     Matrix4f mvp;
@@ -387,9 +388,8 @@ void TestAnimateBox() {
         XSleep(10);
         ClearToZeroRGBA(image_buffer, w, h);
 
-        // TODO: update model transform
+        // update model transform
         model = TransformGetInverse( TransformBuild(Vector3f { 0, 1, 0 }, 0.03f * iter, box_center) );
-        
         mvp = BuildMVP(model, view, proj);
         iter++;
 

@@ -288,7 +288,7 @@ Vector3f ToV3f_Homogeneous(Vector4f v) {
 //
 // Transforms
 
-Matrix4f TransformBuild(Vector3f axis, float angle, Vector3f translate) {
+Matrix4f TransformBuild(Vector3f axis, float angle, Vector3f translate = {0, 0, 0}) {
     Matrix4f result = Matrix4f_Zero();
 
     float epsilon_f = 0.0000001;
@@ -429,8 +429,8 @@ struct PerspectiveFrustum {
     float dist_far; // [m]
 };
 struct Camera {
-    Vector3f position;
-    Vector3f direction;
+    //Vector3f position;
+    //Vector3f direction;
     PerspectiveFrustum frustum;
 };
 
