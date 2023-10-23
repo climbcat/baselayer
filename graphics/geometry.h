@@ -414,8 +414,8 @@ Vector3f TransformInverseDirection(Matrix4f *a, Vector3f *d) {
 //
 // Projections
 
-struct LensParams
-{
+
+struct LensParams {
     float fL; // focal length, typically 24 - 200 [mm]
     float N; // f-number, 1.4 to 60 dimensionless []
     float c; // circle of confusion (diameter), 0.03 [mm]
@@ -428,6 +428,12 @@ struct PerspectiveFrustum {
     float dist_near; // [m]
     float dist_far; // [m]
 };
+struct Camera {
+    Vector3f position;
+    Vector3f direction;
+    PerspectiveFrustum frustum;
+};
+
 
 Matrix4f PerspectiveMatrix(PerspectiveFrustum frustum) {
     // NOTE: This is currently a "naiive" incomplete matrix used for testing
@@ -497,10 +503,11 @@ inline Vector3f TransformPerspective(Matrix4f p, Vector3f v) {
 //
 // Ray
 
+
 struct Ray {
     // points: (x, y, z, 1)
     // directions: (x, y, z, 0)
-    Vector3f point;
+    Vector3f position;
     Vector3f direction;
 
     inline
@@ -509,7 +516,7 @@ struct Ray {
     }
 };
 Ray TransformRay(Matrix4f *a, Ray *r) {
-    return Ray { TransformPoint(a, &r->point), TransformDirection(a, &r->direction) };
+    return Ray { TransformPoint(a, &r->position), TransformDirection(a, &r->direction) };
 }
 
 

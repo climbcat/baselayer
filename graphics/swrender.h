@@ -8,6 +8,10 @@ struct Vector2_u16 {
 };
 
 
+//
+//
+
+
 inline
 bool Cull(u32 pos_x, u32 pos_y, u32 w, u32 h) {
     bool not_result = pos_x >= 0 && pos_x < w && pos_y >= 0 && pos_y < h;
@@ -18,10 +22,81 @@ u32 Pos2Idx(u32 pos_x, u32 pos_y, u32 width) {
     u32 result = pos_x + width * pos_y;
     return result;
 }
-
 void ClearToZeroRGBA(u8* image_buffer, u32 w, u32 h) {
     memset(image_buffer, 0, 4 * w * h);
 }
+inline
+Vector2_u16 NDC2Screen(u32 w, u32 h, Vector3f ndc) {
+    Vector2_u16 pos;
+
+    pos.x = (u32) ((ndc.x + 1) / 2 * w);
+    pos.y = (u32) ((ndc.y + 1) / 2 * h);
+
+    return pos;
+}
+u16 LinesToScreen(u32 w, u32 h, Vector2_u16* lines_idxbuffer, u16 nlines, Vector3f *ndc_buffer, Vector2_u16* lines_screen_buffer) {
+    u16 nlines_torender = 0;
+    u16 idx = 0;
+    for (u32 i = 0; i < nlines; ++i) {
+        Vector2_u16 line = lines_idxbuffer[i];
+        Vector2_u16 a = NDC2Screen(w, h, ndc_buffer[line.x]);
+        Vector2_u16 b = NDC2Screen(w, h, ndc_buffer[line.y]);
+
+        // TODO: crop to NDC box
+        if (Cull(a.x, a.y, w, h) || Cull(b.x, b.y, w, h)) {
+            continue;
+        }
+
+        lines_screen_buffer[idx++] = a;
+        lines_screen_buffer[idx++] = b;
+        nlines_torender++;
+    }
+    return nlines_torender;
+}
+
+
+//
+// Axis-aligned box
+
+
+struct AABox {
+    Vector3f center;
+    f32 radius;
+};
+void AABoxGetCorners(AABox box, Vector3f *dest) {
+    AABox *b = &box;
+    *dest++ = Vector3f { b->center.x - b->radius, b->center.y - b->radius, b->center.z - b->radius };
+    *dest++ = Vector3f { b->center.x - b->radius, b->center.y - b->radius, b->center.z + b->radius };
+    *dest++ = Vector3f { b->center.x - b->radius, b->center.y + b->radius, b->center.z - b->radius };
+    *dest++ = Vector3f { b->center.x - b->radius, b->center.y + b->radius, b->center.z + b->radius };
+    *dest++ = Vector3f { b->center.x + b->radius, b->center.y - b->radius, b->center.z - b->radius };
+    *dest++ = Vector3f { b->center.x + b->radius, b->center.y - b->radius, b->center.z + b->radius };
+    *dest++ = Vector3f { b->center.x + b->radius, b->center.y + b->radius, b->center.z - b->radius };
+    *dest++ = Vector3f { b->center.x + b->radius, b->center.y + b->radius, b->center.z + b->radius };
+}
+u16 AABoxGetLinesIndices(u16 offset, Vector2_u16 *dest) {
+    *dest++ = Vector2_u16 { (u16) (offset + 0), (u16) (offset + 1) };
+    *dest++ = Vector2_u16 { (u16) (offset + 0), (u16) (offset + 2) };
+    *dest++ = Vector2_u16 { (u16) (offset + 0), (u16) (offset + 4) };
+
+    *dest++ = Vector2_u16 { (u16) (offset + 3), (u16) (offset + 1) };
+    *dest++ = Vector2_u16 { (u16) (offset + 3), (u16) (offset + 2) };
+    *dest++ = Vector2_u16 { (u16) (offset + 3), (u16) (offset + 7) };
+
+    *dest++ = Vector2_u16 { (u16) (offset + 5), (u16) (offset + 1) };
+    *dest++ = Vector2_u16 { (u16) (offset + 5), (u16) (offset + 4) };
+    *dest++ = Vector2_u16 { (u16) (offset + 5), (u16) (offset + 7) };
+
+    *dest++ = Vector2_u16 { (u16) (offset + 6), (u16) (offset + 2) };
+    *dest++ = Vector2_u16 { (u16) (offset + 6), (u16) (offset + 4) };
+    *dest++ = Vector2_u16 { (u16) (offset + 6), (u16) (offset + 7) };
+
+    return offset + 12;
+}
+
+
+//
+// Render to image buffer
 
 
 void DrawRandomPatternRGBA(u8* image_buffer, u32 w, u32 h) {
