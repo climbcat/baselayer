@@ -60,6 +60,11 @@ void RunProgram() {
     Matrix4f model = box_transform;
     Matrix4f mvp;
 
+
+    // NOTE: noticed that upper-left-corner constitutes screen 0,0, which means we much 
+    //  want to invert the y-axis back from whence it came :>
+
+
     u64 iter = 0;
     MouseTrap mouse = InitMouseTrap();
     while (Running(&mouse)) {
