@@ -269,10 +269,11 @@ void TestRandomImageOGL() {
     ScreenQuadTextureProgram screen;
     screen.Init(image, w, h);
     
-    while (Running()) {
+    MouseTrap mouse;
+    while (Running(&mouse)) {
         XSleep(50);
 
-        DrawRandomPatternRGBA(image, w, h);
+        RenderRandomPatternRGBA(image, w, h);
 
         screen.Draw(image, w, h);
         SDL_GL_SwapWindow(window);
@@ -294,15 +295,16 @@ void TestRDrawLines() {
     ScreenQuadTextureProgram screen;
     screen.Init(image, w, h);
     
-    while (Running()) {
+    MouseTrap mouse;
+    while (Running(&mouse)) {
         XSleep(50);
 
-        DrawLineRGBA(image, w, h, 15, 200, 500, 500);
-        DrawLineRGBA(image, w, h, 1000, 10, 15, 500);
-        DrawLineRGBA(image, w, h, 400, 200, 900, 200);
-        DrawLineRGBA(image, w, h, 800, 10, 800, 500);
-        DrawLineRGBA(image, w, h, 920, 120, 900, 790);
-        DrawLineRGBA(image, w, h, 920, 120, 950, 790);
+        RenderLineRGBA(image, w, h, 15, 200, 500, 500);
+        RenderLineRGBA(image, w, h, 1000, 10, 15, 500);
+        RenderLineRGBA(image, w, h, 400, 200, 900, 200);
+        RenderLineRGBA(image, w, h, 800, 10, 800, 500);
+        RenderLineRGBA(image, w, h, 920, 120, 900, 790);
+        RenderLineRGBA(image, w, h, 920, 120, 950, 790);
 
         screen.Draw(image, w, h);
         SDL_GL_SwapWindow(window);
@@ -330,22 +332,25 @@ void TestAnimateClockHand() {
     u16 px = 0;
     u16 py = 0;
     u16 armlen = 400;
-    while (Running()) {
+    MouseTrap mouse;
+    while (Running(&mouse)) {
         XSleep(33);
         ClearToZeroRGBA(image, w, h);
 
         angle += delta_angle;
         px = floor( cx + cos(angle) * armlen );
         py = floor( cy + sin(angle) * armlen );
-        DrawLineRGBA(image, w, h, cx, cy, px, py);
+        RenderLineRGBA(image, w, h, cx, cy, px, py);
 
         screen.Draw(image, w, h);
         SDL_GL_SwapWindow(window);
     }
 }
 
-void TestAnimateBox() {
+void TestAnimateBoxAndLookrot() {
     printf("TestAnimateBox\n");
+
+    // tests validity of camera translation and of object transform, including local object rotation
 
     u32 w = 1280;
     u32 h = 800;
@@ -368,45 +373,54 @@ void TestAnimateBox() {
     Vector2_u16 *lines_screen_buffer = (Vector2_u16*) ArenaAlloc(a, sizeof(Vector2_u16) * 1000);
 
     // entities
-    Vector3f box_center = Vector3f {0, 1, 4};
+    Vector3f box_center = Vector3f {0, 0, 0}; // local coords
     AABox box { box_center, 0.3 };
-    Camera cam { PerspectiveFrustum { 90, (float) w / h, 0.1, 20 } }; // center, dir, fov, aspect, near, far
-    Vector3f cam_position { 1, 1, -5 };
+    Vector3f box_position { 0, -2, 5 };
+    Matrix4f box_transform = TransformBuild(y_hat, 0, box_position);
+    Camera cam { PerspectiveFrustum { 90, (float) w / h, 0.1, 20 } }; // fov, aspect, near, far
+    Vector3f cam_position { 2.2, 1.2, -5 };
 
     // populate vertex & line buffer
     AABoxGetCorners(box, vertex_buffer);
     AABoxGetLinesIndices(0, lines_idxbuffer);
 
-    // build transform
-    Matrix4f view = TransformBuildTranslationOnly(cam_position); // TODO: LOOKAT to incorporate camera view direction
+
+    // NOTES: 
+    //  Transforms are local2world, also the view transform. However the BuildMVP() function
+    //  inverts the view matrix, before multiplying into an mvp. 
+    //  We are multiplying from the right, so the right-most matrix / transform applied to vertices
+    //  is applied to the local coordinates.
+    //  This is how the box rotation animation works currently; by applying a rotation-only matrix before
+    //  the formal "box transform" is applied.
+
+
+    // build transform: [ model -> world -> view_inv -> projection ]
+    Matrix4f view = TransformBuild(y_hat, 0, cam_position); // TODO: LOOKAT to incorporate camera view direction
+    Matrix4f view_lookat = view * TransformLookRotation(box_position, cam_position); 
     Matrix4f proj = PerspectiveMatrixOpenGL(cam.frustum, true, false, true);
-    Matrix4f model = Matrix4f_Identity();
-    Matrix4f mvp;
+    Matrix4f model = box_transform;
+    Matrix4f mvp = BuildMVP(model, view, proj);
 
     u64 iter = 0;
-    while (Running()) {
+    MouseTrap mouse;
+    while (Running(&mouse)) {
         XSleep(10);
         ClearToZeroRGBA(image_buffer, w, h);
 
-        // update model transform
-        model = TransformGetInverse( TransformBuild(Vector3f { 0, 1, 0 }, 0.03f * iter, box_center) );
+        model = box_transform * TransformBuildRotateY(0.03f * iter);
+        if (iter > 50) {
+            view = view_lookat;
+        }
         mvp = BuildMVP(model, view, proj);
         iter++;
 
-        // project to NDC
         for (u32 i = 0; i < nvertices; ++i) {
             ndc_buffer[i] = TransformPerspective(mvp, vertex_buffer[i]);
         }
-
-        // build screen line buffer
         u16 nlines_torender = LinesToScreen(w, h, lines_idxbuffer, nlines, ndc_buffer, lines_screen_buffer);
-
-        // render lines
         for (u32 i = 0; i < nlines_torender; ++i) {
-            DrawLineRGBA(image_buffer, w, h, lines_screen_buffer[2*i + 0], lines_screen_buffer[2*i + 1]);
+            RenderLineRGBA(image_buffer, w, h, lines_screen_buffer[2*i + 0], lines_screen_buffer[2*i + 1]);
         }
-
-        // frame
         screen.Draw(image_buffer, w, h);
         SDL_GL_SwapWindow(window);
     }
@@ -420,5 +434,5 @@ void Test() {
     TestRandomImageOGL();
     TestRDrawLines();
     TestAnimateClockHand();
-    TestAnimateBox();
+    TestAnimateBoxAndLookrot();
 }

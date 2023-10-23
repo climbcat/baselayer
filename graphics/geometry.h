@@ -561,7 +561,6 @@ void PrintMatrix4d(Matrix4f *m) {
     }
     printf(" ]\n");
 }
-
 void PopulateMatrixRandomly(Matrix4f *m) {
     RandInit();
     for (int i = 0; i < 4; ++i) {

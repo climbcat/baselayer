@@ -9,7 +9,7 @@ struct Vector2_u16 {
 
 
 //
-//
+// Coordinate transforms
 
 
 inline
@@ -99,7 +99,7 @@ u16 AABoxGetLinesIndices(u16 offset, Vector2_u16 *dest) {
 // Render to image buffer
 
 
-void DrawRandomPatternRGBA(u8* image_buffer, u32 w, u32 h) {
+void RenderRandomPatternRGBA(u8* image_buffer, u32 w, u32 h) {
     RandInit();
     u32 pix_idx, r, g, b;
     for (u32 i = 0; i < h; ++i) {
@@ -115,8 +115,7 @@ void DrawRandomPatternRGBA(u8* image_buffer, u32 w, u32 h) {
         }
     }
 }
-
-void DrawLineRGBA(u8* image_buffer, u16 w, u16 h, u16 ax, u16 ay, u16 bx, u16 by) {
+void RenderLineRGBA(u8* image_buffer, u16 w, u16 h, u16 ax, u16 ay, u16 bx, u16 by) {
 
     // initially working from a to b
     // there are four cases:
@@ -184,10 +183,9 @@ void DrawLineRGBA(u8* image_buffer, u16 w, u16 h, u16 ax, u16 ay, u16 bx, u16 by
         }
     }
 }
-
 inline
-void DrawLineRGBA(u8* image_buffer, u16 w, u16 h, Vector2_u16 a, Vector2_u16 b) {
-    DrawLineRGBA(image_buffer, w, h, a.x, a.y, b.x, b.y);
+void RenderLineRGBA(u8* image_buffer, u16 w, u16 h, Vector2_u16 a, Vector2_u16 b) {
+    RenderLineRGBA(image_buffer, w, h, a.x, a.y, b.x, b.y);
 }
 
 

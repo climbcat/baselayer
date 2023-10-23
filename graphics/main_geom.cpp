@@ -20,7 +20,7 @@
 
 
 void RunProgram() {
-    printf("Running OpenGL screen texture demo...\n");
+    printf("Soft rendering demo ...\n");
 
     u32 w = 1280;
     u32 h = 800;
@@ -54,49 +54,34 @@ void RunProgram() {
     AABoxGetCorners(box, vertex_buffer);
     AABoxGetLinesIndices(0, lines_idxbuffer);
 
-
-    // NOTES: 
-    //  Transforms are local2world, also the view transform. However the BuildMVP() function
-    //  inverts the view matrix, before multiplying into an mvp. 
-    //  We are multiplying from the right, so the right-most matrix / transform applied to vertices
-    //  is applied to the local coordinates.
-    //  This is how the box rotation animation works currently; by applying a rotation-only matrix before
-    //  the formal "box transform" is applied.
-
-
     // build transform: [ model -> world -> view_inv -> projection ]
-    Matrix4f view = TransformBuild(y_hat, 0, cam_position); // TODO: LOOKAT to incorporate camera view direction
-    Matrix4f view_lookat = view * TransformLookRotation(box_position, cam_position); 
+    Matrix4f view = TransformBuild(y_hat, 0, cam_position) * TransformLookRotation(box_position, cam_position); 
     Matrix4f proj = PerspectiveMatrixOpenGL(cam.frustum, true, false, true);
     Matrix4f model = box_transform;
-    Matrix4f mvp = BuildMVP(model, view, proj);
+    Matrix4f mvp;
 
     u64 iter = 0;
-    while (Running()) {
+    MouseTrap mouse = InitMouseTrap();
+    while (Running(&mouse)) {
         XSleep(10);
         ClearToZeroRGBA(image_buffer, w, h);
 
+        // contact the mouse
+        printf("left: %d right: %d x: %d y: %d dx: %d dy: %d\n", mouse.held, mouse.rheld, mouse.x, mouse.y, mouse.dx, mouse.dy);
+
+        // transform vertices
         model = box_transform * TransformBuildRotateY(0.03f * iter);
-        if (iter > 50) {
-            view = view_lookat;
-        }
         mvp = BuildMVP(model, view, proj);
         iter++;
 
-        // project to NDC
+        // render
         for (u32 i = 0; i < nvertices; ++i) {
             ndc_buffer[i] = TransformPerspective(mvp, vertex_buffer[i]);
         }
-
-        // build screen line buffer
         u16 nlines_torender = LinesToScreen(w, h, lines_idxbuffer, nlines, ndc_buffer, lines_screen_buffer);
-
-        // render lines
         for (u32 i = 0; i < nlines_torender; ++i) {
-            DrawLineRGBA(image_buffer, w, h, lines_screen_buffer[2*i + 0], lines_screen_buffer[2*i + 1]);
+            RenderLineRGBA(image_buffer, w, h, lines_screen_buffer[2*i + 0], lines_screen_buffer[2*i + 1]);
         }
-
-        // frame
         screen.Draw(image_buffer, w, h);
         SDL_GL_SwapWindow(window);
     }

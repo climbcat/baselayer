@@ -46,19 +46,52 @@ SDL_Window *InitOGL(u32 width, u32 height, bool fullscreen_mode = false) {
 
     return window;
 }
-bool Running() {
+struct MouseTrap {
+    s32 x = 0;
+    s32 y = 0;
+    s32 dx = 0;
+    s32 dy = 0;
+    bool held;
+    bool rheld;
+};
+MouseTrap InitMouseTrap() {
+    MouseTrap m;
+    SDL_GetMouseState(&m.x, &m.y);
+    m.held = false;
+    m.rheld = false;
+    return m;
+}
+bool Running(MouseTrap *mouse) {
+    s32 x_prev = mouse->x;
+    s32 y_prev = mouse->y;
+    SDL_GetMouseState(&mouse->x, &mouse->y);
+    mouse->dx = mouse->x - x_prev;
+    mouse->dy = mouse->y - y_prev;
+
+    bool result = true;
     SDL_Event event;
-    //SDL_FlushEvents(SDL_FIRSTEVENT, SDL_LASTEVENT);
     while (SDL_PollEvent(&event))
     {
         if (event.type == SDL_QUIT) {
-            return false;
+            result = false;
         }
         else if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_ESCAPE) {
-            return false;
+            result = false;
+        }
+        else if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
+            mouse->held = true;
+        }
+        else if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT) {
+            mouse->held = false;
+        }
+        else if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_RIGHT) {
+            mouse->rheld = true;
+        }
+        else if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_RIGHT) {
+            mouse->rheld = false;
         }
     }
-    return true;
+    return result;
 }
 
 
