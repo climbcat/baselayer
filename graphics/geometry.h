@@ -150,6 +150,10 @@ inline
 Vector3f operator-(Vector3f v) {
     return Vector3f::ScalarProduct(-1, &v);
 }
+Vector3f x_hat { 1, 0, 0 };
+Vector3f y_hat { 0, 1, 0 };
+Vector3f z_hat { 0, 0, 1 };
+
 
 
 //
@@ -288,7 +292,7 @@ Vector3f ToV3f_Homogeneous(Vector4f v) {
 //
 // Transforms
 
-Matrix4f TransformBuild(Vector3f axis, float angle, Vector3f translate = {0, 0, 0}) {
+Matrix4f TransformBuild(Vector3f axis, float angle_rads, Vector3f translate = {0, 0, 0}) {
     Matrix4f result = Matrix4f_Zero();
 
     float epsilon_f = 0.0000001;
@@ -298,8 +302,8 @@ Matrix4f TransformBuild(Vector3f axis, float angle, Vector3f translate = {0, 0, 
     float x = axis.x;
     float y = axis.y;
     float z = axis.z;
-    float c = cos(angle);
-    float s = sin(angle);
+    float c = cos(angle_rads);
+    float s = sin(angle_rads);
 
     result.m[0][0] = x*x*(1 - c) + c;
     result.m[0][1] = x*y*(1 - c) - z*s;
@@ -320,6 +324,25 @@ Matrix4f TransformBuild(Vector3f axis, float angle, Vector3f translate = {0, 0, 
     result.m[3][3] = 1;
 
     return result;
+}
+Matrix4f TransformBuildRotateX(float angle_rads) {
+    return TransformBuild(x_hat, angle_rads);
+}
+Matrix4f TransformBuildRotateY(float angle_rads) {
+    return TransformBuild(y_hat, angle_rads);
+}
+Matrix4f TransformBuildRotateZ(float angle_rads) {
+    return TransformBuild(z_hat, angle_rads);
+}
+Matrix4f TransformLookRotation(Vector3f at, Vector3f from) {
+    // lookat rotations
+    Vector3f d = at - from;
+    f32 d_xz_len = sqrt(d.x*d.x + d.z*d.z);
+    f32 d_yz_len = sqrt(d.y*d.y + d.z*d.z);
+    f32 theta = acos(d.z / d_xz_len);
+    f32 phi = acos(d.z / d_yz_len);
+    Matrix4f lookrot = TransformBuildRotateY(-theta) * TransformBuildRotateX(phi);
+    return lookrot;
 }
 Matrix4f TransformBuildTranslationOnly(Vector3f translate) {
     // TODO: TEST: should be equal to a matrix with identity rot, built manually
