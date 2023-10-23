@@ -114,8 +114,9 @@ void RunProgram() {
     Vector2_u16 *lines_screen_buffer = (Vector2_u16*) ArenaAlloc(a, sizeof(Vector2_u16) * 1000);
 
     // entities
-    AABox box { Vector3f {0, 1, 4}, 0.3 };
-    Camera cam { Vector3f {1, 1, -1}, Vector3f {0, 0, 1}, PerspectiveFrustum { 90, 1, 0.1, 6 } }; // center, dir, fov, aspect, near, far
+    Vector3f box_center = Vector3f {0, 1, 4};
+    AABox box { box_center, 0.3 };
+    Camera cam { Vector3f {1, 1, -5}, Vector3f {0, 0, 1}, PerspectiveFrustum { 90, (float) w / h, 0.1, 20 } }; // center, dir, fov, aspect, near, far
 
     // populate vertex & line buffer
     AABoxGetCorners(box, vertex_buffer);
@@ -124,15 +125,19 @@ void RunProgram() {
     // build transform
     Matrix4f view = TransformBuildTranslationOnly(cam.position); // TODO: LOOKAT to incorporate camera view direction
     Matrix4f proj = PerspectiveMatrixOpenGL(cam.frustum, true, false, true);
-    Matrix4f model = Matrix4f_Identity(); // TODO: apply some interesting transform
-    Matrix4f mvp = proj * TransformGetInverse( view ) * model;
+    Matrix4f model = Matrix4f_Identity();
+    Matrix4f mvp;
 
-    u16 *iter;
+    u64 iter = 0;
     while (Running()) {
-        XSleep(33);
+        XSleep(10);
         ClearToZeroRGBA(image_buffer, w, h);
 
         // TODO: update model transform
+        model = TransformGetInverse( TransformBuild(Vector3f { 0, 1, 0 }, 0.03f * iter, box_center) );
+        
+        mvp = BuildMVP(model, view, proj);
+        iter++;
 
         // project to NDC
         for (u32 i = 0; i < nvertices; ++i) {

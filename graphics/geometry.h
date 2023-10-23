@@ -484,6 +484,10 @@ Matrix4f PerspectiveMatrixOpenGL(PerspectiveFrustum frustum, bool flip_x = true,
 
     return m;
 }
+Matrix4f BuildMVP(Matrix4f model, Matrix4f view, Matrix4f proj) {
+    Matrix4f mvp = proj * TransformGetInverse( view ) * model;
+    return mvp;
+}
 inline Vector3f TransformPerspective(Matrix4f p, Vector3f v) {
     Vector3f result = ToV3f_Homogeneous(p * ToV4f_Homogeneous(v));
     return result;
