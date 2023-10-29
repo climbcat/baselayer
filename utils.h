@@ -1,3 +1,5 @@
+#ifndef __UTILS_H__
+#define __UTILS_H__
 
 #include <cstdlib>
 #include <cassert>
@@ -181,3 +183,5 @@ void WriteRandomHexStr(char* dest, int nhexchars, bool put_newline_and_nullchar 
         *dest = '\0';
     }
 }
+
+#endif

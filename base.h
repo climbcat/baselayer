@@ -1,3 +1,6 @@
+#ifndef __BASE_H__
+#define __BASE_H__
+
 #include <cstdio>
 #include <cstdint>
 #include <cassert>
@@ -270,3 +273,5 @@ char *CLAGetArgValue(const char *key, int argc, char **argv) {
     }
     return argv[i+1];
 }
+
+#endif

@@ -1,6 +1,11 @@
-#include "base.c"
-#include "profile.c"
-#include "memory.c"
-#include "string.c"
-#include "utils.c"
-#include "platform.c"
+#ifndef __BASELAYER_H__
+#define __BASELAYER_H__
+
+#include "base.h"
+#include "profile.h"
+#include "memory.h"
+#include "string.h"
+#include "utils.h"
+#include "platform.h"
+
+#endif

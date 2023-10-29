@@ -1,3 +1,6 @@
+#ifndef __MEMORY_H__
+#define __MEMORY_H__
+
 #include <cstddef>
 #include <cstdlib>
 #include <cassert>
@@ -215,3 +218,5 @@ T *lst__grow(T *lst, u32 add_len) {
     new_hdr->cap = new_cap;
     return (T*) new_hdr->list;
 }
+
+#endif

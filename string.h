@@ -1,3 +1,6 @@
+#ifndef __STRING_H__
+#define __STRING_H__
+
 #include <cstdio>
 #include <cassert>
 
@@ -213,3 +216,5 @@ void StrAppendHot(MArena *a, char c, StrLst *to) {
 
     to->str[to->len++] = c;
 }
+
+#endif

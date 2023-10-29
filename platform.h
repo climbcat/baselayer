@@ -1,3 +1,6 @@
+#ifndef __PLATFORM_H__
+#define __PLATFORM_H__
+
 // platform-specific implementations of functions
 // not currently distributed in separate files
 
@@ -9,4 +12,6 @@
     #define LINUX 0
     #define WINDOWS 1
     #include "plaf/plaf_win.c"
+#endif
+
 #endif

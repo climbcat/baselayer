@@ -1,3 +1,6 @@
+#ifndef __PROFILE_H__
+#define __PROFILE_H__
+
 #define PROFILE 1
 #ifndef PROFILE
 #define PROFILE 0
@@ -116,5 +119,7 @@ static Profiler g_prof;
 #define TimeProgram ;
 #define TimeFunction ;
 #define TimeBlock(tag) ;
+
+#endif
 
 #endif
