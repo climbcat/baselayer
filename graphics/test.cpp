@@ -396,10 +396,10 @@ void TestAnimateBoxAndLookrot() {
 
     // build transform: [ model -> world -> view_inv -> projection ]
     Matrix4f view = TransformBuild(y_hat, 0, cam_position); // TODO: LOOKAT to incorporate camera view direction
-    Matrix4f view_lookat = view * TransformLookRotation(box_position, cam_position); 
+    Matrix4f view_lookat = view * TransformBuildLookRotationYUp(box_position, cam_position); 
     Matrix4f proj = PerspectiveMatrixOpenGL(cam.frustum, true, false, true);
     Matrix4f model = box_transform;
-    Matrix4f mvp = BuildMVP(model, view, proj);
+    Matrix4f mvp = TransformBuildMVP(model, view, proj);
 
     u64 iter = 0;
     MouseTrap mouse;
@@ -411,7 +411,7 @@ void TestAnimateBoxAndLookrot() {
         if (iter > 50) {
             view = view_lookat;
         }
-        mvp = BuildMVP(model, view, proj);
+        mvp = TransformBuildMVP(model, view, proj);
         iter++;
 
         for (u32 i = 0; i < nvertices; ++i) {
@@ -426,13 +426,14 @@ void TestAnimateBoxAndLookrot() {
     }
 }
 
+
 void Test() {
     //TestRandImage();
     //TestPointCloudBoxProj();
     //TestRotateCamera();
     //TestPointCloudPerspectiveProj_2();
-    TestRandomImageOGL();
-    TestRDrawLines();
-    TestAnimateClockHand();
+    //TestRandomImageOGL();
+    //TestRDrawLines();
+    //TestAnimateClockHand();
     TestAnimateBoxAndLookrot();
 }

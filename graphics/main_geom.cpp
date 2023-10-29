@@ -45,17 +45,21 @@ void RunProgram() {
     // entities
     Vector3f box_center = Vector3f {0, 0, 0}; // local coords
     AABox box { box_center, 0.3 };
-    Vector3f box_position { 0, -2, 5 };
+    //Vector3f box_position { 0, -2, 5 };
+    Vector3f box_position { 0, 0, 0 };
     Matrix4f box_transform = TransformBuild(y_hat, 0, box_position);
     Camera cam { PerspectiveFrustum { 90, (float) w / h, 0.1, 20 } }; // center, dir, fov, aspect, near, far
-    Vector3f cam_position { 2.2, 1.2, -5 };
+    //Vector3f cam_position { 0, 1, 8 };
+    //Vector3f cam_position { 0, 1, -8 };
+    //Vector3f cam_position { 8, 1, 1 };
+    Vector3f cam_position { -8, 1, 1 };
 
     // populate vertex & line buffer
     AABoxGetCorners(box, vertex_buffer);
     AABoxGetLinesIndices(0, lines_idxbuffer);
 
     // build transform: [ model -> world -> view_inv -> projection ]
-    Matrix4f view = TransformBuild(y_hat, 0, cam_position) * TransformLookRotation(box_position, cam_position); 
+    Matrix4f view = TransformBuild(y_hat, 0, cam_position) * TransformBuildLookRotationYUp(box_position, cam_position); 
     Matrix4f proj = PerspectiveMatrixOpenGL(cam.frustum, true, false, true);
     Matrix4f model = box_transform;
     Matrix4f mvp;
@@ -64,6 +68,11 @@ void RunProgram() {
     // NOTE: noticed that upper-left-corner constitutes screen 0,0, which means we much 
     //  want to invert the y-axis back from whence it came :>
 
+
+    // orbit camera params 
+    float theta = 85;
+    float phi = 0;
+    float radius = 8;
 
     u64 iter = 0;
     MouseTrap mouse = InitMouseTrap();
@@ -74,9 +83,13 @@ void RunProgram() {
         // contact the mouse
         printf("left: %d right: %d x: %d y: %d dx: %d dy: %d\n", mouse.held, mouse.rheld, mouse.x, mouse.y, mouse.dx, mouse.dy);
 
-        // transform vertices
+        // model transforms
         model = box_transform * TransformBuildRotateY(0.03f * iter);
-        mvp = BuildMVP(model, view, proj);
+
+        // 
+        cam_position = SphericalCoordsY(0.2*(sin(iter*3 * deg2rad) + 2) + theta * deg2rad, phi * deg2rad, radius);
+        view = TransformBuild(y_hat, 0, cam_position) * TransformBuildLookRotationYUp(box_center, cam_position);
+        mvp = TransformBuildMVP(model, view, proj);
         iter++;
 
         // render

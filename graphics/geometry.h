@@ -334,16 +334,6 @@ Matrix4f TransformBuildRotateY(float angle_rads) {
 Matrix4f TransformBuildRotateZ(float angle_rads) {
     return TransformBuild(z_hat, angle_rads);
 }
-Matrix4f TransformLookRotation(Vector3f at, Vector3f from) {
-    // lookat rotations
-    Vector3f d = at - from;
-    f32 d_xz_len = sqrt(d.x*d.x + d.z*d.z);
-    f32 d_yz_len = sqrt(d.y*d.y + d.z*d.z);
-    f32 theta = acos(d.z / d_xz_len);
-    f32 phi = acos(d.z / d_yz_len);
-    Matrix4f lookrot = TransformBuildRotateY(-theta) * TransformBuildRotateX(phi);
-    return lookrot;
-}
 Matrix4f TransformBuildTranslationOnly(Vector3f translate) {
     // TODO: TEST: should be equal to a matrix with identity rot, built manually
     return TransformBuild(Vector3f {1, 0, 0}, 0, translate);
@@ -432,6 +422,30 @@ Vector3f TransformInverseDirection(Matrix4f *a, Vector3f *d) {
     // TODO: scale back
     return result;
 }
+Matrix4f TransformBuildLookRotationYUp(Vector3f at, Vector3f from) {
+
+    Vector3f forward = at - from;
+    forward.Normalize();
+    Vector3f left = y_hat.Cross(forward);
+    left.Normalize();
+    Vector3f right = - left;
+    Vector3f up = forward.Cross(left);
+    up.Normalize();
+
+    Matrix4f lookrot = Matrix4f_Identity();
+    lookrot.m[0][0] = right.x;
+    lookrot.m[1][0] = right.y;
+    lookrot.m[2][0] = right.z;
+    lookrot.m[0][1] = up.x;
+    lookrot.m[1][1] = up.y;
+    lookrot.m[2][1] = up.z;
+    lookrot.m[0][2] = forward.x;
+    lookrot.m[1][2] = forward.y;
+    lookrot.m[2][2] = forward.z;
+
+    return lookrot;
+}
+
 
 
 //
@@ -513,9 +527,22 @@ Matrix4f PerspectiveMatrixOpenGL(PerspectiveFrustum frustum, bool flip_x = true,
 
     return m;
 }
-Matrix4f BuildMVP(Matrix4f model, Matrix4f view, Matrix4f proj) {
+Matrix4f TransformBuildMVP(Matrix4f model, Matrix4f view, Matrix4f proj) {
     Matrix4f mvp = proj * TransformGetInverse( view ) * model;
     return mvp;
+}
+inline
+Vector3f SphericalCoordsY(float theta, float phi, float radius) {
+    Vector3f v;
+    v.x = radius * sin(theta) * cos(phi);
+    v.y = radius * cos(theta);
+    v.z = radius * sin(theta) * sin(phi);
+    return v;
+}
+Matrix4f TransformBuildOrbitCam(Vector3f center, float theta, float phi, float radius) {
+    Vector3f campos = SphericalCoordsY(theta, phi, radius);
+    Matrix4f view = TransformBuild(y_hat, 0, campos) * TransformBuildLookRotationYUp(center, campos);
+    return view;
 }
 inline Vector3f TransformPerspective(Matrix4f p, Vector3f v) {
     Vector3f result = ToV3f_Homogeneous(p * ToV4f_Homogeneous(v));
