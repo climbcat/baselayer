@@ -74,35 +74,39 @@ AABox InitAABox(Vector3f transf_center, float radius) {
     };
     return box;
 }
-u16 AABoxGetCorners(AABox box, Vector3f *dest) {
+u16 AABoxGetCorners(AABox box, List<Vector3f> *dest) {
     AABox *b = &box;
-    *dest++ = Vector3f { b->center.x - b->radius, b->center.y - b->radius, b->center.z - b->radius };
-    *dest++ = Vector3f { b->center.x - b->radius, b->center.y - b->radius, b->center.z + b->radius };
-    *dest++ = Vector3f { b->center.x - b->radius, b->center.y + b->radius, b->center.z - b->radius };
-    *dest++ = Vector3f { b->center.x - b->radius, b->center.y + b->radius, b->center.z + b->radius };
-    *dest++ = Vector3f { b->center.x + b->radius, b->center.y - b->radius, b->center.z - b->radius };
-    *dest++ = Vector3f { b->center.x + b->radius, b->center.y - b->radius, b->center.z + b->radius };
-    *dest++ = Vector3f { b->center.x + b->radius, b->center.y + b->radius, b->center.z - b->radius };
-    *dest++ = Vector3f { b->center.x + b->radius, b->center.y + b->radius, b->center.z + b->radius };
+    *(dest->lst + dest->len++) = Vector3f { b->center.x - b->radius, b->center.y - b->radius, b->center.z - b->radius };
+    *(dest->lst + dest->len++) = Vector3f { b->center.x - b->radius, b->center.y - b->radius, b->center.z + b->radius };
+    *(dest->lst + dest->len++) = Vector3f { b->center.x - b->radius, b->center.y + b->radius, b->center.z - b->radius };
+    *(dest->lst + dest->len++) = Vector3f { b->center.x - b->radius, b->center.y + b->radius, b->center.z + b->radius };
+    *(dest->lst + dest->len++) = Vector3f { b->center.x + b->radius, b->center.y - b->radius, b->center.z - b->radius };
+    *(dest->lst + dest->len++) = Vector3f { b->center.x + b->radius, b->center.y - b->radius, b->center.z + b->radius };
+    *(dest->lst + dest->len++) = Vector3f { b->center.x + b->radius, b->center.y + b->radius, b->center.z - b->radius };
+    *(dest->lst + dest->len++) = Vector3f { b->center.x + b->radius, b->center.y + b->radius, b->center.z + b->radius };
     return 8;
 }
-u16 AABoxGetLinesIndices(u16 vertex_offset, Vector2_u16 *dest) {
-    *dest++ = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 1) };
-    *dest++ = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 2) };
-    *dest++ = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 4) };
+u16 AABoxGetLinesIndices(u16 vertex_offset, List<Vector2_u16> *dest) {
+    *(dest->lst + dest->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 1) };
+    *(dest->lst + dest->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 2) };
+    *(dest->lst + dest->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 4) };
 
-    *dest++ = Vector2_u16 { (u16) (vertex_offset + 3), (u16) (vertex_offset + 1) };
-    *dest++ = Vector2_u16 { (u16) (vertex_offset + 3), (u16) (vertex_offset + 2) };
-    *dest++ = Vector2_u16 { (u16) (vertex_offset + 3), (u16) (vertex_offset + 7) };
+    *(dest->lst + dest->len++) = Vector2_u16 { (u16) (vertex_offset + 3), (u16) (vertex_offset + 1) };
+    *(dest->lst + dest->len++) = Vector2_u16 { (u16) (vertex_offset + 3), (u16) (vertex_offset + 2) };
+    *(dest->lst + dest->len++) = Vector2_u16 { (u16) (vertex_offset + 3), (u16) (vertex_offset + 7) };
 
-    *dest++ = Vector2_u16 { (u16) (vertex_offset + 5), (u16) (vertex_offset + 1) };
-    *dest++ = Vector2_u16 { (u16) (vertex_offset + 5), (u16) (vertex_offset + 4) };
-    *dest++ = Vector2_u16 { (u16) (vertex_offset + 5), (u16) (vertex_offset + 7) };
+    *(dest->lst + dest->len++) = Vector2_u16 { (u16) (vertex_offset + 5), (u16) (vertex_offset + 1) };
+    *(dest->lst + dest->len++) = Vector2_u16 { (u16) (vertex_offset + 5), (u16) (vertex_offset + 4) };
+    *(dest->lst + dest->len++) = Vector2_u16 { (u16) (vertex_offset + 5), (u16) (vertex_offset + 7) };
 
-    *dest++ = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 2) };
-    *dest++ = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 4) };
-    *dest++ = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 7) };
+    *(dest->lst + dest->len++) = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 2) };
+    *(dest->lst + dest->len++) = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 4) };
+    *(dest->lst + dest->len++) = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 7) };
     return 12;
+}
+void AABoxGetVerticesAndIndices(AABox box, List<Vector3f> *verts_dest, List<Vector2_u16> *idxs_dest) {
+    AABoxGetLinesIndices(verts_dest->len, idxs_dest);
+    AABoxGetCorners(box, verts_dest);
 }
 
 
@@ -122,18 +126,22 @@ CoordAxes InitCoordAxes() {
     CoordAxes ax;
     return ax;
 }
-u16 CoordAxesGetVertices(CoordAxes axes, Vector3f *dest) {
-    *dest++ = (axes.origo);
-    *dest++ = (axes.origo + axes.x);
-    *dest++ = (axes.origo + axes.y);
-    *dest++ = (axes.origo + axes.z);
+u16 CoordAxesGetVertices(CoordAxes axes, List<Vector3f> *dest) {
+    *(dest->lst + dest->len++) = (axes.origo);
+    *(dest->lst + dest->len++)= (axes.origo + axes.x);
+    *(dest->lst + dest->len++) = (axes.origo + axes.y);
+    *(dest->lst + dest->len++) = (axes.origo + axes.z);
     return 4;
 }
-u16 CoordAxesGetLinesIndices(u16 vertex_offset, Vector2_u16 *dest) {
-    *dest++ = Vector2_u16 { (u16) (vertex_offset), (u16) (vertex_offset + 1) };
-    *dest++ = Vector2_u16 { (u16) (vertex_offset), (u16) (vertex_offset + 2) };
-    *dest++ = Vector2_u16 { (u16) (vertex_offset), (u16) (vertex_offset + 3) };
+u16 CoordAxesGetLinesIndices(u16 vertex_offset, List<Vector2_u16> *dest) {
+    *(dest->lst + dest->len++) = Vector2_u16 { (u16) (vertex_offset), (u16) (vertex_offset + 1) };
+    *(dest->lst + dest->len++) = Vector2_u16 { (u16) (vertex_offset), (u16) (vertex_offset + 2) };
+    *(dest->lst + dest->len++) = Vector2_u16 { (u16) (vertex_offset), (u16) (vertex_offset + 3) };
     return 3;
+}
+void CoordAxesGetVerticesAndIndices(CoordAxes axes, List<Vector3f> *verts_dest, List<Vector2_u16> *idxs_dest) {
+    CoordAxesGetLinesIndices(verts_dest->len, idxs_dest);
+    CoordAxesGetVertices(axes, verts_dest);
 }
 
 //

@@ -138,6 +138,25 @@ void PoolFree(MPool *p, void *element) {
 
 
 //
+// Static Arrays
+
+
+template<typename T>
+struct List {
+    T *lst;
+    u32 len;
+};
+
+template<class T>
+List<T> InitList(MArena *a, u32 count) {
+    List<T> _lst;
+    _lst.len = 0;
+    _lst.lst = (T*) ArenaAlloc(a, sizeof(T) * count);
+    return _lst;
+}
+
+
+//
 // Dynamic Arrays
 
 
@@ -152,7 +171,7 @@ template<typename T>
 struct ListX {
     MArena arena;
     u32 len;
-    T* lst;
+    T *lst;
     ListX() {
         this->len = 0;
         this->arena = ArenaCreate();
@@ -162,10 +181,11 @@ struct ListX {
     void Add(T el) {
         ArenaPush(&this->arena, &el, sizeof(T));
     }
-    T* At(u32 idx) {
+    T *At(u32 idx) {
         return (T*)arena.mem + idx;
     }
 };
+
 
 //
 // Stretchy buffer

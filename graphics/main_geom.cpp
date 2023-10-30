@@ -37,23 +37,30 @@ void RunProgram() {
 
     // pipeline buffers
 
-    // TODO: use fixed-size List<> structs with len members cooked in
+    List<Vector3f> _vertex_buffer = InitList<Vector3f>(a, 1000);
+    List<Vector2_u16> _index_buffer = InitList<Vector2_u16>(a, 1000);
+    List<Vector3f> _ndc_buffer = InitList<Vector3f>(a, 1000);
+    List<Vector2_u16> _screen_buffer = InitList<Vector2_u16>(a, 1000);
+    
     u16 nlines = 0;
     u32 nvertices = 0;
-    Vector3f *vertex_buffer = (Vector3f*) ArenaAlloc(a, sizeof(Vector3f) * 100);
-    Vector2_u16 *index_buffer = (Vector2_u16*) ArenaAlloc(a, sizeof(Vector2_u16) * 1000);
-    Vector3f *ndc_buffer = (Vector3f*) ArenaAlloc(a, sizeof(Vector3f) * 100);
-    Vector2_u16 *screen_buffer_lines = (Vector2_u16*) ArenaAlloc(a, sizeof(Vector2_u16) * 1000);
+    Vector3f *vertex_buffer = _vertex_buffer.lst;
+    Vector2_u16 *index_buffer = _index_buffer.lst;
+    Vector3f *ndc_buffer = _ndc_buffer.lst;
+    Vector2_u16 *screen_buffer_lines = _screen_buffer.lst;
 
     // entities
     AABox box = InitAABox({ 0, -0.7, 0.7 }, 0.3);
     CoordAxes axes = InitCoordAxes();
 
     // populate vertex & line buffer
-    nvertices += AABoxGetCorners(box, vertex_buffer + nvertices);
-    nlines += AABoxGetLinesIndices(0, index_buffer + nlines);
-    nvertices += CoordAxesGetVertices(axes, vertex_buffer + nvertices);
-    nlines += CoordAxesGetLinesIndices(8, index_buffer + nlines);
+    List<Vector3f> _lst = _vertex_buffer;
+    List<Vector2_u16> _ilst = _index_buffer;
+    AABoxGetVerticesAndIndices(box, &_lst, &_ilst);
+    CoordAxesGetVerticesAndIndices(axes, &_lst, &_ilst);
+    nvertices = _lst.len;
+    nlines = _ilst.len;
+
     printf("nvertices: %d nlines: %d\n", nvertices, nlines);
 
     for (u32 i = 0; i < nvertices; ++i) {
