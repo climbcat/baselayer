@@ -150,5 +150,4 @@ OrbitCamera InitOrbitCamera(float aspect) {
 }
 
 
-
 #endif
