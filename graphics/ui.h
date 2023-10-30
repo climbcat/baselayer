@@ -53,12 +53,16 @@ struct MouseTrap {
     s32 dy = 0;
     bool held;
     bool rheld;
+    bool wup;
+    bool wdown;
 };
 MouseTrap InitMouseTrap() {
     MouseTrap m;
     SDL_GetMouseState(&m.x, &m.y);
     m.held = false;
     m.rheld = false;
+    m.wup = true;
+    m.wdown = true;
     return m;
 }
 bool Running(MouseTrap *mouse) {
@@ -67,6 +71,8 @@ bool Running(MouseTrap *mouse) {
     SDL_GetMouseState(&mouse->x, &mouse->y);
     mouse->dx = mouse->x - x_prev;
     mouse->dy = mouse->y - y_prev;
+    mouse->wup = false;
+    mouse->wdown = false;
 
     bool result = true;
     SDL_Event event;
@@ -89,6 +95,14 @@ bool Running(MouseTrap *mouse) {
         }
         else if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_RIGHT) {
             mouse->rheld = false;
+        }
+        else if (event.type == SDL_MOUSEWHEEL) {
+            if (event.wheel.y > 0) {
+                mouse->wup = true;
+            }
+            else if (event.wheel.y < 0) {
+                mouse->wdown = true;
+            }
         }
     }
     return result;

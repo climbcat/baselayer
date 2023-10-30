@@ -18,6 +18,12 @@
 #include "test.cpp"
 
 
+float ClampTheta(float theta_degs, float min = 0.0001f, float max = 180 - 0.0001f) {
+    float clamp_up = MinF32(theta_degs, max);
+    float result = MaxF32(clamp_up, min);
+    return result;
+}
+
 
 void RunProgram() {
     printf("Soft rendering demo ...\n");
@@ -76,19 +82,31 @@ void RunProgram() {
 
     u64 iter = 0;
     MouseTrap mouse = InitMouseTrap();
+    float mouse2theta = 0.2;
+    float mouse2phi = 0.2;
     while (Running(&mouse)) {
         XSleep(10);
         ClearToZeroRGBA(image_buffer, w, h);
 
         // contact the mouse
-        printf("left: %d right: %d x: %d y: %d dx: %d dy: %d\n", mouse.held, mouse.rheld, mouse.x, mouse.y, mouse.dx, mouse.dy);
+        printf("left: %d right: %d x: %d y: %d dx: %d dy: %d up: %d down: %d\n", mouse.held, mouse.rheld, mouse.x, mouse.y, mouse.dx, mouse.dy, mouse.wup, mouse.wdown);
 
-        // model transforms
+        // rotate the box
         model = box_transform * TransformBuildRotateY(0.03f * iter);
 
         // orbitcam stuff
-        cam_position = SphericalCoordsY(0.2*(sin(iter*3 * deg2rad) - 2) + theta * deg2rad, phi * deg2rad, radius);
-        view = TransformBuild(y_hat, 0, cam_position) * TransformBuildLookRotationYUp(box_center, cam_position);
+        if (mouse.held) {
+            printf("theta: %f\n", theta);
+            theta = ClampTheta( theta - mouse.dy * mouse2theta);
+            phi += mouse.dx * mouse2phi;
+        }
+        if (mouse.wdown) {
+            radius *= 1.1;
+        }
+        else if (mouse.wup) {
+            radius /= 1.1;
+        }
+        view = TransformBuildOrbitCam(box_center, theta, phi, radius);
         mvp = TransformBuildMVP(model, view, proj);
         iter++;
 

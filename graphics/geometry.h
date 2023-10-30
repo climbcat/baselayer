@@ -539,9 +539,19 @@ Vector3f SphericalCoordsY(float theta, float phi, float radius) {
     v.z = radius * sin(theta) * sin(phi);
     return v;
 }
-Matrix4f TransformBuildOrbitCam(Vector3f center, float theta, float phi, float radius) {
-    Vector3f campos = SphericalCoordsY(theta, phi, radius);
-    Matrix4f view = TransformBuild(y_hat, 0, campos) * TransformBuildLookRotationYUp(center, campos);
+struct OrbitCam {
+    Vector3f center;
+    float theta;
+    float phi;
+    float radius;
+
+    //void Update(MouseTrap *mouse, float dt) {
+        //theta += mouse->
+    //}
+};
+Matrix4f TransformBuildOrbitCam(Vector3f center, float theta_degs, float phi_degs, float radius) {
+    Vector3f campos = SphericalCoordsY(theta_degs*deg2rad, phi_degs*deg2rad, radius);
+    Matrix4f view = TransformBuildTranslationOnly(campos) * TransformBuildLookRotationYUp(center, campos);
     return view;
 }
 inline Vector3f TransformPerspective(Matrix4f p, Vector3f v) {
