@@ -36,51 +36,60 @@ void RunProgram() {
     screen.Init(image_buffer, w, h);
 
     // pipeline buffers
+
+    // TODO: use fixed-size List<> structs with len members cooked in
+    u16 nlines = 0;
+    u32 nvertices = 0;
     Vector3f *vertex_buffer = (Vector3f*) ArenaAlloc(a, sizeof(Vector3f) * 100);
-    u32 nvertices = 8;
+    Vector2_u16 *index_buffer = (Vector2_u16*) ArenaAlloc(a, sizeof(Vector2_u16) * 1000);
     Vector3f *ndc_buffer = (Vector3f*) ArenaAlloc(a, sizeof(Vector3f) * 100);
-    Vector2_u16 *lines_idxbuffer = (Vector2_u16*) ArenaAlloc(a, sizeof(Vector2_u16) * 1000);
-    u32 nlines = 12;
-    Vector2_u16 *lines_screen_buffer = (Vector2_u16*) ArenaAlloc(a, sizeof(Vector2_u16) * 1000);
+    Vector2_u16 *screen_buffer_lines = (Vector2_u16*) ArenaAlloc(a, sizeof(Vector2_u16) * 1000);
 
     // entities
-    Vector3f box_center = Vector3f {0, 0, 0}; // local coords
-    AABox box { box_center, 0.3 };
-    //Vector3f box_position { 0, -2, 5 };
-    Vector3f box_position { 0, 0, 0 };
-    Matrix4f box_transform = TransformBuild(y_hat, 0, box_position);
-    OrbitCamera cam = InitOrbitCamera(aspect);
-    //Vector3f cam_position { 0, 1, 8 };
-    //Vector3f cam_position { 0, 1, -8 };
-    //Vector3f cam_position { 8, 1, 1 };
-    Vector3f cam_position { -8, 1, 1 };
+    AABox box = InitAABox({ 0, -0.7, 0.7 }, 0.3);
+    CoordAxes axes = InitCoordAxes();
 
     // populate vertex & line buffer
-    AABoxGetCorners(box, vertex_buffer);
-    AABoxGetLinesIndices(0, lines_idxbuffer);
+    nvertices += AABoxGetCorners(box, vertex_buffer + nvertices);
+    nlines += AABoxGetLinesIndices(0, index_buffer + nlines);
+    nvertices += CoordAxesGetVertices(axes, vertex_buffer + nvertices);
+    nlines += CoordAxesGetLinesIndices(8, index_buffer + nlines);
+    printf("nvertices: %d nlines: %d\n", nvertices, nlines);
+
+    for (u32 i = 0; i < nvertices; ++i) {
+        Vector3f v = vertex_buffer[i];
+        printf("%u: x: %f y: %f z: %f \n", i, v.x, v.y, v.z);
+    }
+    for (u32 i = 0; i < nlines; ++i) {
+        Vector2_u16 idx = index_buffer[i];
+        printf("i1: %u i2: %u\n", idx.x, idx.y);
+    }
+
+    // camera
+    OrbitCamera cam = InitOrbitCamera(aspect);
 
     // build transform: [ model -> world -> view_inv -> projection ]
-    Matrix4f view = TransformBuild(y_hat, 0, cam_position) * TransformBuildLookRotationYUp(box_position, cam_position); 
     Matrix4f proj = PerspectiveMatrixOpenGL(cam.frustum, true, false, true);
-    Matrix4f model = box_transform;
-    Matrix4f mvp;
+    Matrix4f view, model, mvp;
+
 
 
     // NOTE: noticed that upper-left-corner constitutes screen 0,0, which means we much 
     //  want to invert the y-axis back from whence it came :>
 
 
+
     // orbit camera params
     u64 iter = 0;
     MouseTrap mouse = InitMouseTrap();
-    float mouse2theta = 0.2;
-    float mouse2phi = 0.2;
+    float mouse2theta = 0.3;
+    float mouse2phi = 0.3;
     while (Running(&mouse)) {
         XSleep(10);
         ClearToZeroRGBA(image_buffer, w, h);
 
         // box animation
-        model = box_transform * TransformBuildRotateY(0.03f * iter);
+        model = box.transform * TransformBuildRotateY(0.03f * iter);
 
         // orbit
         cam.Update(&mouse);
@@ -91,9 +100,9 @@ void RunProgram() {
         for (u32 i = 0; i < nvertices; ++i) {
             ndc_buffer[i] = TransformPerspective(mvp, vertex_buffer[i]);
         }
-        u16 nlines_torender = LinesToScreen(w, h, lines_idxbuffer, nlines, ndc_buffer, lines_screen_buffer);
+        u16 nlines_torender = LinesToScreen(w, h, index_buffer, nlines, ndc_buffer, screen_buffer_lines);
         for (u32 i = 0; i < nlines_torender; ++i) {
-            RenderLineRGBA(image_buffer, w, h, lines_screen_buffer[2*i + 0], lines_screen_buffer[2*i + 1]);
+            RenderLineRGBA(image_buffer, w, h, screen_buffer_lines[2*i + 0], screen_buffer_lines[2*i + 1]);
         }
         screen.Draw(image_buffer, w, h);
         SDL_GL_SwapWindow(window);

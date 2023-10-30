@@ -34,11 +34,11 @@ Vector2_u16 NDC2Screen(u32 w, u32 h, Vector3f ndc) {
 
     return pos;
 }
-u16 LinesToScreen(u32 w, u32 h, Vector2_u16* lines_idxbuffer, u16 nlines, Vector3f *ndc_buffer, Vector2_u16* lines_screen_buffer) {
-    u16 nlines_torender = 0;
+u16 LinesToScreen(u32 w, u32 h, Vector2_u16* index_buffer, u16 nlines, Vector3f *ndc_buffer, Vector2_u16* screen_buffer) {
+    u16 nlines_culled = 0;
     u16 idx = 0;
     for (u32 i = 0; i < nlines; ++i) {
-        Vector2_u16 line = lines_idxbuffer[i];
+        Vector2_u16 line = index_buffer[i];
         Vector2_u16 a = NDC2Screen(w, h, ndc_buffer[line.x]);
         Vector2_u16 b = NDC2Screen(w, h, ndc_buffer[line.y]);
 
@@ -47,11 +47,11 @@ u16 LinesToScreen(u32 w, u32 h, Vector2_u16* lines_idxbuffer, u16 nlines, Vector
             continue;
         }
 
-        lines_screen_buffer[idx++] = a;
-        lines_screen_buffer[idx++] = b;
-        nlines_torender++;
+        screen_buffer[idx++] = a;
+        screen_buffer[idx++] = b;
+        nlines_culled++;
     }
-    return nlines_torender;
+    return nlines_culled;
 }
 
 
@@ -60,10 +60,21 @@ u16 LinesToScreen(u32 w, u32 h, Vector2_u16* lines_idxbuffer, u16 nlines, Vector
 
 
 struct AABox {
+    // global coords
+    Matrix4f transform;
+    // local coords
     Vector3f center;
     f32 radius;
 };
-void AABoxGetCorners(AABox box, Vector3f *dest) {
+AABox InitAABox(Vector3f transf_center, float radius) {
+    AABox box {
+        TransformBuild(y_hat, 0, transf_center),
+        Vector3f {0, 0, 0},
+        radius,
+    };
+    return box;
+}
+u16 AABoxGetCorners(AABox box, Vector3f *dest) {
     AABox *b = &box;
     *dest++ = Vector3f { b->center.x - b->radius, b->center.y - b->radius, b->center.z - b->radius };
     *dest++ = Vector3f { b->center.x - b->radius, b->center.y - b->radius, b->center.z + b->radius };
@@ -73,27 +84,57 @@ void AABoxGetCorners(AABox box, Vector3f *dest) {
     *dest++ = Vector3f { b->center.x + b->radius, b->center.y - b->radius, b->center.z + b->radius };
     *dest++ = Vector3f { b->center.x + b->radius, b->center.y + b->radius, b->center.z - b->radius };
     *dest++ = Vector3f { b->center.x + b->radius, b->center.y + b->radius, b->center.z + b->radius };
+    return 8;
 }
-u16 AABoxGetLinesIndices(u16 offset, Vector2_u16 *dest) {
-    *dest++ = Vector2_u16 { (u16) (offset + 0), (u16) (offset + 1) };
-    *dest++ = Vector2_u16 { (u16) (offset + 0), (u16) (offset + 2) };
-    *dest++ = Vector2_u16 { (u16) (offset + 0), (u16) (offset + 4) };
+u16 AABoxGetLinesIndices(u16 vertex_offset, Vector2_u16 *dest) {
+    *dest++ = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 1) };
+    *dest++ = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 2) };
+    *dest++ = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 4) };
 
-    *dest++ = Vector2_u16 { (u16) (offset + 3), (u16) (offset + 1) };
-    *dest++ = Vector2_u16 { (u16) (offset + 3), (u16) (offset + 2) };
-    *dest++ = Vector2_u16 { (u16) (offset + 3), (u16) (offset + 7) };
+    *dest++ = Vector2_u16 { (u16) (vertex_offset + 3), (u16) (vertex_offset + 1) };
+    *dest++ = Vector2_u16 { (u16) (vertex_offset + 3), (u16) (vertex_offset + 2) };
+    *dest++ = Vector2_u16 { (u16) (vertex_offset + 3), (u16) (vertex_offset + 7) };
 
-    *dest++ = Vector2_u16 { (u16) (offset + 5), (u16) (offset + 1) };
-    *dest++ = Vector2_u16 { (u16) (offset + 5), (u16) (offset + 4) };
-    *dest++ = Vector2_u16 { (u16) (offset + 5), (u16) (offset + 7) };
+    *dest++ = Vector2_u16 { (u16) (vertex_offset + 5), (u16) (vertex_offset + 1) };
+    *dest++ = Vector2_u16 { (u16) (vertex_offset + 5), (u16) (vertex_offset + 4) };
+    *dest++ = Vector2_u16 { (u16) (vertex_offset + 5), (u16) (vertex_offset + 7) };
 
-    *dest++ = Vector2_u16 { (u16) (offset + 6), (u16) (offset + 2) };
-    *dest++ = Vector2_u16 { (u16) (offset + 6), (u16) (offset + 4) };
-    *dest++ = Vector2_u16 { (u16) (offset + 6), (u16) (offset + 7) };
-
-    return offset + 12;
+    *dest++ = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 2) };
+    *dest++ = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 4) };
+    *dest++ = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 7) };
+    return 12;
 }
 
+
+//
+// Coordinate axes
+
+
+struct CoordAxes {
+    // global coords
+    Matrix4f transform;
+    Vector3f x { 1, 0, 0 };
+    Vector3f y { 0, 1, 0 };
+    Vector3f z { 0, 0, 1 };
+    Vector3f origo { 0, 0, 0 };
+};
+CoordAxes InitCoordAxes() {
+    CoordAxes ax;
+    return ax;
+}
+u16 CoordAxesGetVertices(CoordAxes axes, Vector3f *dest) {
+    *dest++ = (axes.origo);
+    *dest++ = (axes.origo + axes.x);
+    *dest++ = (axes.origo + axes.y);
+    *dest++ = (axes.origo + axes.z);
+    return 4;
+}
+u16 CoordAxesGetLinesIndices(u16 vertex_offset, Vector2_u16 *dest) {
+    *dest++ = Vector2_u16 { (u16) (vertex_offset), (u16) (vertex_offset + 1) };
+    *dest++ = Vector2_u16 { (u16) (vertex_offset), (u16) (vertex_offset + 2) };
+    *dest++ = Vector2_u16 { (u16) (vertex_offset), (u16) (vertex_offset + 3) };
+    return 3;
+}
 
 //
 // Render to image buffer

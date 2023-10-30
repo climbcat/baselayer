@@ -61,6 +61,7 @@ void TestRDrawLines() {
 void TestAnimateBoxAndOrbitCam() {
     printf("TestAnimateBoxAndOrbitCam\n");
 
+    /*
     u32 w = 1280;
     u32 h = 800;
     float aspect = (float) w / h;
@@ -131,6 +132,7 @@ void TestAnimateBoxAndOrbitCam() {
         screen.Draw(image_buffer, w, h);
         SDL_GL_SwapWindow(window);
     }
+    */
 }
 
 
