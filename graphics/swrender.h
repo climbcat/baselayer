@@ -34,6 +34,8 @@ Vector2_u16 NDC2Screen(u32 w, u32 h, Vector3f ndc) {
 
     return pos;
 }
+/*
+*/
 u16 LinesToScreen(u32 w, u32 h, Vector2_u16* index_buffer, u16 nlines, Vector3f *ndc_buffer, Vector2_u16* screen_buffer) {
     u16 nlines_culled = 0;
     u16 idx = 0;
@@ -52,6 +54,24 @@ u16 LinesToScreen(u32 w, u32 h, Vector2_u16* index_buffer, u16 nlines, Vector3f 
         nlines_culled++;
     }
     return nlines_culled;
+}
+u16 LinesToScreen(u32 w, u32 h, List<Vector2_u16> *index_buffer, List<Vector3f> *ndc_buffer, List<Vector2_u16> *screen_buffer) {
+    u16 nlines_remaining = 0;
+    for (u32 i = 0; i < index_buffer->len; ++i) {
+        Vector2_u16 line = index_buffer->lst[i];
+        Vector2_u16 a = NDC2Screen(w, h, ndc_buffer->lst[line.x]);
+        Vector2_u16 b = NDC2Screen(w, h, ndc_buffer->lst[line.y]);
+
+        // TODO: crop to NDC box
+        if (Cull(a.x, a.y, w, h) || Cull(b.x, b.y, w, h)) {
+            continue;
+        }
+
+        *(screen_buffer->lst + screen_buffer->len++) = a;
+        *(screen_buffer->lst + screen_buffer->len++) = b;
+        nlines_remaining++;
+    }
+    return nlines_remaining;
 }
 
 

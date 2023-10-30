@@ -36,41 +36,16 @@ void RunProgram() {
     screen.Init(image_buffer, w, h);
 
     // pipeline buffers
-
-    List<Vector3f> _vertex_buffer = InitList<Vector3f>(a, 1000);
-    List<Vector2_u16> _index_buffer = InitList<Vector2_u16>(a, 1000);
-    List<Vector3f> _ndc_buffer = InitList<Vector3f>(a, 1000);
-    List<Vector2_u16> _screen_buffer = InitList<Vector2_u16>(a, 1000);
-    
-    u16 nlines = 0;
-    u32 nvertices = 0;
-    Vector3f *vertex_buffer = _vertex_buffer.lst;
-    Vector2_u16 *index_buffer = _index_buffer.lst;
-    Vector3f *ndc_buffer = _ndc_buffer.lst;
-    Vector2_u16 *screen_buffer_lines = _screen_buffer.lst;
+    List<Vector3f> vertex_buffer = InitList<Vector3f>(a, 1000);
+    List<Vector2_u16> index_buffer = InitList<Vector2_u16>(a, 1000);
+    List<Vector3f> ndc_buffer = InitList<Vector3f>(a, 1000);
+    List<Vector2_u16> screen_buffer = InitList<Vector2_u16>(a, 1000);
 
     // entities
     AABox box = InitAABox({ 0, -0.7, 0.7 }, 0.3);
     CoordAxes axes = InitCoordAxes();
-
-    // populate vertex & line buffer
-    List<Vector3f> _lst = _vertex_buffer;
-    List<Vector2_u16> _ilst = _index_buffer;
-    AABoxGetVerticesAndIndices(box, &_lst, &_ilst);
-    CoordAxesGetVerticesAndIndices(axes, &_lst, &_ilst);
-    nvertices = _lst.len;
-    nlines = _ilst.len;
-
-    printf("nvertices: %d nlines: %d\n", nvertices, nlines);
-
-    for (u32 i = 0; i < nvertices; ++i) {
-        Vector3f v = vertex_buffer[i];
-        printf("%u: x: %f y: %f z: %f \n", i, v.x, v.y, v.z);
-    }
-    for (u32 i = 0; i < nlines; ++i) {
-        Vector2_u16 idx = index_buffer[i];
-        printf("i1: %u i2: %u\n", idx.x, idx.y);
-    }
+    AABoxGetVerticesAndIndices(box, &vertex_buffer, &index_buffer);
+    CoordAxesGetVerticesAndIndices(axes, &vertex_buffer, &index_buffer);
 
     // camera
     OrbitCamera cam = InitOrbitCamera(aspect);
@@ -85,15 +60,12 @@ void RunProgram() {
     //  want to invert the y-axis back from whence it came :>
 
 
-
-    // orbit camera params
     u64 iter = 0;
     MouseTrap mouse = InitMouseTrap();
-    float mouse2theta = 0.3;
-    float mouse2phi = 0.3;
     while (Running(&mouse)) {
         XSleep(10);
         ClearToZeroRGBA(image_buffer, w, h);
+        screen_buffer.len = 0;
 
         // box animation
         model = box.transform * TransformBuildRotateY(0.03f * iter);
@@ -104,12 +76,14 @@ void RunProgram() {
         iter++;
 
         // render
-        for (u32 i = 0; i < nvertices; ++i) {
-            ndc_buffer[i] = TransformPerspective(mvp, vertex_buffer[i]);
+        for (u32 i = 0; i < vertex_buffer.len; ++i) {
+            ndc_buffer.lst[i] = TransformPerspective(mvp, vertex_buffer.lst[i]);
         }
-        u16 nlines_torender = LinesToScreen(w, h, index_buffer, nlines, ndc_buffer, screen_buffer_lines);
-        for (u32 i = 0; i < nlines_torender; ++i) {
-            RenderLineRGBA(image_buffer, w, h, screen_buffer_lines[2*i + 0], screen_buffer_lines[2*i + 1]);
+        ndc_buffer.len = vertex_buffer.len;
+
+        u16 nlines_torender = LinesToScreen(w, h, &index_buffer, &ndc_buffer, &screen_buffer);
+        for (u32 i = 0; i < screen_buffer.len / 2; ++i) {
+            RenderLineRGBA(image_buffer, w, h, screen_buffer.lst[2*i + 0], screen_buffer.lst[2*i + 1]);
         }
         screen.Draw(image_buffer, w, h);
         SDL_GL_SwapWindow(window);
