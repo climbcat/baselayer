@@ -18,18 +18,13 @@
 #include "test.cpp"
 
 
-float ClampTheta(float theta_degs, float min = 0.0001f, float max = 180 - 0.0001f) {
-    float clamp_up = MinF32(theta_degs, max);
-    float result = MaxF32(clamp_up, min);
-    return result;
-}
-
 
 void RunProgram() {
     printf("Soft rendering demo ...\n");
 
     u32 w = 1280;
     u32 h = 800;
+    float aspect = (float) w / h;
     u32 nchannels = 4;
     MArena arena = ArenaCreate();
     MArena *a = &arena;
@@ -54,7 +49,7 @@ void RunProgram() {
     //Vector3f box_position { 0, -2, 5 };
     Vector3f box_position { 0, 0, 0 };
     Matrix4f box_transform = TransformBuild(y_hat, 0, box_position);
-    Camera cam { PerspectiveFrustum { 90, (float) w / h, 0.1, 20 } }; // center, dir, fov, aspect, near, far
+    OrbitCamera cam = InitOrbitCamera(aspect);
     //Vector3f cam_position { 0, 1, 8 };
     //Vector3f cam_position { 0, 1, -8 };
     //Vector3f cam_position { 8, 1, 1 };
@@ -75,11 +70,7 @@ void RunProgram() {
     //  want to invert the y-axis back from whence it came :>
 
 
-    // orbit camera params 
-    float theta = 85;
-    float phi = 0;
-    float radius = 8;
-
+    // orbit camera params
     u64 iter = 0;
     MouseTrap mouse = InitMouseTrap();
     float mouse2theta = 0.2;
@@ -88,26 +79,12 @@ void RunProgram() {
         XSleep(10);
         ClearToZeroRGBA(image_buffer, w, h);
 
-        // contact the mouse
-        printf("left: %d right: %d x: %d y: %d dx: %d dy: %d up: %d down: %d\n", mouse.held, mouse.rheld, mouse.x, mouse.y, mouse.dx, mouse.dy, mouse.wup, mouse.wdown);
-
-        // rotate the box
+        // box animation
         model = box_transform * TransformBuildRotateY(0.03f * iter);
 
-        // orbitcam stuff
-        if (mouse.held) {
-            printf("theta: %f\n", theta);
-            theta = ClampTheta( theta - mouse.dy * mouse2theta);
-            phi += mouse.dx * mouse2phi;
-        }
-        if (mouse.wdown) {
-            radius *= 1.1;
-        }
-        else if (mouse.wup) {
-            radius /= 1.1;
-        }
-        view = TransformBuildOrbitCam(box_center, theta, phi, radius);
-        mvp = TransformBuildMVP(model, view, proj);
+        // orbit
+        cam.Update(&mouse);
+        mvp = TransformBuildMVP(model, cam.view, proj);
         iter++;
 
         // render

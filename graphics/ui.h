@@ -109,4 +109,46 @@ bool Running(MouseTrap *mouse) {
 }
 
 
+float mouse2theta = 0.4;
+float mouse2phi = 0.4;
+struct OrbitCamera {
+    PerspectiveFrustum frustum;
+    Vector3f center;
+    float theta;
+    float phi;
+    float radius;
+    Matrix4f view;
+
+    static float ClampTheta(float theta_degs, float min = 0.0001f, float max = 180 - 0.0001f) {
+        float clamp_up = MinF32(theta_degs, max);
+        float result = MaxF32(clamp_up, min);
+        return result;
+    }
+    void Update(MouseTrap *m) {
+        if (m->held) {
+            this->theta = OrbitCamera::ClampTheta( this->theta - m->dy * mouse2theta);
+            this->phi += m->dx * mouse2phi;
+        }
+        else if (m->wdown) {
+            this->radius *= 1.1;
+        }
+        else if (m->wup) {
+            this->radius /= 1.1;
+        }
+        this->view = TransformBuildOrbitCam(this->center, this->theta, this->phi, this->radius);
+    }
+};
+OrbitCamera InitOrbitCamera(float aspect) {
+    OrbitCamera cam {
+        PerspectiveFrustum { 90, aspect, 0.1, 20 } };
+    cam.center = Vector3f_Zero();
+    cam.theta = 85;
+    cam.phi = 0;
+    cam.radius = 8;
+    cam.view = Matrix4f_Identity();
+    return cam;
+}
+
+
+
 #endif

@@ -73,6 +73,7 @@ struct Vector3f {
         return Vector3f { 0, 0, 0 };
     }
     inline
+    // left-handed: Left, Up, Forward
     static Vector3f Left() {
         return Vector3f { 1, 0, 0 };
     }
@@ -153,11 +154,21 @@ Vector3f operator-(Vector3f v) {
 Vector3f x_hat { 1, 0, 0 };
 Vector3f y_hat { 0, 1, 0 };
 Vector3f z_hat { 0, 0, 1 };
-
+Vector3f Vector3f_Zero() {
+    return Vector3f { 0, 0, 0 };
+}
+Vector3f SphericalCoordsY(float theta, float phi, float radius) {
+    Vector3f v;
+    v.x = radius * sin(theta) * cos(phi);
+    v.y = radius * cos(theta);
+    v.z = radius * sin(theta) * sin(phi);
+    return v;
+}
 
 
 //
 // Matrix
+
 
 Matrix4f Matrix4f_Zero() {
     Matrix4f m;
@@ -290,7 +301,8 @@ Vector3f ToV3f_Homogeneous(Vector4f v) {
 
 
 //
-// Transforms
+// Transform
+
 
 Matrix4f TransformBuild(Vector3f axis, float angle_rads, Vector3f translate = {0, 0, 0}) {
     Matrix4f result = Matrix4f_Zero();
@@ -465,29 +477,6 @@ struct PerspectiveFrustum {
     float dist_near; // [m]
     float dist_far; // [m]
 };
-struct Camera {
-    //Vector3f position;
-    //Vector3f direction;
-    PerspectiveFrustum frustum;
-};
-
-
-Matrix4f PerspectiveMatrix(PerspectiveFrustum frustum) {
-    // NOTE: This is currently a "naiive" incomplete matrix used for testing
-    // Just a weird test projection, but it does do a perspective
-    float f = frustum.dist_far;
-    float n = frustum.dist_near;
-    float S = 1 / tan( frustum.fov / 2 * deg2rad );
-
-    Matrix4f m = Matrix4f_Zero();
-    m.m[0][0] = S;
-    m.m[1][1] = S;
-    m.m[2][2] = (f + n) / (f - n);
-    m.m[2][3] = - f * n / (f - n);
-    m.m[3][2] = 1;
-
-    return m;
-}
 Matrix4f PerspectiveMatrixOpenGL(PerspectiveFrustum frustum, bool flip_x = true, bool flip_y = false, bool flip_z = true) {
     // gather values
     float f = frustum.dist_far;
@@ -532,23 +521,6 @@ Matrix4f TransformBuildMVP(Matrix4f model, Matrix4f view, Matrix4f proj) {
     return mvp;
 }
 inline
-Vector3f SphericalCoordsY(float theta, float phi, float radius) {
-    Vector3f v;
-    v.x = radius * sin(theta) * cos(phi);
-    v.y = radius * cos(theta);
-    v.z = radius * sin(theta) * sin(phi);
-    return v;
-}
-struct OrbitCam {
-    Vector3f center;
-    float theta;
-    float phi;
-    float radius;
-
-    //void Update(MouseTrap *mouse, float dt) {
-        //theta += mouse->
-    //}
-};
 Matrix4f TransformBuildOrbitCam(Vector3f center, float theta_degs, float phi_degs, float radius) {
     Vector3f campos = SphericalCoordsY(theta_degs*deg2rad, phi_degs*deg2rad, radius);
     Matrix4f view = TransformBuildTranslationOnly(campos) * TransformBuildLookRotationYUp(center, campos);
@@ -582,6 +554,7 @@ Ray TransformRay(Matrix4f *a, Ray *r) {
 
 //
 // Utility
+
 
 void PrintMatrix4d(Matrix4f *m) {
     printf("[");
