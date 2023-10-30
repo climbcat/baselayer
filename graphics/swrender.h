@@ -134,6 +134,7 @@ struct CoordAxes {
 };
 CoordAxes InitCoordAxes() {
     CoordAxes ax;
+    ax.transform = Matrix4f_Identity();
     return ax;
 }
 void CoordAxesGetVerticesAndIndices(CoordAxes axes, List<Vector3f> *verts_dest, List<Vector2_u16> *idxs_dest) {
