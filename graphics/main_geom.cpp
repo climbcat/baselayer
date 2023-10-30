@@ -86,8 +86,8 @@ void RunProgram() {
         // model transforms
         model = box_transform * TransformBuildRotateY(0.03f * iter);
 
-        // 
-        cam_position = SphericalCoordsY(0.2*(sin(iter*3 * deg2rad) + 2) + theta * deg2rad, phi * deg2rad, radius);
+        // orbitcam stuff
+        cam_position = SphericalCoordsY(0.2*(sin(iter*3 * deg2rad) - 2) + theta * deg2rad, phi * deg2rad, radius);
         view = TransformBuild(y_hat, 0, cam_position) * TransformBuildLookRotationYUp(box_center, cam_position);
         mvp = TransformBuildMVP(model, view, proj);
         iter++;
