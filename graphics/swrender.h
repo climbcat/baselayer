@@ -2,16 +2,25 @@
 #define __SWRENDER_H__
 
 
+//
+// Colors
+
+
+#define RGBA_BLACK      0, 0, 0, 255
+#define RGBA_WHITE      255, 255, 255, 255
+#define RGBA_RED        255, 0, 0, 255
+#define RGBA_GREEN      0, 255, 0, 255
+#define RGBA_BLUE       0, 0, 255, 255
+
+
+//
+// Screen coords
+
+
 struct Vector2_u16 {
     u16 x;
     u16 y;
 };
-
-
-//
-// Coordinate transforms
-
-
 inline
 bool Cull(u32 pos_x, u32 pos_y, u32 w, u32 h) {
     bool not_result = pos_x >= 0 && pos_x < w && pos_y >= 0 && pos_y < h;
@@ -34,27 +43,6 @@ Vector2_u16 NDC2Screen(u32 w, u32 h, Vector3f ndc) {
 
     return pos;
 }
-/*
-*/
-u16 LinesToScreen(u32 w, u32 h, Vector2_u16* index_buffer, u16 nlines, Vector3f *ndc_buffer, Vector2_u16* screen_buffer) {
-    u16 nlines_culled = 0;
-    u16 idx = 0;
-    for (u32 i = 0; i < nlines; ++i) {
-        Vector2_u16 line = index_buffer[i];
-        Vector2_u16 a = NDC2Screen(w, h, ndc_buffer[line.x]);
-        Vector2_u16 b = NDC2Screen(w, h, ndc_buffer[line.y]);
-
-        // TODO: crop to NDC box
-        if (Cull(a.x, a.y, w, h) || Cull(b.x, b.y, w, h)) {
-            continue;
-        }
-
-        screen_buffer[idx++] = a;
-        screen_buffer[idx++] = b;
-        nlines_culled++;
-    }
-    return nlines_culled;
-}
 u16 LinesToScreen(u32 w, u32 h, List<Vector2_u16> *index_buffer, List<Vector3f> *ndc_buffer, List<Vector2_u16> *screen_buffer) {
     u16 nlines_remaining = 0;
     for (u32 i = 0; i < index_buffer->len; ++i) {
@@ -72,103 +60,6 @@ u16 LinesToScreen(u32 w, u32 h, List<Vector2_u16> *index_buffer, List<Vector3f> 
         nlines_remaining++;
     }
     return nlines_remaining;
-}
-
-
-//
-// Entity
-
-#define RGBA_BLACK      0, 0, 0, 255
-#define RGBA_WHITE      255, 255, 255, 255
-#define RGBA_RED        255, 0, 0, 255
-#define RGBA_GREEN      0, 255, 0, 255
-#define RGBA_BLUE       0, 0, 255, 255
-
-
-struct Entity {
-    Entity *next = NULL;
-    Matrix4f transform;
-    u8 color[4] = { RGBA_WHITE };
-    u16 verts_low = 0;
-    u16 verts_high = 0;
-    u16 lines_low = 0;
-    u16 lines_high = 0;
-};
-Entity InitEntity() {
-    Entity e;
-    e.transform = Matrix4f_Identity();
-    return e;
-}
-
-
-//
-// Axis-aligned box
-
-
-struct AABox {
-    Entity _entity;
-    Vector3f center_loc;
-    f32 radius;
-};
-AABox InitAABox(Vector3f center_transf, float radius) {
-    AABox box;
-    box._entity.transform = TransformBuild(y_hat, 0, center_transf);
-    box.center_loc = Vector3f {0, 0, 0},
-    box.radius = radius;
-    return box;
-}
-void AABoxGetVerticesAndIndices(AABox box, List<Vector3f> *verts_dest, List<Vector2_u16> *idxs_dest) {
-    u16 vertex_offset = verts_dest->len;
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 1) };
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 2) };
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 4) };
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 3), (u16) (vertex_offset + 1) };
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 3), (u16) (vertex_offset + 2) };
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 3), (u16) (vertex_offset + 7) };
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 5), (u16) (vertex_offset + 1) };
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 5), (u16) (vertex_offset + 4) };
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 5), (u16) (vertex_offset + 7) };
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 2) };
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 4) };
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 7) };
-
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x - box.radius, box.center_loc.y - box.radius, box.center_loc.z - box.radius };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x - box.radius, box.center_loc.y - box.radius, box.center_loc.z + box.radius };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x - box.radius, box.center_loc.y + box.radius, box.center_loc.z - box.radius };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x - box.radius, box.center_loc.y + box.radius, box.center_loc.z + box.radius };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x + box.radius, box.center_loc.y - box.radius, box.center_loc.z - box.radius };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x + box.radius, box.center_loc.y - box.radius, box.center_loc.z + box.radius };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x + box.radius, box.center_loc.y + box.radius, box.center_loc.z - box.radius };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x + box.radius, box.center_loc.y + box.radius, box.center_loc.z + box.radius };
-}
-
-
-//
-// Coordinate axes
-
-
-struct CoordAxes {
-    Entity _entity;
-    Vector3f x { 1, 0, 0 };
-    Vector3f y { 0, 1, 0 };
-    Vector3f z { 0, 0, 1 };
-    Vector3f origo { 0, 0, 0 };
-};
-CoordAxes InitCoordAxes() {
-    CoordAxes ax;
-    ax._entity = InitEntity();
-    return ax;
-}
-void CoordAxesGetVerticesAndIndices(CoordAxes axes, List<Vector3f> *verts_dest, List<Vector2_u16> *idxs_dest) {
-    u16 vertex_offset = verts_dest->len;
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset), (u16) (vertex_offset + 1) };
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset), (u16) (vertex_offset + 2) };
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset), (u16) (vertex_offset + 3) };
-    
-    *(verts_dest->lst + verts_dest->len++) = (axes.origo);
-    *(verts_dest->lst + verts_dest->len++)= (axes.origo + axes.x);
-    *(verts_dest->lst + verts_dest->len++) = (axes.origo + axes.y);
-    *(verts_dest->lst + verts_dest->len++) = (axes.origo + axes.z);
 }
 
 
@@ -263,6 +154,126 @@ void RenderLineRGBA(u8* image_buffer, u16 w, u16 h, u16 ax, u16 ay, u16 bx, u16 
 inline
 void RenderLineRGBA(u8* image_buffer, u16 w, u16 h, Vector2_u16 a, Vector2_u16 b) {
     RenderLineRGBA(image_buffer, w, h, a.x, a.y, b.x, b.y);
+}
+void RenderPointCloud(u8* image_buffer, u16 w, u16 h, Matrix4f *mvp, List<Vector3f> points) {
+    for (u32 i = 0; i < points.len; ++i) {
+
+        Vector3f p_ndc = TransformPerspective( *mvp, points.lst[i] );
+        Vector2_u16 p_screen = NDC2Screen(w, h, p_ndc);
+        if (Cull(p_screen.x, p_screen.y, w, h) ) {
+            continue;
+        }
+        u32 pix_idx = Pos2Idx(p_screen.x, p_screen.y, w);
+        image_buffer[4 * pix_idx + 0] = 255;
+        image_buffer[4 * pix_idx + 1] = 255;
+        image_buffer[4 * pix_idx + 2] = 255;
+        image_buffer[4 * pix_idx + 3] = 255;
+    }
+}
+
+
+
+//
+// Entity types
+
+
+struct Entity {
+    Entity *next = NULL;
+    Matrix4f transform;
+    u8 color[4] = { RGBA_WHITE };
+    u16 verts_low = 0;
+    u16 verts_high = 0;
+    u16 lines_low = 0;
+    u16 lines_high = 0;
+};
+Entity InitEntity() {
+    Entity e;
+    e.transform = Matrix4f_Identity();
+    return e;
+}
+
+
+// Axis-aligned box
+struct AABox {
+    Entity _entity;
+    Vector3f center_loc;
+    f32 radius;
+};
+AABox InitAABox(Vector3f center_transf, float radius) {
+    AABox box;
+    box._entity.transform = TransformBuild(y_hat, 0, center_transf);
+    box.center_loc = Vector3f {0, 0, 0},
+    box.radius = radius;
+    return box;
+}
+void AABoxGetVerticesAndIndices(AABox box, List<Vector3f> *verts_dest, List<Vector2_u16> *idxs_dest) {
+    u16 vertex_offset = verts_dest->len;
+    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 1) };
+    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 2) };
+    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 4) };
+    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 3), (u16) (vertex_offset + 1) };
+    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 3), (u16) (vertex_offset + 2) };
+    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 3), (u16) (vertex_offset + 7) };
+    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 5), (u16) (vertex_offset + 1) };
+    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 5), (u16) (vertex_offset + 4) };
+    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 5), (u16) (vertex_offset + 7) };
+    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 2) };
+    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 4) };
+    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 7) };
+
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x - box.radius, box.center_loc.y - box.radius, box.center_loc.z - box.radius };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x - box.radius, box.center_loc.y - box.radius, box.center_loc.z + box.radius };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x - box.radius, box.center_loc.y + box.radius, box.center_loc.z - box.radius };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x - box.radius, box.center_loc.y + box.radius, box.center_loc.z + box.radius };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x + box.radius, box.center_loc.y - box.radius, box.center_loc.z - box.radius };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x + box.radius, box.center_loc.y - box.radius, box.center_loc.z + box.radius };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x + box.radius, box.center_loc.y + box.radius, box.center_loc.z - box.radius };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x + box.radius, box.center_loc.y + box.radius, box.center_loc.z + box.radius };
+}
+
+
+// Coordinate axes
+struct CoordAxes {
+    Entity _entity;
+    Vector3f x { 1, 0, 0 };
+    Vector3f y { 0, 1, 0 };
+    Vector3f z { 0, 0, 1 };
+    Vector3f origo { 0, 0, 0 };
+};
+CoordAxes InitCoordAxes() {
+    CoordAxes ax;
+    ax._entity = InitEntity();
+    return ax;
+}
+void CoordAxesGetVerticesAndIndices(CoordAxes axes, List<Vector3f> *verts_dest, List<Vector2_u16> *idxs_dest) {
+    u16 vertex_offset = verts_dest->len;
+    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset), (u16) (vertex_offset + 1) };
+    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset), (u16) (vertex_offset + 2) };
+    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset), (u16) (vertex_offset + 3) };
+    
+    *(verts_dest->lst + verts_dest->len++) = (axes.origo);
+    *(verts_dest->lst + verts_dest->len++)= (axes.origo + axes.x);
+    *(verts_dest->lst + verts_dest->len++) = (axes.origo + axes.y);
+    *(verts_dest->lst + verts_dest->len++) = (axes.origo + axes.z);
+}
+
+
+// Point cloud
+struct PointCloud {
+    Entity _entity;
+    List<Vector3f> points;
+};
+PointCloud InitPointCloud(List<Vector3f> points) {
+    PointCloud pc;
+    pc._entity = InitEntity();
+    pc.points = points;
+    return pc;
+}
+PointCloud InitPointCloud(Vector3f *points, u32 npoints) {
+    return InitPointCloud( List<Vector3f> { points, npoints });
+}
+PointCloud InitPointCloudF(float *points, u32 npoints) {
+    return InitPointCloud((Vector3f*) points, npoints);
 }
 
 

@@ -70,14 +70,25 @@ void RunProgram() {
     box3._entity.verts_high = vertex_buffer.len - 1;
     box3._entity.lines_high = index_buffer.len - 1;
 
-    /*
-    box._entity.next = &box2._entity;
-    box2._entity.next = &box3._entity;
-    box3._entity.next = &axes._entity;
-    */
+    RandInit();
+    u32 npoints = 500;
+    List<Vector3f> points = InitList<Vector3f>(a, npoints);
+    Vector3f min { -2, -2, -2 };
+    Vector3f max { 2, 2, 2 };
+    Vector3f range { max.x - min.x, max.y - min.y, max.z - min.z };
+    for (u32 i = 0; i < npoints; ++i) {
+        *(points.lst + points.len++) = Vector3f {
+            range.x * Rand01_f32() + min.x,
+            range.y * Rand01_f32() + min.y,
+            range.z * Rand01_f32() + min.z
+        };
+    }
+    PointCloud pc = InitPointCloud(points);
+
     axes._entity.next = &box._entity;
     box._entity.next = &box2._entity;
     box2._entity.next = &box3._entity;
+    //box3._entity.next = &pc._entity;
     Entity *first = &axes._entity;
 
     // test the entity chain: 
@@ -101,7 +112,7 @@ void RunProgram() {
     MouseTrap mouse = InitMouseTrap();
     while (Running(&mouse)) {
         // frame start
-        XSleep(33);
+        XSleep(10);
         ClearToZeroRGBA(image_buffer, w, h);
         screen_buffer.len = 0;
 
@@ -131,11 +142,17 @@ void RunProgram() {
         ndc_buffer.len = vertex_buffer.len;
         iter++;
 
-        // render / frame end
+        // render lines
         u16 nlines_torender = LinesToScreen(w, h, &index_buffer, &ndc_buffer, &screen_buffer);
         for (u32 i = 0; i < screen_buffer.len / 2; ++i) {
             RenderLineRGBA(image_buffer, w, h, screen_buffer.lst[2*i + 0], screen_buffer.lst[2*i + 1]);
         }
+
+        // render points (POC): our little point cloud
+        mvp = TransformBuildMVP(Matrix4f_Identity(), cam.view, proj);
+        RenderPointCloud(image_buffer, w, h, &mvp, points);
+
+        // frame end 
         screen.Draw(image_buffer, w, h);
         SDL_GL_SwapWindow(window);
     }

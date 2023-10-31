@@ -110,6 +110,12 @@ f64 Rand01() {
     randnum /= (f64) ULONG_MAX + 1;
     return randnum;
 }
+f32 Rand01_f32() {
+    f32 randnum;
+    randnum = (f32) Random();
+    randnum /= (f32) ULONG_MAX + 1;
+    return randnum;
+}
 f32 Rand0132() {
     f64 num = Random();
     num /= (f32) ULONG_MAX + 1;
