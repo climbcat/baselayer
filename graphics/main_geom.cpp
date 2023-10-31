@@ -70,25 +70,61 @@ void RunProgram() {
     box3._entity.verts_high = vertex_buffer.len - 1;
     box3._entity.lines_high = index_buffer.len - 1;
 
-    RandInit();
-    u32 npoints = 500;
-    List<Vector3f> points = InitList<Vector3f>(a, npoints);
-    Vector3f min { -2, -2, -2 };
-    Vector3f max { 2, 2, 2 };
-    Vector3f range { max.x - min.x, max.y - min.y, max.z - min.z };
-    for (u32 i = 0; i < npoints; ++i) {
-        *(points.lst + points.len++) = Vector3f {
-            range.x * Rand01_f32() + min.x,
-            range.y * Rand01_f32() + min.y,
-            range.z * Rand01_f32() + min.z
-        };
+    PointCloud pc_1;
+    {
+        RandInit();
+        u32 npoints = 50;
+        List<Vector3f> points = InitList<Vector3f>(a, npoints);
+        Vector3f min { -2, -2, -2 };
+        Vector3f max { 2, 2, 2 };
+        Vector3f range { max.x - min.x, max.y - min.y, max.z - min.z };
+        for (u32 i = 0; i < npoints; ++i) {
+            *(points.lst + points.len++) = Vector3f {
+                range.x * Rand01_f32() + min.x,
+                range.y * Rand01_f32() + min.y,
+                range.z * Rand01_f32() + min.z
+            };
+        }
+        pc_1 = InitPointCloud(points);
     }
-    PointCloud pc = InitPointCloud(points);
+    PointCloud pc_2;
+    {
+        RandInit();
+        u32 npoints = 40;
+        List<Vector3f> points = InitList<Vector3f>(a, npoints);
+        Vector3f min { -2, -2, -2 };
+        Vector3f max { 2, 2, 2 };
+        Vector3f range { max.x - min.x, max.y - min.y, max.z - min.z };
+        for (u32 i = 0; i < npoints; ++i) {
+            *(points.lst + points.len++) = Vector3f {
+                range.x * Rand01_f32() + min.x,
+                range.y * Rand01_f32() + min.y,
+                range.z * Rand01_f32() + min.z
+            };
+        }
+        pc_2 = InitPointCloud(points);
+    }
+    PointCloud pc_3;
+    {
+        RandInit();
+        u32 npoints = 30;
+        List<Vector3f> points = InitList<Vector3f>(a, npoints);
+        Vector3f min { -2, -2, -2 };
+        Vector3f max { 2, 2, 2 };
+        Vector3f range { max.x - min.x, max.y - min.y, max.z - min.z };
+        for (u32 i = 0; i < npoints; ++i) {
+            *(points.lst + points.len++) = Vector3f {
+                range.x * Rand01_f32() + min.x,
+                range.y * Rand01_f32() + min.y,
+                range.z * Rand01_f32() + min.z
+            };
+        }
+        pc_3 = InitPointCloud(points);
+    }
 
     axes._entity.next = &box._entity;
     box._entity.next = &box2._entity;
     box2._entity.next = &box3._entity;
-    //box3._entity.next = &pc._entity;
     Entity *first = &axes._entity;
 
     // test the entity chain: 
@@ -99,7 +135,6 @@ void RunProgram() {
         eidx++;
         next = next->next;
     }
-
 
     // camera
     OrbitCamera cam = InitOrbitCamera(aspect);
@@ -148,9 +183,17 @@ void RunProgram() {
             RenderLineRGBA(image_buffer, w, h, screen_buffer.lst[2*i + 0], screen_buffer.lst[2*i + 1]);
         }
 
-        // render points (POC): our little point cloud
+        // render point clouds (POC)
         mvp = TransformBuildMVP(Matrix4f_Identity(), cam.view, proj);
-        RenderPointCloud(image_buffer, w, h, &mvp, points);
+        if (iter % 45 < 15) {
+            RenderPointCloud(image_buffer, w, h, &mvp, pc_1.points);
+        }
+        else if (iter % 45 < 30) {
+            RenderPointCloud(image_buffer, w, h, &mvp, pc_2.points);
+        }
+        else {
+            RenderPointCloud(image_buffer, w, h, &mvp, pc_3.points);
+        }
 
         // frame end 
         screen.Draw(image_buffer, w, h);
