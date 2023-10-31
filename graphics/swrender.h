@@ -186,6 +186,45 @@ void RenderPointCloud(u8* image_buffer, u16 w, u16 h, Matrix4f *mvp, List<Vector
 }
 
 
+//
+// SW Rendering thingee
+
+
+struct SwRenderer {
+    // settings
+    u32 w;
+    u32 h;
+    float aspect;
+    u32 nchannels;
+
+    // pipeline buffers
+    MArena _arena;
+    MArena *a;
+    List<Vector3f> vertex_buffer;
+    List<Vector2_u16> index_buffer;
+    List<Vector3f> ndc_buffer;
+    List<ScreenAnchor> screen_buffer;
+    u8 *image_buffer;
+};
+SwRenderer InitRenderer(u32 width = 1280, u32 height = 800) {
+    SwRenderer rend;
+    rend.w = width;
+    rend.h = height;
+    rend.aspect = (float) width / height;
+    u32 nchannels = 4;
+    rend._arena = ArenaCreate();
+    rend.a = &rend._arena;
+
+    // pipeline buffers
+    rend.image_buffer = (u8*) ArenaAlloc(rend.a, nchannels * rend.w * rend.h);
+    rend.vertex_buffer = InitList<Vector3f>(rend.a, 1000);
+    rend.index_buffer = InitList<Vector2_u16>(rend.a, 1000);
+    rend.ndc_buffer = InitList<Vector3f>(rend.a, 1000);
+    rend.screen_buffer = InitList<ScreenAnchor>(rend.a, 1000);
+
+    return rend;
+}
+
 
 //
 // Entity types
@@ -213,6 +252,20 @@ Entity InitEntity(EntityType tpe) {
     e.transform = Matrix4f_Identity();
     return e;
 }
+struct EntitySystem {
+    Entity *first = NULL;
+    Entity *last = NULL;
+};
+void EntitySteysmChain(EntitySystem *es, Entity *next) {
+    if (es->first == NULL) {
+        es->first = next;
+        es->last = next;
+    }
+    else {
+        es->last->next = next;
+        es->last = next;
+    }
+}
 
 
 // Axis-aligned box
@@ -230,7 +283,7 @@ AABox InitAABox(Vector3f center_transf, float radius) {
     box.radius = radius;
     return box;
 }
-void AABoxGetVerticesAndIndices(AABox box, List<Vector3f> *verts_dest, List<Vector2_u16> *idxs_dest) {
+void AABoxGetVerticesAndIndices(AABox *box, List<Vector3f> *verts_dest, List<Vector2_u16> *idxs_dest) {
     u16 vertex_offset = verts_dest->len;
     *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 1) };
     *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 2) };
@@ -245,14 +298,21 @@ void AABoxGetVerticesAndIndices(AABox box, List<Vector3f> *verts_dest, List<Vect
     *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 4) };
     *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 7) };
 
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x - box.radius, box.center_loc.y - box.radius, box.center_loc.z - box.radius };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x - box.radius, box.center_loc.y - box.radius, box.center_loc.z + box.radius };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x - box.radius, box.center_loc.y + box.radius, box.center_loc.z - box.radius };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x - box.radius, box.center_loc.y + box.radius, box.center_loc.z + box.radius };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x + box.radius, box.center_loc.y - box.radius, box.center_loc.z - box.radius };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x + box.radius, box.center_loc.y - box.radius, box.center_loc.z + box.radius };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x + box.radius, box.center_loc.y + box.radius, box.center_loc.z - box.radius };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x + box.radius, box.center_loc.y + box.radius, box.center_loc.z + box.radius };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->center_loc.x - box->radius, box->center_loc.y - box->radius, box->center_loc.z - box->radius };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->center_loc.x - box->radius, box->center_loc.y - box->radius, box->center_loc.z + box->radius };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->center_loc.x - box->radius, box->center_loc.y + box->radius, box->center_loc.z - box->radius };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->center_loc.x - box->radius, box->center_loc.y + box->radius, box->center_loc.z + box->radius };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->center_loc.x + box->radius, box->center_loc.y - box->radius, box->center_loc.z - box->radius };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->center_loc.x + box->radius, box->center_loc.y - box->radius, box->center_loc.z + box->radius };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->center_loc.x + box->radius, box->center_loc.y + box->radius, box->center_loc.z - box->radius };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->center_loc.x + box->radius, box->center_loc.y + box->radius, box->center_loc.z + box->radius };
+}
+void AABoxActivate(AABox *box, SwRenderer *r) {
+    box->_entity.verts_low = r->vertex_buffer.len;
+    box->_entity.lines_low = r->index_buffer.len;
+    AABoxGetVerticesAndIndices(box, &r->vertex_buffer, &r->index_buffer);
+    box->_entity.verts_high = r->vertex_buffer.len - 1;
+    box->_entity.lines_high = r->index_buffer.len - 1;
 }
 
 
@@ -270,16 +330,23 @@ CoordAxes InitCoordAxes() {
     ax._entity.color = { RGBA_BLUE };
     return ax;
 }
-void CoordAxesGetVerticesAndIndices(CoordAxes axes, List<Vector3f> *verts_dest, List<Vector2_u16> *idxs_dest) {
+void CoordAxesGetVerticesAndIndices(CoordAxes *axes, List<Vector3f> *verts_dest, List<Vector2_u16> *idxs_dest) {
     u16 vertex_offset = verts_dest->len;
     *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset), (u16) (vertex_offset + 1) };
     *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset), (u16) (vertex_offset + 2) };
     *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset), (u16) (vertex_offset + 3) };
     
-    *(verts_dest->lst + verts_dest->len++) = (axes.origo);
-    *(verts_dest->lst + verts_dest->len++)= (axes.origo + axes.x);
-    *(verts_dest->lst + verts_dest->len++) = (axes.origo + axes.y);
-    *(verts_dest->lst + verts_dest->len++) = (axes.origo + axes.z);
+    *(verts_dest->lst + verts_dest->len++) = (axes->origo);
+    *(verts_dest->lst + verts_dest->len++) = (axes->origo + axes->x);
+    *(verts_dest->lst + verts_dest->len++) = (axes->origo + axes->y);
+    *(verts_dest->lst + verts_dest->len++) = (axes->origo + axes->z);
+}
+void CoordAxesActivate(CoordAxes *axes, SwRenderer *r) {
+    axes->_entity.verts_low = r->vertex_buffer.len;
+    axes->_entity.lines_low = r->index_buffer.len;
+    CoordAxesGetVerticesAndIndices(axes, &r->vertex_buffer, &r->index_buffer);
+    axes->_entity.verts_high = r->vertex_buffer.len - 1;
+    axes->_entity.lines_high = r->index_buffer.len - 1;
 }
 
 

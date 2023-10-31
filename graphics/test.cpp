@@ -85,28 +85,28 @@ void TestEntityRenderingAndOrbitCam() {
     CoordAxes axes = InitCoordAxes();
     axes._entity.verts_low = vertex_buffer.len;
     axes._entity.lines_low = index_buffer.len;
-    CoordAxesGetVerticesAndIndices(axes, &vertex_buffer, &index_buffer);
+    CoordAxesGetVerticesAndIndices(&axes, &vertex_buffer, &index_buffer);
     axes._entity.verts_high = vertex_buffer.len - 1;
     axes._entity.lines_high = index_buffer.len - 1;
 
     AABox box = InitAABox({ 0.3, 0, 0.7 }, 0.2);
     box._entity.verts_low = vertex_buffer.len;
     box._entity.lines_low = index_buffer.len;
-    AABoxGetVerticesAndIndices(box, &vertex_buffer, &index_buffer);
+    AABoxGetVerticesAndIndices(&box, &vertex_buffer, &index_buffer);
     box._entity.verts_high = vertex_buffer.len - 1;
     box._entity.lines_high = index_buffer.len - 1;
 
     AABox box2 = InitAABox({ 0.3, 0.0, -0.7 }, 0.2);
     box2._entity.verts_low = vertex_buffer.len;
     box2._entity.lines_low = index_buffer.len;
-    AABoxGetVerticesAndIndices(box2, &vertex_buffer, &index_buffer);
+    AABoxGetVerticesAndIndices(&box2, &vertex_buffer, &index_buffer);
     box2._entity.verts_high = vertex_buffer.len - 1;
     box2._entity.lines_high = index_buffer.len - 1;
 
     AABox box3 = InitAABox({ -0.7, 0, 0.0 }, 0.2);
     box3._entity.verts_low = vertex_buffer.len;
     box3._entity.lines_low = index_buffer.len;
-    AABoxGetVerticesAndIndices(box3, &vertex_buffer, &index_buffer);
+    AABoxGetVerticesAndIndices(&box3, &vertex_buffer, &index_buffer);
     box3._entity.verts_high = vertex_buffer.len - 1;
     box3._entity.lines_high = index_buffer.len - 1;
 
