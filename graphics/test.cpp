@@ -59,10 +59,9 @@ void TestRDrawLines() {
     }
 }
 
-void TestAnimateBoxesAndOrbitCam() {
-    printf("TestAnimateBoxAndOrbitCam\n");
+void TestEntityRenderingAndOrbitCam() {
+    printf("TestEntityRenderingAndOrbitCam\n");
 
-    /*
     u32 w = 1280;
     u32 h = 800;
     float aspect = (float) w / h;
@@ -80,7 +79,7 @@ void TestAnimateBoxesAndOrbitCam() {
     List<Vector3f> vertex_buffer = InitList<Vector3f>(a, 1000);
     List<Vector2_u16> index_buffer = InitList<Vector2_u16>(a, 1000);
     List<Vector3f> ndc_buffer = InitList<Vector3f>(a, 1000);
-    List<Vector2_u16> screen_buffer = InitList<Vector2_u16>(a, 1000);
+    List<ScreenAnchor> screen_buffer = InitList<ScreenAnchor>(a, 1000);
 
     // entities
     CoordAxes axes = InitCoordAxes();
@@ -111,12 +110,70 @@ void TestAnimateBoxesAndOrbitCam() {
     box3._entity.verts_high = vertex_buffer.len - 1;
     box3._entity.lines_high = index_buffer.len - 1;
 
+    PointCloud pc_1;
+    {
+        RandInit();
+        u32 npoints = 90;
+        List<Vector3f> points = InitList<Vector3f>(a, npoints);
+        Vector3f min { -2, -2, -2 };
+        Vector3f max { 2, 2, 2 };
+        Vector3f range { max.x - min.x, max.y - min.y, max.z - min.z };
+        for (u32 i = 0; i < npoints; ++i) {
+            *(points.lst + points.len++) = Vector3f {
+                range.x * Rand01_f32() + min.x,
+                range.y * Rand01_f32() + min.y,
+                range.z * Rand01_f32() + min.z
+            };
+        }
+        pc_1 = InitPointCloud(points);
+        pc_1._entity.color = { RGBA_BLUE };
+    }
+    PointCloud pc_2;
+    {
+        RandInit();
+        u32 npoints = 300;
+        List<Vector3f> points = InitList<Vector3f>(a, npoints);
+        Vector3f min { -2, -2, -2 };
+        Vector3f max { 2, 2, 0 };
+        Vector3f range { max.x - min.x, max.y - min.y, max.z - min.z };
+        for (u32 i = 0; i < npoints; ++i) {
+            *(points.lst + points.len++) = Vector3f {
+                range.x * Rand01_f32() + min.x,
+                range.y * Rand01_f32() + min.y,
+                range.z * Rand01_f32() + min.z
+            };
+        }
+        pc_2 = InitPointCloud(points);
+        pc_2._entity.color = { RGBA_GREEN };
+    }
+    PointCloud pc_3;
+    {
+        RandInit();
+        u32 npoints = 600;
+        List<Vector3f> points = InitList<Vector3f>(a, npoints);
+        Vector3f min { -2, -2, -2 };
+        Vector3f max { 0, 0, 0 };
+        Vector3f range { max.x - min.x, max.y - min.y, max.z - min.z };
+        for (u32 i = 0; i < npoints; ++i) {
+            *(points.lst + points.len++) = Vector3f {
+                range.x * Rand01_f32() + min.x,
+                range.y * Rand01_f32() + min.y,
+                range.z * Rand01_f32() + min.z
+            };
+        }
+        pc_3 = InitPointCloud(points);
+        pc_3._entity.color = { RGBA_RED };
+    }
+
     axes._entity.next = &box._entity;
     box._entity.next = &box2._entity;
     box2._entity.next = &box3._entity;
+    box3._entity.next = &pc_1._entity;
+    pc_1._entity.next = &pc_2._entity;
+    pc_2._entity.next = &pc_3._entity;
     Entity *first = &axes._entity;
 
-    // test the entity chain: 
+    // print the entity chain: 
     u32 eidx = 0;
     Entity *next = first;
     while (next != NULL) {
@@ -124,7 +181,6 @@ void TestAnimateBoxesAndOrbitCam() {
         eidx++;
         next = next->next;
     }
-
 
     // camera
     OrbitCamera cam = InitOrbitCamera(aspect);
@@ -137,7 +193,7 @@ void TestAnimateBoxesAndOrbitCam() {
     MouseTrap mouse = InitMouseTrap();
     while (Running(&mouse)) {
         // frame start
-        XSleep(33);
+        XSleep(10);
         ClearToZeroRGBA(image_buffer, w, h);
         screen_buffer.len = 0;
 
@@ -147,41 +203,47 @@ void TestAnimateBoxesAndOrbitCam() {
         // entity loop (POC): vertices -> NDC
         u32 eidx = 0;
         Entity *next = first;
+
         while (next != NULL) {
-            if (eidx == 0) {
-                model = next->transform;
+            if (next ->tpe != ET_POINTCLOUD) {
+                if (next->tpe == ET_AXES) {
+                    model = next->transform;
+                }
+                else {
+                    model = next->transform * TransformBuildRotateY(0.03f * iter);
+                }
+                mvp = TransformBuildMVP(model, cam.view, proj);
+
+                // render lines to screen buffer
+                for (u32 i = next->verts_low; i <= next->verts_high; ++i) {
+                    ndc_buffer.lst[i] = TransformPerspective(mvp, vertex_buffer.lst[i]);
+                }
+                // render lines
+                LinesToScreen(w, h, &screen_buffer, &index_buffer, &ndc_buffer, next->lines_low, next->lines_high, next->color);
             }
             else {
-                model = next->transform * TransformBuildRotateY(0.03f * iter);
-            }
-            mvp = TransformBuildMVP(model, cam.view, proj);
+                mvp = TransformBuildMVP(Matrix4f_Identity(), cam.view, proj);
 
-            // render
-            for (u32 i = next->verts_low; i <= next->verts_high; ++i) {
-                ndc_buffer.lst[i] = TransformPerspective(mvp, vertex_buffer.lst[i]);
+                // render pointcloud
+                RenderPointCloud(image_buffer, w, h, &mvp, ((PointCloud*)next)->points, next->color);
             }
-
             eidx++;
             next = next->next;
         }
         ndc_buffer.len = vertex_buffer.len;
         iter++;
-
-        // render / frame end
-        u16 nlines_torender = LinesToScreen(w, h, &index_buffer, &ndc_buffer, &screen_buffer);
         for (u32 i = 0; i < screen_buffer.len / 2; ++i) {
-            Color color { RGBA_WHITE };
-            RenderLineRGBA(image_buffer, w, h, screen_buffer.lst[2*i + 0], screen_buffer.lst[2*i + 1], color);
+            RenderLineRGBA(image_buffer, w, h, screen_buffer.lst[2*i + 0], screen_buffer.lst[2*i + 1]);
         }
+
+        // frame end 
         screen.Draw(image_buffer, w, h);
         SDL_GL_SwapWindow(window);
-    }
-    */
-}
+    }}
 
 
 void Test() {
-    //TestRandomImageOGL();
-    //TestRDrawLines();
-    TestAnimateBoxesAndOrbitCam();
+    TestRandomImageOGL();
+    TestRDrawLines();
+    TestEntityRenderingAndOrbitCam();
 }

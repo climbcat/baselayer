@@ -133,7 +133,7 @@ void RunProgram() {
     pc_2._entity.next = &pc_3._entity;
     Entity *first = &axes._entity;
 
-    // test the entity chain: 
+    // print the entity chain: 
     u32 eidx = 0;
     Entity *next = first;
     while (next != NULL) {
@@ -173,9 +173,6 @@ void RunProgram() {
                     model = next->transform * TransformBuildRotateY(0.03f * iter);
                 }
                 mvp = TransformBuildMVP(model, cam.view, proj);
-
-                PrintColorInline(next->color);
-                printf("\n");
 
                 // render lines to screen buffer
                 for (u32 i = next->verts_low; i <= next->verts_high; ++i) {
