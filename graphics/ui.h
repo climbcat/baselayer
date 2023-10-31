@@ -147,8 +147,8 @@ OrbitCamera InitOrbitCamera(float aspect) {
     OrbitCamera cam {
         PerspectiveFrustum { 90, aspect, 0.1, 20 } };
     cam.center = Vector3f_Zero();
-    cam.theta = 85;
-    cam.phi = 0;
+    cam.theta = 60;
+    cam.phi = 35;
     cam.radius = 8;
     cam.view = Matrix4f_Identity();
     return cam;

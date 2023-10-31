@@ -39,7 +39,7 @@ void RunProgram() {
     List<Vector3f> vertex_buffer = InitList<Vector3f>(a, 1000);
     List<Vector2_u16> index_buffer = InitList<Vector2_u16>(a, 1000);
     List<Vector3f> ndc_buffer = InitList<Vector3f>(a, 1000);
-    List<Vector2_u16> screen_buffer = InitList<Vector2_u16>(a, 1000);
+    List<ScreenAnchor> screen_buffer = InitList<ScreenAnchor>(a, 1000);
 
     // entities
     CoordAxes axes = InitCoordAxes();
@@ -86,6 +86,7 @@ void RunProgram() {
             };
         }
         pc_1 = InitPointCloud(points);
+        pc_1._entity.color = { RGBA_BLUE };
     }
     PointCloud pc_2;
     {
@@ -103,6 +104,7 @@ void RunProgram() {
             };
         }
         pc_2 = InitPointCloud(points);
+        pc_2._entity.color = { RGBA_GREEN };
     }
     PointCloud pc_3;
     {
@@ -120,6 +122,7 @@ void RunProgram() {
             };
         }
         pc_3 = InitPointCloud(points);
+        pc_3._entity.color = { RGBA_RED };
     }
 
     axes._entity.next = &box._entity;
@@ -171,23 +174,27 @@ void RunProgram() {
                 }
                 mvp = TransformBuildMVP(model, cam.view, proj);
 
+                PrintColorInline(next->color);
+                printf("\n");
+
                 // render lines to screen buffer
                 for (u32 i = next->verts_low; i <= next->verts_high; ++i) {
                     ndc_buffer.lst[i] = TransformPerspective(mvp, vertex_buffer.lst[i]);
                 }
+                // render lines
+                LinesToScreen(w, h, &screen_buffer, &index_buffer, &ndc_buffer, next->lines_low, next->lines_high, next->color);
             }
             else {
                 mvp = TransformBuildMVP(Matrix4f_Identity(), cam.view, proj);
-                RenderPointCloud(image_buffer, w, h, &mvp, ((PointCloud*)next)->points);
+
+                // render pointcloud
+                RenderPointCloud(image_buffer, w, h, &mvp, ((PointCloud*)next)->points, next->color);
             }
             eidx++;
             next = next->next;
         }
         ndc_buffer.len = vertex_buffer.len;
         iter++;
-
-        // render lines
-        u16 nlines_torender = LinesToScreen(w, h, &index_buffer, &ndc_buffer, &screen_buffer);
         for (u32 i = 0; i < screen_buffer.len / 2; ++i) {
             RenderLineRGBA(image_buffer, w, h, screen_buffer.lst[2*i + 0], screen_buffer.lst[2*i + 1]);
         }

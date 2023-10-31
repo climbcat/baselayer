@@ -43,15 +43,16 @@ void TestRDrawLines() {
     screen.Init(image, w, h);
     
     MouseTrap mouse;
+    Color color_rgba { RGBA_WHITE };
     while (Running(&mouse)) {
         XSleep(50);
 
-        RenderLineRGBA(image, w, h, 15, 200, 500, 500);
-        RenderLineRGBA(image, w, h, 1000, 10, 15, 500);
-        RenderLineRGBA(image, w, h, 400, 200, 900, 200);
-        RenderLineRGBA(image, w, h, 800, 10, 800, 500);
-        RenderLineRGBA(image, w, h, 920, 120, 900, 790);
-        RenderLineRGBA(image, w, h, 920, 120, 950, 790);
+        RenderLineRGBA(image, w, h, 15, 200, 500, 500, color_rgba);
+        RenderLineRGBA(image, w, h, 1000, 10, 15, 500, color_rgba);
+        RenderLineRGBA(image, w, h, 400, 200, 900, 200, color_rgba);
+        RenderLineRGBA(image, w, h, 800, 10, 800, 500, color_rgba);
+        RenderLineRGBA(image, w, h, 920, 120, 900, 790, color_rgba);
+        RenderLineRGBA(image, w, h, 920, 120, 950, 790, color_rgba);
 
         screen.Draw(image, w, h);
         SDL_GL_SwapWindow(window);
@@ -61,6 +62,7 @@ void TestRDrawLines() {
 void TestAnimateBoxesAndOrbitCam() {
     printf("TestAnimateBoxAndOrbitCam\n");
 
+    /*
     u32 w = 1280;
     u32 h = 800;
     float aspect = (float) w / h;
@@ -168,11 +170,13 @@ void TestAnimateBoxesAndOrbitCam() {
         // render / frame end
         u16 nlines_torender = LinesToScreen(w, h, &index_buffer, &ndc_buffer, &screen_buffer);
         for (u32 i = 0; i < screen_buffer.len / 2; ++i) {
-            RenderLineRGBA(image_buffer, w, h, screen_buffer.lst[2*i + 0], screen_buffer.lst[2*i + 1]);
+            Color color { RGBA_WHITE };
+            RenderLineRGBA(image_buffer, w, h, screen_buffer.lst[2*i + 0], screen_buffer.lst[2*i + 1], color);
         }
         screen.Draw(image_buffer, w, h);
         SDL_GL_SwapWindow(window);
     }
+    */
 }
 
 

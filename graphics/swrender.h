@@ -11,6 +11,15 @@
 #define RGBA_RED        255, 0, 0, 255
 #define RGBA_GREEN      0, 255, 0, 255
 #define RGBA_BLUE       0, 0, 255, 255
+struct Color {
+    u8 r;
+    u8 g;
+    u8 b;
+    u8 a;
+};
+void PrintColorInline(Color c) {
+    printf("%hhx %hhx %hhx %hhx", c.r, c.g, c.b, c.a);
+}
 
 
 //
@@ -20,6 +29,11 @@
 struct Vector2_u16 {
     u16 x;
     u16 y;
+};
+struct ScreenAnchor {
+    u16 x;
+    u16 y;
+    Color c;
 };
 inline
 bool Cull(u32 pos_x, u32 pos_y, u32 w, u32 h) {
@@ -43,9 +57,9 @@ Vector2_u16 NDC2Screen(u32 w, u32 h, Vector3f ndc) {
 
     return pos;
 }
-u16 LinesToScreen(u32 w, u32 h, List<Vector2_u16> *index_buffer, List<Vector3f> *ndc_buffer, List<Vector2_u16> *screen_buffer) {
+u16 LinesToScreen(u32 w, u32 h, List<ScreenAnchor> *dest_screen_buffer, List<Vector2_u16> *index_buffer, List<Vector3f> *ndc_buffer, u32 lines_low, u32 lines_high, Color color) {
     u16 nlines_remaining = 0;
-    for (u32 i = 0; i < index_buffer->len; ++i) {
+    for (u32 i = lines_low; i <= lines_high; ++i) {
         Vector2_u16 line = index_buffer->lst[i];
         Vector2_u16 a = NDC2Screen(w, h, ndc_buffer->lst[line.x]);
         Vector2_u16 b = NDC2Screen(w, h, ndc_buffer->lst[line.y]);
@@ -55,8 +69,8 @@ u16 LinesToScreen(u32 w, u32 h, List<Vector2_u16> *index_buffer, List<Vector3f> 
             continue;
         }
 
-        *(screen_buffer->lst + screen_buffer->len++) = a;
-        *(screen_buffer->lst + screen_buffer->len++) = b;
+        *(dest_screen_buffer->lst + dest_screen_buffer->len++) = ScreenAnchor { a.x, a.y, color };
+        *(dest_screen_buffer->lst + dest_screen_buffer->len++) = ScreenAnchor { b.x, b.y, color };;
         nlines_remaining++;
     }
     return nlines_remaining;
@@ -83,7 +97,7 @@ void RenderRandomPatternRGBA(u8* image_buffer, u32 w, u32 h) {
         }
     }
 }
-void RenderLineRGBA(u8* image_buffer, u16 w, u16 h, u16 ax, u16 ay, u16 bx, u16 by) {
+void RenderLineRGBA(u8* image_buffer, u16 w, u16 h, u16 ax, u16 ay, u16 bx, u16 by, Color color) {
 
     // initially working from a to b
     // there are four cases:
@@ -116,10 +130,10 @@ void RenderLineRGBA(u8* image_buffer, u16 w, u16 h, u16 ax, u16 ay, u16 bx, u16 
             y = ay + floor(slope * i);
 
             pix_idx = x + y*w;
-            image_buffer[4 * pix_idx + 0] = 255;
-            image_buffer[4 * pix_idx + 1] = 255;
-            image_buffer[4 * pix_idx + 2] = 255;
-            image_buffer[4 * pix_idx + 3] = 255;
+            image_buffer[4 * pix_idx + 0] = color.r;
+            image_buffer[4 * pix_idx + 1] = color.g;
+            image_buffer[4 * pix_idx + 2] = color.b;
+            image_buffer[4 * pix_idx + 3] = color.a;
         }
     }
     else {
@@ -144,18 +158,18 @@ void RenderLineRGBA(u8* image_buffer, u16 w, u16 h, u16 ax, u16 ay, u16 bx, u16 
             x = ax + floor(slope_inv * i);
 
             pix_idx = x + y*w;
-            image_buffer[4 * pix_idx + 0] = 255;
-            image_buffer[4 * pix_idx + 1] = 255;
-            image_buffer[4 * pix_idx + 2] = 255;
-            image_buffer[4 * pix_idx + 3] = 255;
+            image_buffer[4 * pix_idx + 0] = color.r;
+            image_buffer[4 * pix_idx + 1] = color.g;
+            image_buffer[4 * pix_idx + 2] = color.b;
+            image_buffer[4 * pix_idx + 3] = color.a;
         }
     }
 }
 inline
-void RenderLineRGBA(u8* image_buffer, u16 w, u16 h, Vector2_u16 a, Vector2_u16 b) {
-    RenderLineRGBA(image_buffer, w, h, a.x, a.y, b.x, b.y);
+void RenderLineRGBA(u8* image_buffer, u16 w, u16 h, ScreenAnchor a, ScreenAnchor b) {
+    RenderLineRGBA(image_buffer, w, h, a.x, a.y, b.x, b.y, a.c);
 }
-void RenderPointCloud(u8* image_buffer, u16 w, u16 h, Matrix4f *mvp, List<Vector3f> points) {
+void RenderPointCloud(u8* image_buffer, u16 w, u16 h, Matrix4f *mvp, List<Vector3f> points, Color color) {
     for (u32 i = 0; i < points.len; ++i) {
 
         Vector3f p_ndc = TransformPerspective( *mvp, points.lst[i] );
@@ -164,10 +178,10 @@ void RenderPointCloud(u8* image_buffer, u16 w, u16 h, Matrix4f *mvp, List<Vector
             continue;
         }
         u32 pix_idx = Pos2Idx(p_screen.x, p_screen.y, w);
-        image_buffer[4 * pix_idx + 0] = 255;
-        image_buffer[4 * pix_idx + 1] = 255;
-        image_buffer[4 * pix_idx + 2] = 255;
-        image_buffer[4 * pix_idx + 3] = 255;
+        image_buffer[4 * pix_idx + 0] = color.r;
+        image_buffer[4 * pix_idx + 1] = color.g;
+        image_buffer[4 * pix_idx + 2] = color.b;
+        image_buffer[4 * pix_idx + 3] = color.a;
     }
 }
 
@@ -187,7 +201,7 @@ struct Entity {
     Entity *next = NULL;
     EntityType tpe;
     Matrix4f transform;
-    u8 color[4] = { RGBA_WHITE };
+    Color color { RGBA_WHITE };
     u16 verts_low = 0;
     u16 verts_high = 0;
     u16 lines_low = 0;
@@ -211,6 +225,7 @@ AABox InitAABox(Vector3f center_transf, float radius) {
     AABox box;
     box._entity = InitEntity(ET_LINES);
     box._entity.transform = TransformBuild(y_hat, 0, center_transf);
+    box._entity.color = { RGBA_GREEN };
     box.center_loc = Vector3f {0, 0, 0},
     box.radius = radius;
     return box;
@@ -252,6 +267,7 @@ struct CoordAxes {
 CoordAxes InitCoordAxes() {
     CoordAxes ax;
     ax._entity = InitEntity(ET_AXES);
+    ax._entity.color = { RGBA_BLUE };
     return ax;
 }
 void CoordAxesGetVerticesAndIndices(CoordAxes axes, List<Vector3f> *verts_dest, List<Vector2_u16> *idxs_dest) {
