@@ -176,9 +176,16 @@ void RenderPointCloud(u8* image_buffer, u16 w, u16 h, Matrix4f *mvp, List<Vector
 //
 // Entity types
 
+enum EntityType {
+    ET_AXES,
+    ET_LINES,
+    ET_POINTCLOUD,
 
+    ET_COUNT,
+};
 struct Entity {
     Entity *next = NULL;
+    EntityType tpe;
     Matrix4f transform;
     u8 color[4] = { RGBA_WHITE };
     u16 verts_low = 0;
@@ -186,8 +193,9 @@ struct Entity {
     u16 lines_low = 0;
     u16 lines_high = 0;
 };
-Entity InitEntity() {
+Entity InitEntity(EntityType tpe) {
     Entity e;
+    e.tpe = tpe;
     e.transform = Matrix4f_Identity();
     return e;
 }
@@ -201,6 +209,7 @@ struct AABox {
 };
 AABox InitAABox(Vector3f center_transf, float radius) {
     AABox box;
+    box._entity = InitEntity(ET_LINES);
     box._entity.transform = TransformBuild(y_hat, 0, center_transf);
     box.center_loc = Vector3f {0, 0, 0},
     box.radius = radius;
@@ -242,7 +251,7 @@ struct CoordAxes {
 };
 CoordAxes InitCoordAxes() {
     CoordAxes ax;
-    ax._entity = InitEntity();
+    ax._entity = InitEntity(ET_AXES);
     return ax;
 }
 void CoordAxesGetVerticesAndIndices(CoordAxes axes, List<Vector3f> *verts_dest, List<Vector2_u16> *idxs_dest) {
@@ -265,7 +274,7 @@ struct PointCloud {
 };
 PointCloud InitPointCloud(List<Vector3f> points) {
     PointCloud pc;
-    pc._entity = InitEntity();
+    pc._entity = InitEntity(ET_POINTCLOUD);
     pc.points = points;
     return pc;
 }

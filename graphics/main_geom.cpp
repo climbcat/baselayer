@@ -73,7 +73,7 @@ void RunProgram() {
     PointCloud pc_1;
     {
         RandInit();
-        u32 npoints = 50;
+        u32 npoints = 90;
         List<Vector3f> points = InitList<Vector3f>(a, npoints);
         Vector3f min { -2, -2, -2 };
         Vector3f max { 2, 2, 2 };
@@ -90,10 +90,10 @@ void RunProgram() {
     PointCloud pc_2;
     {
         RandInit();
-        u32 npoints = 40;
+        u32 npoints = 300;
         List<Vector3f> points = InitList<Vector3f>(a, npoints);
         Vector3f min { -2, -2, -2 };
-        Vector3f max { 2, 2, 2 };
+        Vector3f max { 2, 2, 0 };
         Vector3f range { max.x - min.x, max.y - min.y, max.z - min.z };
         for (u32 i = 0; i < npoints; ++i) {
             *(points.lst + points.len++) = Vector3f {
@@ -107,10 +107,10 @@ void RunProgram() {
     PointCloud pc_3;
     {
         RandInit();
-        u32 npoints = 30;
+        u32 npoints = 600;
         List<Vector3f> points = InitList<Vector3f>(a, npoints);
         Vector3f min { -2, -2, -2 };
-        Vector3f max { 2, 2, 2 };
+        Vector3f max { 0, 0, 0 };
         Vector3f range { max.x - min.x, max.y - min.y, max.z - min.z };
         for (u32 i = 0; i < npoints; ++i) {
             *(points.lst + points.len++) = Vector3f {
@@ -125,6 +125,9 @@ void RunProgram() {
     axes._entity.next = &box._entity;
     box._entity.next = &box2._entity;
     box2._entity.next = &box3._entity;
+    box3._entity.next = &pc_1._entity;
+    pc_1._entity.next = &pc_2._entity;
+    pc_2._entity.next = &pc_3._entity;
     Entity *first = &axes._entity;
 
     // test the entity chain: 
@@ -157,20 +160,26 @@ void RunProgram() {
         // entity loop (POC): vertices -> NDC
         u32 eidx = 0;
         Entity *next = first;
+
         while (next != NULL) {
-            if (eidx == 0) {
-                model = next->transform;
+            if (next ->tpe != ET_POINTCLOUD) {
+                if (next->tpe == ET_AXES) {
+                    model = next->transform;
+                }
+                else {
+                    model = next->transform * TransformBuildRotateY(0.03f * iter);
+                }
+                mvp = TransformBuildMVP(model, cam.view, proj);
+
+                // render lines to screen buffer
+                for (u32 i = next->verts_low; i <= next->verts_high; ++i) {
+                    ndc_buffer.lst[i] = TransformPerspective(mvp, vertex_buffer.lst[i]);
+                }
             }
             else {
-                model = next->transform * TransformBuildRotateY(0.03f * iter);
+                mvp = TransformBuildMVP(Matrix4f_Identity(), cam.view, proj);
+                RenderPointCloud(image_buffer, w, h, &mvp, ((PointCloud*)next)->points);
             }
-            mvp = TransformBuildMVP(model, cam.view, proj);
-
-            // render
-            for (u32 i = next->verts_low; i <= next->verts_high; ++i) {
-                ndc_buffer.lst[i] = TransformPerspective(mvp, vertex_buffer.lst[i]);
-            }
-
             eidx++;
             next = next->next;
         }
@@ -181,18 +190,6 @@ void RunProgram() {
         u16 nlines_torender = LinesToScreen(w, h, &index_buffer, &ndc_buffer, &screen_buffer);
         for (u32 i = 0; i < screen_buffer.len / 2; ++i) {
             RenderLineRGBA(image_buffer, w, h, screen_buffer.lst[2*i + 0], screen_buffer.lst[2*i + 1]);
-        }
-
-        // render point clouds (POC)
-        mvp = TransformBuildMVP(Matrix4f_Identity(), cam.view, proj);
-        if (iter % 45 < 15) {
-            RenderPointCloud(image_buffer, w, h, &mvp, pc_1.points);
-        }
-        else if (iter % 45 < 30) {
-            RenderPointCloud(image_buffer, w, h, &mvp, pc_2.points);
-        }
-        else {
-            RenderPointCloud(image_buffer, w, h, &mvp, pc_3.points);
         }
 
         // frame end 
