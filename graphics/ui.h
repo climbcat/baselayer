@@ -115,8 +115,8 @@ struct OrbitCamera {
     float theta;
     float phi;
     float radius;
-    float mouse2theta = 0.4;
-    float mouse2phi = 0.4;
+    float mouse2rot = 0.4;
+    float mouse2pan = 0.01;
     Matrix4f view;
 
     static float ClampTheta(float theta_degs, float min = 0.0001f, float max = 180 - 0.0001f) {
@@ -131,8 +131,9 @@ struct OrbitCamera {
         }
 
         if (m->held) {
-            theta = OrbitCamera::ClampTheta(theta - m->dy * mouse2theta);
-            phi += sign_x * m->dx * mouse2phi;
+            // orbit
+            theta = OrbitCamera::ClampTheta(theta - m->dy * mouse2rot);
+            phi += sign_x * m->dx * mouse2rot;
         }
         else if (m->wdown) {
             radius *= 1.1;
@@ -140,12 +141,25 @@ struct OrbitCamera {
         else if (m->wup) {
             radius /= 1.1;
         }
+        else if (m->rheld) {
+            // pan
+            Vector3f forward = - SphericalCoordsY(theta*deg2rad, phi*deg2rad, radius);
+            forward.Normalize();
+            Vector3f left = y_hat.Cross(forward);
+            left.Normalize();
+            Vector3f right = - left;
+            Vector3f up = forward.Cross(left);
+            up.Normalize();
+            center = center + mouse2pan * m->dx * right;
+            center = center + mouse2pan * m->dy * up;
+        }
+
+        // build orbit camp transform
         view = TransformBuildOrbitCam(center, theta, phi, radius);
     }
 };
 OrbitCamera InitOrbitCamera(float aspect) {
-    OrbitCamera cam {
-        PerspectiveFrustum { 90, aspect, 0.1, 20 } };
+    OrbitCamera cam { PerspectiveFrustum { 90, aspect, 0.1, 20 } };
     cam.center = Vector3f_Zero();
     cam.theta = 60;
     cam.phi = 35;
