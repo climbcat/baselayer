@@ -124,10 +124,15 @@ struct OrbitCamera {
         float result = MaxF32(clamp_up, min);
         return result;
     }
-    void Update(MouseTrap *m) {
+    void Update(MouseTrap *m, bool invert_x) {
+        float sign_x = 1;
+        if (invert_x) {
+            sign_x = - 1;
+        }
+
         if (m->held) {
             theta = OrbitCamera::ClampTheta(theta - m->dy * mouse2theta);
-            phi += m->dx * mouse2phi;
+            phi += sign_x * m->dx * mouse2phi;
         }
         else if (m->wdown) {
             radius *= 1.1;

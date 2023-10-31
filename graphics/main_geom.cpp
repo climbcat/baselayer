@@ -42,46 +42,96 @@ void RunProgram() {
     List<Vector2_u16> screen_buffer = InitList<Vector2_u16>(a, 1000);
 
     // entities
-    AABox box = InitAABox({ 0, -0.7, 0.7 }, 0.3);
     CoordAxes axes = InitCoordAxes();
-    AABoxGetVerticesAndIndices(box, &vertex_buffer, &index_buffer);
+    axes._entity.verts_low = vertex_buffer.len;
+    axes._entity.lines_low = index_buffer.len;
     CoordAxesGetVerticesAndIndices(axes, &vertex_buffer, &index_buffer);
+    axes._entity.verts_high = vertex_buffer.len - 1;
+    axes._entity.lines_high = index_buffer.len - 1;
+
+    AABox box = InitAABox({ 0.3, 0, 0.7 }, 0.2);
+    box._entity.verts_low = vertex_buffer.len;
+    box._entity.lines_low = index_buffer.len;
+    AABoxGetVerticesAndIndices(box, &vertex_buffer, &index_buffer);
+    box._entity.verts_high = vertex_buffer.len - 1;
+    box._entity.lines_high = index_buffer.len - 1;
+
+    AABox box2 = InitAABox({ 0.3, 0.0, -0.7 }, 0.2);
+    box2._entity.verts_low = vertex_buffer.len;
+    box2._entity.lines_low = index_buffer.len;
+    AABoxGetVerticesAndIndices(box2, &vertex_buffer, &index_buffer);
+    box2._entity.verts_high = vertex_buffer.len - 1;
+    box2._entity.lines_high = index_buffer.len - 1;
+
+    AABox box3 = InitAABox({ -0.7, 0, 0.0 }, 0.2);
+    box3._entity.verts_low = vertex_buffer.len;
+    box3._entity.lines_low = index_buffer.len;
+    AABoxGetVerticesAndIndices(box3, &vertex_buffer, &index_buffer);
+    box3._entity.verts_high = vertex_buffer.len - 1;
+    box3._entity.lines_high = index_buffer.len - 1;
+
+    /*
+    box._entity.next = &box2._entity;
+    box2._entity.next = &box3._entity;
+    box3._entity.next = &axes._entity;
+    */
+    axes._entity.next = &box._entity;
+    box._entity.next = &box2._entity;
+    box2._entity.next = &box3._entity;
+    Entity *first = &axes._entity;
+
+    // test the entity chain: 
+    u32 eidx = 0;
+    Entity *next = first;
+    while (next != NULL) {
+        printf("%u: vertices %u -> %u lines %u -> %u\n", eidx, next->verts_low, next->verts_high, next->lines_low, next->lines_high);
+        eidx++;
+        next = next->next;
+    }
+
 
     // camera
     OrbitCamera cam = InitOrbitCamera(aspect);
 
     // build transform: [ model -> world -> view_inv -> projection ]
-    Matrix4f proj = PerspectiveMatrixOpenGL(cam.frustum, true, false, true);
+    Matrix4f proj = PerspectiveMatrixOpenGL(cam.frustum, false, false, false);
     Matrix4f view, model, mvp;
-
-
-
-    // NOTE: noticed that upper-left-corner constitutes screen 0,0, which means we much 
-    //  want to invert the y-axis back from whence it came :>
-
-
 
     u64 iter = 0;
     MouseTrap mouse = InitMouseTrap();
     while (Running(&mouse)) {
-        XSleep(10);
+        // frame start
+        XSleep(33);
         ClearToZeroRGBA(image_buffer, w, h);
         screen_buffer.len = 0;
 
-        // box animation
-        model = box.transform * TransformBuildRotateY(0.03f * iter);
+        // orbit camera
+        cam.Update(&mouse, true);
 
-        // orbit
-        cam.Update(&mouse);
-        mvp = TransformBuildMVP(model, cam.view, proj);
-        iter++;
+        // entity loop (POC): vertices -> NDC
+        u32 eidx = 0;
+        Entity *next = first;
+        while (next != NULL) {
+            if (eidx == 0) {
+                model = next->transform;
+            }
+            else {
+                model = next->transform * TransformBuildRotateY(0.03f * iter);
+            }
+            mvp = TransformBuildMVP(model, cam.view, proj);
 
-        // render
-        for (u32 i = 0; i < vertex_buffer.len; ++i) {
-            ndc_buffer.lst[i] = TransformPerspective(mvp, vertex_buffer.lst[i]);
+            // render
+            for (u32 i = next->verts_low; i <= next->verts_high; ++i) {
+                ndc_buffer.lst[i] = TransformPerspective(mvp, vertex_buffer.lst[i]);
+            }
+
+            eidx++;
+            next = next->next;
         }
         ndc_buffer.len = vertex_buffer.len;
+        iter++;
 
+        // render / frame end
         u16 nlines_torender = LinesToScreen(w, h, &index_buffer, &ndc_buffer, &screen_buffer);
         for (u32 i = 0; i < screen_buffer.len / 2; ++i) {
             RenderLineRGBA(image_buffer, w, h, screen_buffer.lst[2*i + 0], screen_buffer.lst[2*i + 1]);

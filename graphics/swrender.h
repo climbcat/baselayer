@@ -76,22 +76,45 @@ u16 LinesToScreen(u32 w, u32 h, List<Vector2_u16> *index_buffer, List<Vector3f> 
 
 
 //
+// Entity
+
+#define RGBA_BLACK      0, 0, 0, 255
+#define RGBA_WHITE      255, 255, 255, 255
+#define RGBA_RED        255, 0, 0, 255
+#define RGBA_GREEN      0, 255, 0, 255
+#define RGBA_BLUE       0, 0, 255, 255
+
+
+struct Entity {
+    Entity *next = NULL;
+    Matrix4f transform;
+    u8 color[4] = { RGBA_WHITE };
+    u16 verts_low = 0;
+    u16 verts_high = 0;
+    u16 lines_low = 0;
+    u16 lines_high = 0;
+};
+Entity InitEntity() {
+    Entity e;
+    e.transform = Matrix4f_Identity();
+    return e;
+}
+
+
+//
 // Axis-aligned box
 
 
 struct AABox {
-    // global coords
-    Matrix4f transform;
-    // local coords
-    Vector3f center;
+    Entity _entity;
+    Vector3f center_loc;
     f32 radius;
 };
-AABox InitAABox(Vector3f transf_center, float radius) {
-    AABox box {
-        TransformBuild(y_hat, 0, transf_center),
-        Vector3f {0, 0, 0},
-        radius,
-    };
+AABox InitAABox(Vector3f center_transf, float radius) {
+    AABox box;
+    box._entity.transform = TransformBuild(y_hat, 0, center_transf);
+    box.center_loc = Vector3f {0, 0, 0},
+    box.radius = radius;
     return box;
 }
 void AABoxGetVerticesAndIndices(AABox box, List<Vector3f> *verts_dest, List<Vector2_u16> *idxs_dest) {
@@ -109,14 +132,14 @@ void AABoxGetVerticesAndIndices(AABox box, List<Vector3f> *verts_dest, List<Vect
     *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 4) };
     *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 7) };
 
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center.x - box.radius, box.center.y - box.radius, box.center.z - box.radius };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center.x - box.radius, box.center.y - box.radius, box.center.z + box.radius };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center.x - box.radius, box.center.y + box.radius, box.center.z - box.radius };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center.x - box.radius, box.center.y + box.radius, box.center.z + box.radius };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center.x + box.radius, box.center.y - box.radius, box.center.z - box.radius };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center.x + box.radius, box.center.y - box.radius, box.center.z + box.radius };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center.x + box.radius, box.center.y + box.radius, box.center.z - box.radius };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center.x + box.radius, box.center.y + box.radius, box.center.z + box.radius };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x - box.radius, box.center_loc.y - box.radius, box.center_loc.z - box.radius };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x - box.radius, box.center_loc.y - box.radius, box.center_loc.z + box.radius };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x - box.radius, box.center_loc.y + box.radius, box.center_loc.z - box.radius };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x - box.radius, box.center_loc.y + box.radius, box.center_loc.z + box.radius };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x + box.radius, box.center_loc.y - box.radius, box.center_loc.z - box.radius };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x + box.radius, box.center_loc.y - box.radius, box.center_loc.z + box.radius };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x + box.radius, box.center_loc.y + box.radius, box.center_loc.z - box.radius };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box.center_loc.x + box.radius, box.center_loc.y + box.radius, box.center_loc.z + box.radius };
 }
 
 
@@ -125,8 +148,7 @@ void AABoxGetVerticesAndIndices(AABox box, List<Vector3f> *verts_dest, List<Vect
 
 
 struct CoordAxes {
-    // global coords
-    Matrix4f transform;
+    Entity _entity;
     Vector3f x { 1, 0, 0 };
     Vector3f y { 0, 1, 0 };
     Vector3f z { 0, 0, 1 };
@@ -134,7 +156,7 @@ struct CoordAxes {
 };
 CoordAxes InitCoordAxes() {
     CoordAxes ax;
-    ax.transform = Matrix4f_Identity();
+    ax._entity = InitEntity();
     return ax;
 }
 void CoordAxesGetVerticesAndIndices(CoordAxes axes, List<Vector3f> *verts_dest, List<Vector2_u16> *idxs_dest) {
