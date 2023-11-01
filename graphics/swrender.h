@@ -46,7 +46,7 @@ u32 Pos2Idx(u32 pos_x, u32 pos_y, u32 width) {
     return result;
 }
 void ClearToZeroRGBA(u8* image_buffer, u32 w, u32 h) {
-    memset(image_buffer, 0, 4 * w * h);
+    _memzero(image_buffer, 4 * w * h);
 }
 inline
 Vector2_u16 NDC2Screen(u32 w, u32 h, Vector3f ndc) {
