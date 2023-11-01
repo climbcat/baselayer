@@ -239,11 +239,38 @@ void TestEntityRenderingAndOrbitCam() {
         // frame end 
         screen.Draw(image_buffer, w, h);
         SDL_GL_SwapWindow(window);
-    }}
+    }
+}
 
+void TestLoadMatrics() {
+    u64 size_bytes01;
+    u64 size_bytes02;
+    u8* data01 = LoadFileMMAP("../data/231101_positions01_m4x4.bin", &size_bytes01);
+    u8* data02 = LoadFileMMAP("../data/231101_positions02_m4x4.bin", &size_bytes02);
+
+    assert((size_bytes01 % sizeof(Matrix4f)) == 0 && "check whole number of matrices");
+    assert((size_bytes02 % sizeof(Matrix4f)) == 0 && "check whole number of matrices");
+
+    u32 cnt01 = size_bytes01 / sizeof(Matrix4f);
+    u32 cnt02 = size_bytes02 / sizeof(Matrix4f);
+
+    List<Matrix4f> matrices01 { (Matrix4f*) data01, cnt01 };
+    List<Matrix4f> matrices02 { (Matrix4f*) data01, cnt02 };
+
+    printf("\nLoaded %d transforms in 231101_positions01_m4x4.bin: \n", cnt01);
+    for (u32 i = 0; i < matrices01.len; ++i) {
+        PrintMatrix4d(matrices01.lst + i);
+    }
+
+    printf("\nLoaded %d transforms in 231101_positions01_m4x4.bin: \n", cnt02);
+    for (u32 i = 0; i < matrices02.len; ++i) {
+        PrintMatrix4d(matrices02.lst + i);
+    }
+}
 
 void Test() {
-    TestRandomImageOGL();
-    TestRDrawLines();
-    TestEntityRenderingAndOrbitCam();
+    //TestRandomImageOGL();
+    //TestRDrawLines();
+    //TestEntityRenderingAndOrbitCam();
+    TestLoadMatrics();
 }
