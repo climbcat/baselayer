@@ -22,13 +22,11 @@
 void RunProgram() {
     printf("Soft rendering demo ...\n");
 
-    SwRenderer rend = InitRenderer();
+    u32 width = 1280;
+    u32 height = 800;
+    SDL_Window *window = InitSDL(width, height, false);
+    SwRenderer rend = InitRenderer(width, height);
     SwRenderer *r = &rend;
-    SDL_Window *window = InitOGL(rend.w, rend.h);
-
-    // image buffer
-    ScreenQuadTextureProgram screen;
-    screen.Init(rend.image_buffer, rend.w, rend.h);
 
     // data memory pool
     MArena _a2 = ArenaCreate();
@@ -41,15 +39,19 @@ void RunProgram() {
     AABox box2 = InitAABox({ 0.3, 0.0, -0.7 }, 0.2);
     AABox box3 = InitAABox({ -0.7, 0, 0.0 }, 0.2);
 
+    box._entity.tpe = ET_LINES_ROT;
+    box2._entity.tpe = ET_LINES_ROT;
+    box3._entity.tpe = ET_LINES_ROT;
+
     CoordAxesActivate(&axes, r);
     AABoxActivate(&box, r);
     AABoxActivate(&box2, r);
     AABoxActivate(&box3, r);
 
-    EntitySteysmChain(&es, &axes._entity);
-    EntitySteysmChain(&es, &box._entity);
-    EntitySteysmChain(&es, &box2._entity);
-    EntitySteysmChain(&es, &box3._entity);
+    EntitySystemChain(&es, &axes._entity);
+    EntitySystemChain(&es, &box._entity);
+    EntitySystemChain(&es, &box2._entity);
+    EntitySystemChain(&es, &box3._entity);
 
     PointCloud pc_1;
     {
@@ -106,82 +108,34 @@ void RunProgram() {
         pc_3._entity.color = { RGBA_RED };
     }
 
-    EntitySteysmChain(&es, &pc_1._entity);
-    EntitySteysmChain(&es, &pc_2._entity);
-    EntitySteysmChain(&es, &pc_3._entity);
-    Entity *next = es.first;
+    EntitySystemChain(&es, &pc_1._entity);
+    EntitySystemChain(&es, &pc_2._entity);
+    EntitySystemChain(&es, &pc_3._entity);
+    EntitySystemPrint(&es);
 
-    // print the entity chain: 
-    u32 eidx = 0;
-    while (next != NULL) {
-        printf("%u: vertices %u -> %u lines %u -> %u\n", eidx, next->verts_low, next->verts_high, next->lines_low, next->lines_high);
-        eidx++;
-        next = next->next;
-    }
-
-    // camera
-    OrbitCamera cam = InitOrbitCamera(rend.aspect);
-
-    // build transform: [ model -> world -> view_inv -> projection ]
-    Matrix4f proj = PerspectiveMatrixOpenGL(cam.frustum, false, false, false);
-    Matrix4f view, model, mvp;
-
-    u64 iter = 0;
+    // camera, events
+    OrbitCamera cam = InitOrbitCamera(r->aspect);
     MouseTrap mouse = InitMouseTrap();
-    while (Running(&mouse)) {
-        // frame start
-        XSleep(10);
-        ClearToZeroRGBA(rend.image_buffer, rend.w, rend.h);
-        rend.screen_buffer.len = 0;
 
-        // orbit camera
+    // frame loop
+    u64 frameno = 0;
+    while (Running(&mouse)) {
+        // TODO: run the frame timer
+        XSleep(10);
+
+        // update orbitcam
         cam.Update(&mouse, true);
 
-        // entity loop (POC): vertices -> NDC
-        u32 eidx = 0;
-        next = es.first;
-
-        while (next != NULL) {
-            if (next ->tpe != ET_POINTCLOUD) {
-                if (next->tpe == ET_AXES) {
-                    model = next->transform;
-                }
-                else {
-                    model = next->transform * TransformBuildRotateY(0.03f * iter);
-                }
-                mvp = TransformBuildMVP(model, cam.view, proj);
-
-                // lines to screen buffer
-                for (u32 i = next->verts_low; i <= next->verts_high; ++i) {
-                    rend.ndc_buffer.lst[i] = TransformPerspective(mvp, rend.vertex_buffer.lst[i]);
-                }
-                // render lines
-                LinesToScreen(rend.w, rend.h, &rend.screen_buffer, &rend.index_buffer, &rend.ndc_buffer, next->lines_low, next->lines_high, next->color);
-            }
-            else {
-                mvp = TransformBuildMVP(Matrix4f_Identity(), cam.view, proj);
-
-                // render pointcloud
-                RenderPointCloud(rend.image_buffer, rend.w, rend.h, &mvp, ((PointCloud*)next)->points, next->color);
-            }
-            eidx++;
-            next = next->next;
-        }
-        rend.ndc_buffer.len = rend.vertex_buffer.len;
-        iter++;
-        for (u32 i = 0; i < rend.screen_buffer.len / 2; ++i) {
-            RenderLineRGBA(rend.image_buffer, rend.w, rend.h, rend.screen_buffer.lst[2*i + 0], rend.screen_buffer.lst[2*i + 1]);
-        }
-
         // frame end 
-        screen.Draw(rend.image_buffer, rend.w, rend.h);
+        SwRenderFrame(r, &es, &cam.vp, frameno);
         SDL_GL_SwapWindow(window);
+        frameno++;
     }
 }
 
 int main (int argc, char **argv) {
     TimeProgram;
-    bool force_testing = true;
+    bool force_testing = false;
 
     if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv)) {
         printf("--help:          display help (this text)\n");

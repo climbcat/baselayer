@@ -12,7 +12,7 @@ void TestRandomImageOGL() {
     u8 *image = (u8*) ArenaAlloc(a, nchannels * w * h);
 
     // OGL window & sharder
-    SDL_Window *window = InitOGL(w, h);
+    SDL_Window *window = InitSDL(w, h);
     ScreenQuadTextureProgram screen;
     screen.Init(image, w, h);
     
@@ -38,7 +38,7 @@ void TestRDrawLines() {
     MArena arena = ArenaCreate();
     MArena *a = &arena;
     u8 *image = (u8*) ArenaAlloc(a, nchannels * w * h);
-    SDL_Window *window = InitOGL(w, h);
+    SDL_Window *window = InitSDL(w, h);
     ScreenQuadTextureProgram screen;
     screen.Init(image, w, h);
     
@@ -68,7 +68,7 @@ void TestEntityRenderingAndOrbitCam() {
     u32 nchannels = 4;
     MArena arena = ArenaCreate();
     MArena *a = &arena;
-    SDL_Window *window = InitOGL(w, h);
+    SDL_Window *window = InitSDL(w, h);
 
     // image buffer
     u8 *image_buffer = (u8*) ArenaAlloc(a, nchannels * w * h);

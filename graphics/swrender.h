@@ -187,7 +187,117 @@ void RenderPointCloud(u8* image_buffer, u16 w, u16 h, Matrix4f *mvp, List<Vector
 
 
 //
-// SW Rendering thingee
+// Entity System
+
+
+enum EntityType {
+    ET_AXES,
+    ET_LINES,
+    ET_LINES_ROT,
+    ET_POINTCLOUD,
+
+    ET_COUNT,
+};
+struct Entity {
+    Entity *next = NULL;
+    EntityType tpe;
+    Matrix4f transform;
+    Color color { RGBA_WHITE };
+    u16 verts_low = 0;
+    u16 verts_high = 0;
+    u16 lines_low = 0;
+    u16 lines_high = 0;
+    bool active = true;
+    void Activate() {
+        active = true;
+    }
+    void DeActivate() {
+        active = false;
+    }
+
+};
+Entity InitEntity(EntityType tpe) {
+    Entity e;
+    e.next = NULL;
+    e.tpe = tpe;
+    e.transform = Matrix4f_Identity();
+    e.active = true;
+    return e;
+}
+struct EntitySystem {
+    Entity *first = NULL;
+    Entity *next = NULL;
+    Entity *last = NULL;
+    void IterReset() {
+        next = first;
+    }
+    Entity *IterNext() {
+        Entity *result = next;
+        if (next != NULL) {
+            next = next->next;
+        }
+        return result;
+    }
+};
+void EntitySystemChain(EntitySystem *es, Entity *next) {
+    if (es->first == NULL) {
+        es->first = next;
+        es->last = next;
+        es->IterReset();
+    }
+    else {
+        es->last->next = next;
+        es->last = next;
+    }
+}
+void EntitySystemPrint(EntitySystem *es) {
+    u32 eidx = 0;
+    Entity *next = es->first;
+    while (next != NULL) {
+        if (next->tpe != ET_POINTCLOUD) {
+            printf("%u: vertices %u -> %u lines %u -> %u\n", eidx, next->verts_low, next->verts_high, next->lines_low, next->lines_high);
+        }
+        else {
+            printf("%u: point cloud \n", eidx);
+        }
+        eidx++;
+        next = next->next;
+    }
+}
+
+
+//
+// Point cloud
+
+
+struct PointCloud {
+    Entity _entity;
+    List<Vector3f> points;
+};
+PointCloud InitPointCloud() {
+    PointCloud pc;
+    pc.points.len = 0;
+    pc.points.lst = NULL;
+    pc._entity = InitEntity(ET_POINTCLOUD);
+    pc._entity.color = { RGBA_GREEN };
+    return pc;
+}
+PointCloud InitPointCloud(List<Vector3f> points) {
+    PointCloud pc;
+    pc._entity = InitEntity(ET_POINTCLOUD);
+    pc.points = points;
+    return pc;
+}
+PointCloud InitPointCloud(Vector3f *points, u32 npoints) {
+    return InitPointCloud( List<Vector3f> { points, npoints });
+}
+PointCloud InitPointCloudF(float *points, u32 npoints) {
+    return InitPointCloud((Vector3f*) points, npoints);
+}
+
+
+//
+// Rendering functions wrapper
 
 
 struct SwRenderer {
@@ -205,6 +315,9 @@ struct SwRenderer {
     List<Vector3f> ndc_buffer;
     List<ScreenAnchor> screen_buffer;
     u8 *image_buffer;
+
+    // shader
+    ScreenQuadTextureProgram screen;
 };
 SwRenderer InitRenderer(u32 width = 1280, u32 height = 800) {
     SwRenderer rend;
@@ -222,58 +335,91 @@ SwRenderer InitRenderer(u32 width = 1280, u32 height = 800) {
     rend.ndc_buffer = InitList<Vector3f>(rend.a, 1000);
     rend.screen_buffer = InitList<ScreenAnchor>(rend.a, 1000);
 
+    // shader
+    rend.screen.Init(rend.image_buffer, rend.w, rend.h);
+
     return rend;
+}
+void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
+    ClearToZeroRGBA(r->image_buffer, r->w, r->h);
+    r->screen_buffer.len = 0;
+
+    // entity loop (POC): vertices -> NDC
+    Matrix4f model, mvp;
+    u32 eidx = 0;
+    es->IterReset();
+    Entity *next = es->IterNext();
+    while (next != NULL) {
+        if (next ->tpe != ET_POINTCLOUD) {
+            if (next->tpe == ET_LINES_ROT) {
+                model = next->transform * TransformBuildRotateY(0.03f * frameno);
+            }
+            else {
+                model = next->transform;
+            }
+            mvp = TransformBuildMVP(model, *vp);
+
+            // lines to screen buffer
+            for (u32 i = next->verts_low; i <= next->verts_high; ++i) {
+                r->ndc_buffer.lst[i] = TransformPerspective(mvp, r->vertex_buffer.lst[i]);
+                // TODO: here, it is faster to do a frustum filter in world space
+            }
+            // render lines
+            LinesToScreen(r->w, r->h, &r->screen_buffer, &r->index_buffer, &r->ndc_buffer, next->lines_low, next->lines_high, next->color);
+        }
+        else {
+            mvp = *vp;
+
+            // render pointcloud
+            RenderPointCloud(r->image_buffer, r->w, r->h, &mvp, ((PointCloud*)next)->points, next->color);
+        }
+        eidx++;
+        next = next->next;
+    }
+    r->ndc_buffer.len = r->vertex_buffer.len;
+    for (u32 i = 0; i < r->screen_buffer.len / 2; ++i) {
+        RenderLineRGBA(r->image_buffer, r->w, r->h, r->screen_buffer.lst[2*i + 0], r->screen_buffer.lst[2*i + 1]);
+    }
+
+    r->screen.Draw(r->image_buffer, r->w, r->h);
 }
 
 
 //
-// Entity types
-
-enum EntityType {
-    ET_AXES,
-    ET_LINES,
-    ET_POINTCLOUD,
-
-    ET_COUNT,
-};
-struct Entity {
-    Entity *next = NULL;
-    EntityType tpe;
-    Matrix4f transform;
-    Color color { RGBA_WHITE };
-    u16 verts_low = 0;
-    u16 verts_high = 0;
-    u16 lines_low = 0;
-    u16 lines_high = 0;
-};
-Entity InitEntity(EntityType tpe) {
-    Entity e;
-    e.tpe = tpe;
-    e.transform = Matrix4f_Identity();
-    return e;
-}
-struct EntitySystem {
-    Entity *first = NULL;
-    Entity *last = NULL;
-};
-void EntitySteysmChain(EntitySystem *es, Entity *next) {
-    if (es->first == NULL) {
-        es->first = next;
-        es->last = next;
-    }
-    else {
-        es->last->next = next;
-        es->last = next;
-    }
-}
-
-
 // Axis-aligned box
+
+
 struct AABox {
     Entity _entity;
     Vector3f center_loc;
     f32 radius;
+    inline float XMin() {
+        return center_loc.x - radius;
+    }
+    inline float XMax() {
+        return center_loc.x + radius;
+    }
+    inline float YMin() {
+        return center_loc.y - radius;
+    }
+    inline float YMax() {
+        return center_loc.y + radius;
+    }
+    inline float ZMin() {
+        return center_loc.z - radius;
+    }
+    inline float ZMax() {
+        return center_loc.z + radius;
+    }
 };
+inline
+bool FitsWithinBox(AABox *box, Vector3f v) {
+    bool result =
+        box->XMin() <= v.x && box->XMax() >= v.x &&
+        box->YMin() <= v.y && box->YMax() >= v.y &&
+        box->ZMin() <= v.z && box->ZMax() >= v.z;
+    return result;
+}
 AABox InitAABox(Vector3f center_transf, float radius) {
     AABox box;
     box._entity = InitEntity(ET_LINES);
@@ -316,7 +462,10 @@ void AABoxActivate(AABox *box, SwRenderer *r) {
 }
 
 
+//
 // Coordinate axes
+
+
 struct CoordAxes {
     Entity _entity;
     Vector3f x { 1, 0, 0 };
@@ -349,24 +498,6 @@ void CoordAxesActivate(CoordAxes *axes, SwRenderer *r) {
     axes->_entity.lines_high = r->index_buffer.len - 1;
 }
 
-
-// Point cloud
-struct PointCloud {
-    Entity _entity;
-    List<Vector3f> points;
-};
-PointCloud InitPointCloud(List<Vector3f> points) {
-    PointCloud pc;
-    pc._entity = InitEntity(ET_POINTCLOUD);
-    pc.points = points;
-    return pc;
-}
-PointCloud InitPointCloud(Vector3f *points, u32 npoints) {
-    return InitPointCloud( List<Vector3f> { points, npoints });
-}
-PointCloud InitPointCloudF(float *points, u32 npoints) {
-    return InitPointCloud((Vector3f*) points, npoints);
-}
 
 
 #endif

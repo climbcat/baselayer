@@ -477,6 +477,21 @@ struct PerspectiveFrustum {
     float dist_near; // [m]
     float dist_far; // [m]
 };
+Matrix4f Matrix4f_FlipX() {
+    Matrix4f flip = Matrix4f_Identity();
+    flip.m[0][0] = -1;
+    return flip;
+}
+Matrix4f Matrix4f_FlipY() {
+    Matrix4f flip = Matrix4f_Identity();
+    flip.m[1][1] = -1;
+    return flip;
+}
+Matrix4f Matrix4f_FlipZ() {
+    Matrix4f flip = Matrix4f_Identity();
+    flip.m[2][2] = -1;
+    return flip;
+}
 Matrix4f PerspectiveMatrixOpenGL(PerspectiveFrustum frustum, bool flip_x = true, bool flip_y = false, bool flip_z = true) {
     // gather values
     float f = frustum.dist_far;
@@ -516,8 +531,19 @@ Matrix4f PerspectiveMatrixOpenGL(PerspectiveFrustum frustum, bool flip_x = true,
 
     return m;
 }
+inline
 Matrix4f TransformBuildMVP(Matrix4f model, Matrix4f view, Matrix4f proj) {
     Matrix4f mvp = proj * TransformGetInverse( view ) * model;
+    return mvp;
+}
+inline
+Matrix4f TransformBuildMVP(Matrix4f model, Matrix4f vp) {
+    Matrix4f mvp = vp * model;
+    return mvp;
+}
+inline
+Matrix4f TransformBuildViewProj(Matrix4f view, Matrix4f proj) {
+    Matrix4f mvp = proj * TransformGetInverse( view );
     return mvp;
 }
 inline
@@ -526,7 +552,8 @@ Matrix4f TransformBuildOrbitCam(Vector3f center, float theta_degs, float phi_deg
     Matrix4f view = TransformBuildTranslationOnly(campos) * TransformBuildLookRotationYUp(center, campos);
     return view;
 }
-inline Vector3f TransformPerspective(Matrix4f p, Vector3f v) {
+inline
+Vector3f TransformPerspective(Matrix4f p, Vector3f v) {
     Vector3f result = ToV3f_Homogeneous(p * ToV4f_Homogeneous(v));
     return result;
 }
@@ -569,7 +596,7 @@ void PrintMatrix4d(Matrix4f *m) {
             printf("\n");
         }
     }
-    printf(" ]\n");
+    printf(" ]\n\n");
 }
 void PopulateMatrixRandomly(Matrix4f *m) {
     RandInit();
