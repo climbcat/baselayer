@@ -17,6 +17,9 @@ void XSleep(u32 ms);
 
 
 u8 *LoadFileMMAP(char *filepath, u64 *size_bytes);
+u8 *LoadFileMMAP(const char *filepath, u64 *size_bytes) {
+    return LoadFileMMAP((char*) filepath, size_bytes);
+}
 StrLst GetFilesInFolderPaths(MArena *a, char *rootpath);
 
 
