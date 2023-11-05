@@ -10,7 +10,7 @@ void CtrlCHandler(int i) {
     printf("\n");
     exit(1);
 }
-SDL_Window *InitOGL(u32 width, u32 height, bool fullscreen_mode = false) {
+SDL_Window *InitSDL(u32 width, u32 height, bool fullscreen_mode = false) {
     // init SDL / OS window manager, and OpenGL context
     SDL_Init(SDL_INIT_VIDEO);
     if (fullscreen_mode) {
@@ -55,6 +55,9 @@ struct MouseTrap {
     bool rheld;
     bool wup;
     bool wdown;
+
+    bool key_space;
+    bool key_s;
 };
 MouseTrap InitMouseTrap() {
     MouseTrap m;
@@ -73,6 +76,8 @@ bool Running(MouseTrap *mouse) {
     mouse->dy = mouse->y - y_prev;
     mouse->wup = false;
     mouse->wdown = false;
+    mouse->key_space = false;
+    mouse->key_s = false;
 
     bool result = true;
     SDL_Event event;
@@ -83,6 +88,12 @@ bool Running(MouseTrap *mouse) {
         }
         else if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_ESCAPE) {
             result = false;
+        }
+        else if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_SPACE) {
+            mouse->key_space = true;
+        }
+        else if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_s) {
+            mouse->key_s = true;
         }
         else if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
             mouse->held = true;
@@ -118,6 +129,8 @@ struct OrbitCamera {
     float mouse2rot = 0.4;
     float mouse2pan = 0.01;
     Matrix4f view;
+    Matrix4f proj;
+    Matrix4f vp;
 
     static float ClampTheta(float theta_degs, float min = 0.0001f, float max = 180 - 0.0001f) {
         float clamp_up = MinF32(theta_degs, max);
@@ -156,6 +169,7 @@ struct OrbitCamera {
 
         // build orbit camp transform
         view = TransformBuildOrbitCam(center, theta, phi, radius);
+        vp = TransformBuildViewProj(view, proj);
     }
 };
 OrbitCamera InitOrbitCamera(float aspect) {
@@ -165,6 +179,7 @@ OrbitCamera InitOrbitCamera(float aspect) {
     cam.phi = 35;
     cam.radius = 8;
     cam.view = Matrix4f_Identity();
+    cam.proj = PerspectiveMatrixOpenGL(cam.frustum, false, false, false);
     return cam;
 }
 
