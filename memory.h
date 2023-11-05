@@ -71,9 +71,15 @@ void *ArenaPush(MArena *a, void *data, u32 len) {
     _memcpy(dest, data, len);
     return dest;
 }
-void *ArenaOpen(MArena *a) {
+void *ArenaOpen(MArena *a, u32 max_len = SIXTEEN_MB) {
     assert(!a->locked && "ArenaOpen: memory arena is alredy open");
+    
+    // ensure max_len bytes have been comitted
+    u32 used = a->used;
+    ArenaAlloc(a, max_len);
+    a->used = used;
 
+    // proceed
     a->locked = true;
     return a->mem + a->used;
 }
