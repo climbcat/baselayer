@@ -182,7 +182,7 @@ void RenderPointCloud(u8* image_buffer, u16 w, u16 h, Matrix4f *mvp, List<Vector
     }
 }
 
-
+ 
 //
 // Entity System
 
@@ -191,11 +191,20 @@ enum EntityType {
     ET_AXES,
     ET_LINES,
     ET_LINES_ROT,
-    ET_POINTCLOUD,
-    ET_MESH,
-    ET_RS_FRAMEPAIR,
+    ET_STREAMDATA,
 
     ET_COUNT,
+};
+enum EntityStreamDataType {
+    DT_VERTICES,
+    DT_NORMALS,
+    DT_INDICES2,
+    DT_INDICES3,
+    DT_RGBA, // bitmap (4B stride)
+    DT_F32, // depth image (4B stride)
+    DT_TEXCOORDS, // [0;1]^2 image, (8B stride)
+
+    DT_COUNT,
 };
 struct Vector3i {
     u32 i1;
@@ -211,6 +220,24 @@ struct ImageU32 { // e.g. a bit map
     u32 width;
     u32 height;
     f32 *data;
+};
+struct EntityStream {
+    u32 next; // purpose: byte offset for iterating the chunk, zero indicates the final entry
+    u32 id; // purpose: for associating different EntityStream entries with the same object within the chunk (e.g. depth + colour)
+    u32 time; // purpose: real-time data header info for sorting & filtering by post- or external process
+    // TODO: just have payload_size; plus a GetPointCount() method that translates into the current units
+    u32 npoints; // purpose: data size // conveniently in data type units (a misconception??)
+    u32 width; // purpose: gives dimensions of 2d data (should be also in u8, with a GetPointWidth() method)
+    Matrix4f transform; // purpose: storage of this ever-present header info
+    EntityType tpe; // purpose: allows enterpritation of data payload
+    u32 GetDatumCount(); // returns data count in iteration-ready units of 4B / 8B
+    u32 Get2DWidth(); // returns data width (line width) in iteration-ready units of 4B / 8B
+
+    // TODO: Q. How will EntityStream get ported to OGL? Using one VBO with DrawIndices, one VBO pr. stream, or something else?
+    //      Sbould data structure or EntityStream be redone to accomodate easy uploading of its data?
+    // NOTE: Entity is intended to become a mem-pooled scene graph node type, EntityStream an external, serializable
+    //      data storage system. Entity should be serializable as well, maybe as an EntityStream data type, but
+    //      first is must be pooled and id-based for its references, u16s that do next, parent, children
 };
 struct Entity {
     // TODO: move to using ids / idxs rather than pointers. These can be u16
@@ -321,7 +348,7 @@ void EntitySystemPrint(EntitySystem *es) {
     u32 eidx = 0;
     Entity *next = es->first;
     while (next != NULL) {
-        if (next->tpe != ET_POINTCLOUD) {
+        if (next->tpe != ET_STREAMDATA) {
             printf("%u: vertices %u -> %u lines %u -> %u\n", eidx, next->verts_low, next->verts_high, next->lines_low, next->lines_high);
         }
         else {
@@ -345,13 +372,13 @@ PointCloud InitPointCloud() {
     PointCloud pc;
     pc.points.len = 0;
     pc.points.lst = NULL;
-    pc._entity = InitEntity(ET_POINTCLOUD);
+    pc._entity = InitEntity(ET_STREAMDATA);
     pc._entity.color = { RGBA_GREEN };
     return pc;
 }
 PointCloud InitPointCloud(List<Vector3f> points) {
     PointCloud pc;
-    pc._entity = InitEntity(ET_POINTCLOUD);
+    pc._entity = InitEntity(ET_STREAMDATA);
     pc.points = points;
     return pc;
 }
@@ -417,7 +444,7 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
     es->IterReset();
     Entity *next = es->IterNext();
     while (next != NULL) {
-        if (next ->tpe != ET_POINTCLOUD) {
+        if (next ->tpe != ET_STREAMDATA) {
             if (next->tpe == ET_LINES_ROT) {
                 model = next->transform * TransformBuildRotateY(0.03f * frameno);
             }
