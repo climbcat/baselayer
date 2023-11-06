@@ -386,6 +386,52 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
 
 
 //
+// Game / frame loop wrapper
+
+
+struct GameLoopOne {
+    u64 frameno;
+    SDL_Window *window;
+    SwRenderer renderer;
+    MouseTrap mouse;
+    OrbitCamera cam;
+
+    // as pointer
+    SwRenderer *GetRenderer() {
+        return &renderer;
+    }
+    MouseTrap *GetMouseTrap()  {
+        return &mouse;
+    }
+    OrbitCamera *GetOrbitCam() {
+        return &cam;
+    }
+    bool GameLoopRunning() {
+        return Running(&mouse);
+    }
+    void CycleFrame(EntitySystem *es) {
+        // this frame
+        cam.Update(&mouse, true);
+        SwRenderFrame(&renderer, es, &cam.vp, frameno);
+        SDL_GL_SwapWindow(window);
+        frameno++;
+
+        // start of next frame
+        XSleep(10);
+    }
+};
+GameLoopOne InitGameLoopOne(u32 width, u32 height) {
+    GameLoopOne gl;
+    gl.frameno = 0;
+    gl.window = InitSDL(width, height, false);
+    gl.renderer = InitRenderer(width, height);
+    gl.cam = InitOrbitCamera(gl.renderer.aspect);
+    gl.mouse = InitMouseTrap();
+    return gl;
+}
+
+
+//
 // Axis-aligned box
 
 

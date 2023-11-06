@@ -18,21 +18,22 @@
 #include "test.cpp"
 
 
-
 void RunProgram() {
     printf("Soft rendering demo ...\n");
 
     u32 width = 1280;
     u32 height = 800;
-    SDL_Window *window = InitSDL(width, height, false);
-    SwRenderer rend = InitRenderer(width, height);
-    SwRenderer *r = &rend;
+    GameLoopOne loop = InitGameLoopOne(width, height);
+
+
+    //
+    // just set up entities, the rest is automated
+
 
     // data memory pool
     MArena _a2 = ArenaCreate();
     MArena *a2 = &_a2;
 
-    // entities
     EntitySystem es;
     CoordAxes axes = InitCoordAxes();
     AABox box = InitAABox({ 0.3, 0, 0.7 }, 0.2);
@@ -43,10 +44,10 @@ void RunProgram() {
     box2._entity.tpe = ET_LINES_ROT;
     box3._entity.tpe = ET_LINES_ROT;
 
-    CoordAxesActivate(&axes, r);
-    AABoxActivate(&box, r);
-    AABoxActivate(&box2, r);
-    AABoxActivate(&box3, r);
+    CoordAxesActivate(&axes, loop.GetRenderer());
+    AABoxActivate(&box, loop.GetRenderer());
+    AABoxActivate(&box2, loop.GetRenderer());
+    AABoxActivate(&box3, loop.GetRenderer());
 
     EntitySystemChain(&es, &axes._entity);
     EntitySystemChain(&es, &box._entity);
@@ -113,25 +114,22 @@ void RunProgram() {
     EntitySystemChain(&es, &pc_3._entity);
     EntitySystemPrint(&es);
 
-    // camera, events
-    OrbitCamera cam = InitOrbitCamera(r->aspect);
-    MouseTrap mouse = InitMouseTrap();
+
+    //
+    //
+
 
     // frame loop
-    u64 frameno = 0;
-    while (Running(&mouse)) {
-        // TODO: run the frame timer
-        XSleep(10);
+    while (loop.GameLoopRunning()) {
+        // E.g.: update entity transforms
+        // E.g.: update debug UI
+        // E.g.: run simulations
+        // E.g.: pull worker thread statuses
 
-        // update orbitcam
-        cam.Update(&mouse, true);
-
-        // frame end 
-        SwRenderFrame(r, &es, &cam.vp, frameno);
-        SDL_GL_SwapWindow(window);
-        frameno++;
+        loop.CycleFrame(&es);
     }
 }
+
 
 int main (int argc, char **argv) {
     TimeProgram;
