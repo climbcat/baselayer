@@ -391,18 +391,21 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
 
 struct GameLoopOne {
     u64 frameno;
-    SDL_Window *window;
+    SDL_Window *window; // <- TODO: replace with glfw
     SwRenderer renderer;
     MouseTrap mouse;
     OrbitCamera cam;
 
     // as pointer
+    inline
     SwRenderer *GetRenderer() {
         return &renderer;
     }
+    inline
     MouseTrap *GetMouseTrap()  {
         return &mouse;
     }
+    inline
     OrbitCamera *GetOrbitCam() {
         return &cam;
     }

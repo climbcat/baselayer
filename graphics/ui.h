@@ -10,6 +10,7 @@ void CtrlCHandler(int i) {
     printf("\n");
     exit(1);
 }
+// TODO: replace with glfw
 SDL_Window *InitSDL(u32 width, u32 height, bool fullscreen_mode = false) {
     // init SDL / OS window manager, and OpenGL context
     SDL_Init(SDL_INIT_VIDEO);
@@ -69,6 +70,7 @@ MouseTrap InitMouseTrap() {
     return m;
 }
 bool Running(MouseTrap *mouse) {
+    // TODO: replace with glfw
     s32 x_prev = mouse->x;
     s32 y_prev = mouse->y;
     SDL_GetMouseState(&mouse->x, &mouse->y);
