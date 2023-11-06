@@ -34,25 +34,20 @@ void RunProgram() {
     MArena _a2 = ArenaCreate();
     MArena *a2 = &_a2;
 
+    Entity axes = InitAndActivateCoordAxes(loop.GetRenderer());
+    Entity box = InitAndActivateAABox({ 0.3, 0, 0.7 }, 0.2, loop.GetRenderer());
+    Entity box2 = InitAndActivateAABox({ 0.3, 0.0, -0.7 }, 0.2, loop.GetRenderer());
+    Entity box3 = InitAndActivateAABox({ -0.7, 0, 0.0 }, 0.2, loop.GetRenderer());
+
+    box.tpe = ET_LINES_ROT;
+    box2.tpe = ET_LINES_ROT;
+    box3.tpe = ET_LINES_ROT;
+
     EntitySystem es;
-    CoordAxes axes = InitCoordAxes();
-    AABox box = InitAABox({ 0.3, 0, 0.7 }, 0.2);
-    AABox box2 = InitAABox({ 0.3, 0.0, -0.7 }, 0.2);
-    AABox box3 = InitAABox({ -0.7, 0, 0.0 }, 0.2);
-
-    box._entity.tpe = ET_LINES_ROT;
-    box2._entity.tpe = ET_LINES_ROT;
-    box3._entity.tpe = ET_LINES_ROT;
-
-    CoordAxesActivate(&axes, loop.GetRenderer());
-    AABoxActivate(&box, loop.GetRenderer());
-    AABoxActivate(&box2, loop.GetRenderer());
-    AABoxActivate(&box3, loop.GetRenderer());
-
-    EntitySystemChain(&es, &axes._entity);
-    EntitySystemChain(&es, &box._entity);
-    EntitySystemChain(&es, &box2._entity);
-    EntitySystemChain(&es, &box3._entity);
+    EntitySystemChain(&es, &axes);
+    EntitySystemChain(&es, &box);
+    EntitySystemChain(&es, &box2);
+    EntitySystemChain(&es, &box3);
 
     PointCloud pc_1;
     {

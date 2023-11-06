@@ -36,17 +36,14 @@ struct ScreenAnchor {
     Color c;
 };
 inline
-bool Cull(u32 pos_x, u32 pos_y, u32 w, u32 h) {
+bool CullScreenCoords(u32 pos_x, u32 pos_y, u32 w, u32 h) {
     bool not_result = pos_x >= 0 && pos_x < w && pos_y >= 0 && pos_y < h;
     return !not_result;
 }
 inline
-u32 Pos2Idx(u32 pos_x, u32 pos_y, u32 width) {
+u32 ScreenCoordsPosition2Idx(u32 pos_x, u32 pos_y, u32 width) {
     u32 result = pos_x + width * pos_y;
     return result;
-}
-void ClearToZeroRGBA(u8* image_buffer, u32 w, u32 h) {
-    _memzero(image_buffer, 4 * w * h);
 }
 inline
 Vector2_u16 NDC2Screen(u32 w, u32 h, Vector3f ndc) {
@@ -57,7 +54,7 @@ Vector2_u16 NDC2Screen(u32 w, u32 h, Vector3f ndc) {
 
     return pos;
 }
-u16 LinesToScreen(u32 w, u32 h, List<ScreenAnchor> *dest_screen_buffer, List<Vector2_u16> *index_buffer, List<Vector3f> *ndc_buffer, u32 lines_low, u32 lines_high, Color color) {
+u16 LinesToScreenCoords(u32 w, u32 h, List<ScreenAnchor> *dest_screen_buffer, List<Vector2_u16> *index_buffer, List<Vector3f> *ndc_buffer, u32 lines_low, u32 lines_high, Color color) {
     u16 nlines_remaining = 0;
     for (u32 i = lines_low; i <= lines_high; ++i) {
         Vector2_u16 line = index_buffer->lst[i];
@@ -65,7 +62,7 @@ u16 LinesToScreen(u32 w, u32 h, List<ScreenAnchor> *dest_screen_buffer, List<Vec
         Vector2_u16 b = NDC2Screen(w, h, ndc_buffer->lst[line.y]);
 
         // TODO: crop to NDC box
-        if (Cull(a.x, a.y, w, h) || Cull(b.x, b.y, w, h)) {
+        if (CullScreenCoords(a.x, a.y, w, h) || CullScreenCoords(b.x, b.y, w, h)) {
             continue;
         }
 
@@ -174,10 +171,10 @@ void RenderPointCloud(u8* image_buffer, u16 w, u16 h, Matrix4f *mvp, List<Vector
 
         Vector3f p_ndc = TransformPerspective( *mvp, points.lst[i] );
         Vector2_u16 p_screen = NDC2Screen(w, h, p_ndc);
-        if (Cull(p_screen.x, p_screen.y, w, h) ) {
+        if (CullScreenCoords(p_screen.x, p_screen.y, w, h) ) {
             continue;
         }
-        u32 pix_idx = Pos2Idx(p_screen.x, p_screen.y, w);
+        u32 pix_idx = ScreenCoordsPosition2Idx(p_screen.x, p_screen.y, w);
         image_buffer[4 * pix_idx + 0] = color.r;
         image_buffer[4 * pix_idx + 1] = color.g;
         image_buffer[4 * pix_idx + 2] = color.b;
@@ -195,18 +192,82 @@ enum EntityType {
     ET_LINES,
     ET_LINES_ROT,
     ET_POINTCLOUD,
+    ET_MESH,
+    ET_RS_FRAMEPAIR,
 
     ET_COUNT,
 };
+struct Vector3i {
+    u32 i1;
+    u32 i2;
+    u32 i3;
+};
+struct ImageF32 { // e.g. a depth image
+    u32 width;
+    u32 height;
+    f32 *data;
+};
+struct ImageU32 { // e.g. a bit map
+    u32 width;
+    u32 height;
+    f32 *data;
+};
 struct Entity {
+    // TODO: move to using ids / idxs rather than pointers. These can be u16
     Entity *next = NULL;
     EntityType tpe;
+
     Matrix4f transform;
     Color color { RGBA_WHITE };
+
+    // analytic entity data: (kept in a single "vbo" within the renderer)
     u16 verts_low = 0;
     u16 verts_high = 0;
     u16 lines_low = 0;
     u16 lines_high = 0;
+
+    // analytic entity parameters (AABox, CoordAxes)
+    Vector3f origo;
+    Vector3f dims;
+    inline float XMin() {
+        return origo.x - dims.x;
+    }
+    inline float XMax() {
+        return origo.x + dims.x;
+    }
+    inline float YMin() {
+        return origo.y - dims.y;
+    }
+    inline float YMax() {
+        return origo.y + dims.y;
+    }
+    inline float ZMin() {
+        return origo.z - dims.z;
+    }
+    inline float ZMax() {
+        return origo.z + dims.z;
+    }
+    inline bool FitsWithinBox(Vector3f v) {
+        bool result =
+            XMin() <= v.x && XMax() >= v.x &&
+            YMin() <= v.y && YMax() >= v.y &&
+            ZMin() <= v.z && ZMax() >= v.z;
+        return result;
+    }
+
+
+    // TODO: for "empiric" entities (point cloud, mesh, texture, images // all sorts of array-able data ):
+    //      How do I store the data?
+
+    void *data; // <<-- should I have a StreamedEntitySystem rather than this? We do need a system for setting up the data ptr anyways ...
+    void *GetData();
+    List<Vector3f> GetVertices();
+    List<Vector3f> GetNormals();
+    List<Vector3i> GetIndices();
+    ImageF32 GetDepthImage();
+    ImageU32 GetBitmap();
+
+
     bool active = true;
     void Activate() {
         active = true;
@@ -224,6 +285,12 @@ Entity InitEntity(EntityType tpe) {
     e.active = true;
     return e;
 }
+
+
+//
+// Entity System organizes into a linked list / tree
+
+
 struct EntitySystem {
     Entity *first = NULL;
     Entity *next = NULL;
@@ -341,7 +408,7 @@ SwRenderer InitRenderer(u32 width = 1280, u32 height = 800) {
     return rend;
 }
 void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
-    ClearToZeroRGBA(r->image_buffer, r->w, r->h);
+    _memzero(r->image_buffer, 4 * r->w * r->h);
     r->screen_buffer.len = 0;
 
     // entity loop (POC): vertices -> NDC
@@ -365,7 +432,7 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
                 // TODO: here, it is faster to do a frustum filter in world space
             }
             // render lines
-            LinesToScreen(r->w, r->h, &r->screen_buffer, &r->index_buffer, &r->ndc_buffer, next->lines_low, next->lines_high, next->color);
+            LinesToScreenCoords(r->w, r->h, &r->screen_buffer, &r->index_buffer, &r->ndc_buffer, next->lines_low, next->lines_high, next->color);
         }
         else {
             mvp = *vp;
@@ -438,47 +505,20 @@ GameLoopOne InitGameLoopOne(u32 width, u32 height) {
 // Axis-aligned box
 
 
-struct AABox {
-    Entity _entity;
-    Vector3f center_loc;
-    f32 radius;
-    inline float XMin() {
-        return center_loc.x - radius;
-    }
-    inline float XMax() {
-        return center_loc.x + radius;
-    }
-    inline float YMin() {
-        return center_loc.y - radius;
-    }
-    inline float YMax() {
-        return center_loc.y + radius;
-    }
-    inline float ZMin() {
-        return center_loc.z - radius;
-    }
-    inline float ZMax() {
-        return center_loc.z + radius;
-    }
-};
-inline
-bool FitsWithinBox(AABox *box, Vector3f v) {
-    bool result =
-        box->XMin() <= v.x && box->XMax() >= v.x &&
-        box->YMin() <= v.y && box->YMax() >= v.y &&
-        box->ZMin() <= v.z && box->ZMax() >= v.z;
-    return result;
-}
-AABox InitAABox(Vector3f center_transf, float radius) {
-    AABox box;
-    box._entity = InitEntity(ET_LINES);
-    box._entity.transform = TransformBuild(y_hat, 0, center_transf);
-    box._entity.color = { RGBA_GREEN };
-    box.center_loc = Vector3f {0, 0, 0},
-    box.radius = radius;
-    return box;
-}
-void AABoxGetVerticesAndIndices(AABox *box, List<Vector3f> *verts_dest, List<Vector2_u16> *idxs_dest) {
+Entity InitAndActivateAABox(Vector3f center_transf, float radius, SwRenderer *r) {
+    Entity aabox = InitEntity(ET_LINES);
+    aabox.transform = TransformBuild(y_hat, 0, center_transf);
+    aabox.color = { RGBA_GREEN };
+    aabox.origo = Vector3f { 0, 0, 0 },
+    aabox.dims = Vector3f { radius, radius, radius };
+
+    // enter into the renderer
+    Entity *box = &aabox;
+    box->verts_low = r->vertex_buffer.len;
+    box->lines_low = r->index_buffer.len;
+
+    List<Vector3f> *verts_dest = &r->vertex_buffer;
+    List<Vector2_u16> *idxs_dest = &r->index_buffer;
     u16 vertex_offset = verts_dest->len;
     *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 1) };
     *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 2) };
@@ -493,21 +533,19 @@ void AABoxGetVerticesAndIndices(AABox *box, List<Vector3f> *verts_dest, List<Vec
     *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 4) };
     *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 7) };
 
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->center_loc.x - box->radius, box->center_loc.y - box->radius, box->center_loc.z - box->radius };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->center_loc.x - box->radius, box->center_loc.y - box->radius, box->center_loc.z + box->radius };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->center_loc.x - box->radius, box->center_loc.y + box->radius, box->center_loc.z - box->radius };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->center_loc.x - box->radius, box->center_loc.y + box->radius, box->center_loc.z + box->radius };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->center_loc.x + box->radius, box->center_loc.y - box->radius, box->center_loc.z - box->radius };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->center_loc.x + box->radius, box->center_loc.y - box->radius, box->center_loc.z + box->radius };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->center_loc.x + box->radius, box->center_loc.y + box->radius, box->center_loc.z - box->radius };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->center_loc.x + box->radius, box->center_loc.y + box->radius, box->center_loc.z + box->radius };
-}
-void AABoxActivate(AABox *box, SwRenderer *r) {
-    box->_entity.verts_low = r->vertex_buffer.len;
-    box->_entity.lines_low = r->index_buffer.len;
-    AABoxGetVerticesAndIndices(box, &r->vertex_buffer, &r->index_buffer);
-    box->_entity.verts_high = r->vertex_buffer.len - 1;
-    box->_entity.lines_high = r->index_buffer.len - 1;
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->origo.x - box->dims.x, box->origo.y - box->dims.y, box->origo.z - box->dims.z };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->origo.x - box->dims.x, box->origo.y - box->dims.y, box->origo.z + box->dims.z };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->origo.x - box->dims.x, box->origo.y + box->dims.y, box->origo.z - box->dims.z };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->origo.x - box->dims.x, box->origo.y + box->dims.y, box->origo.z + box->dims.z };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->origo.x + box->dims.x, box->origo.y - box->dims.y, box->origo.z - box->dims.z };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->origo.x + box->dims.x, box->origo.y - box->dims.y, box->origo.z + box->dims.z };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->origo.x + box->dims.x, box->origo.y + box->dims.y, box->origo.z - box->dims.z };
+    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->origo.x + box->dims.x, box->origo.y + box->dims.y, box->origo.z + box->dims.z };
+
+    box->verts_high = r->vertex_buffer.len - 1;
+    box->lines_high = r->index_buffer.len - 1;
+
+    return aabox;
 }
 
 
@@ -515,38 +553,38 @@ void AABoxActivate(AABox *box, SwRenderer *r) {
 // Coordinate axes
 
 
-struct CoordAxes {
-    Entity _entity;
+Entity InitAndActivateCoordAxes(SwRenderer *r) {
+    Entity ax = InitEntity(ET_AXES);
+    ax.color = { RGBA_BLUE };
+    ax.origo = { 0, 0, 0 };
+    ax.dims = { 1, 1, 1 };
+
+    // enter into the renderer
+    Entity *axes = &ax;
+    axes->verts_low = r->vertex_buffer.len;
+    axes->lines_low = r->index_buffer.len;
+
     Vector3f x { 1, 0, 0 };
     Vector3f y { 0, 1, 0 };
     Vector3f z { 0, 0, 1 };
-    Vector3f origo { 0, 0, 0 };
-};
-CoordAxes InitCoordAxes() {
-    CoordAxes ax;
-    ax._entity = InitEntity(ET_AXES);
-    ax._entity.color = { RGBA_BLUE };
-    return ax;
-}
-void CoordAxesGetVerticesAndIndices(CoordAxes *axes, List<Vector3f> *verts_dest, List<Vector2_u16> *idxs_dest) {
+
+    List<Vector3f> *verts_dest = &r->vertex_buffer;
+    List<Vector2_u16> *idxs_dest = &r->index_buffer;
     u16 vertex_offset = verts_dest->len;
     *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset), (u16) (vertex_offset + 1) };
     *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset), (u16) (vertex_offset + 2) };
     *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset), (u16) (vertex_offset + 3) };
     
     *(verts_dest->lst + verts_dest->len++) = (axes->origo);
-    *(verts_dest->lst + verts_dest->len++) = (axes->origo + axes->x);
-    *(verts_dest->lst + verts_dest->len++) = (axes->origo + axes->y);
-    *(verts_dest->lst + verts_dest->len++) = (axes->origo + axes->z);
-}
-void CoordAxesActivate(CoordAxes *axes, SwRenderer *r) {
-    axes->_entity.verts_low = r->vertex_buffer.len;
-    axes->_entity.lines_low = r->index_buffer.len;
-    CoordAxesGetVerticesAndIndices(axes, &r->vertex_buffer, &r->index_buffer);
-    axes->_entity.verts_high = r->vertex_buffer.len - 1;
-    axes->_entity.lines_high = r->index_buffer.len - 1;
-}
+    *(verts_dest->lst + verts_dest->len++) = (axes->origo + x);
+    *(verts_dest->lst + verts_dest->len++) = (axes->origo + y);
+    *(verts_dest->lst + verts_dest->len++) = (axes->origo + z);
 
+    axes->verts_high = r->vertex_buffer.len - 1;
+    axes->lines_high = r->index_buffer.len - 1;
+
+    return ax;
+}
 
 
 #endif
