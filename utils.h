@@ -54,6 +54,9 @@ bool SaveFile(char *filepath, u8 *data, u32 len) {
 
     return true;
 }
+bool SaveFile(const char *filepath, u8 *data, u32 len) {
+    return SaveFile((char *)filepath, data, len);
+}
 
 
 //
