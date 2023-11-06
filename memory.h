@@ -99,47 +99,78 @@ struct MPool {
     u8 *mem;
     u32 block_size;
     u32 nblocks;
-    LList1 *free_list;
+    u32 occupancy;
+    LList1 free_list;
 };
 
-#define MPOOL_CACHE_LINE_SIZE 64
+#define MPOOL_MIN_BLOCK_SIZE 64
 
 MPool PoolCreate(u32 block_size_min, u32 nblocks) {
     assert(nblocks > 1);
 
     MPool p;
-    p.block_size = MPOOL_CACHE_LINE_SIZE * (block_size_min / MPOOL_CACHE_LINE_SIZE + 1);
-    p.mem = (u8*) MemoryProtect(NULL, p.block_size * nblocks);  // mmap(NULL, p.block_size * nblocks, PROT_READ | PROT_WRITE, MAP_PRIVATE, -1, 0);
-    p.free_list = (LList1*) p.mem;
+    p.block_size = MPOOL_MIN_BLOCK_SIZE * (block_size_min / MPOOL_MIN_BLOCK_SIZE + 1);
+    p.nblocks = nblocks;
+    u32 size = p.block_size * p.nblocks;
 
-    LList1 *current = p.free_list;
-    for (u32 i = 0; i < nblocks - 1; ++i) {
-        current->next = (LList1*) (p.mem + i * p.block_size);
-        current = current->next;
+    p.mem = (u8*) MemoryReserve(size);
+    MemoryProtect(p.mem, size);
+
+    LList1 *freeblck = &p.free_list;
+    for (u32 i = 0; i < nblocks; ++i) {
+        freeblck->next = (LList1*) (p.mem + i * p.block_size);
+        freeblck = freeblck->next;
     }
-    current->next = NULL;
+    freeblck->next = NULL;
 
     return p;
 }
 void *PoolAlloc(MPool *p) {
-    if (p->free_list == NULL) {
+    if (p->free_list.next == NULL) {
         return NULL;
     }
-    void *retval = p->free_list;
-    p->free_list = p->free_list->next;
-    _memzero(retval, MPOOL_CACHE_LINE_SIZE);
+    void *retval = p->free_list.next;
+    p->free_list.next = p->free_list.next->next;
+    _memzero(retval, MPOOL_MIN_BLOCK_SIZE);
 
+    ++p->occupancy;
     return retval;
 }
-void PoolFree(MPool *p, void *element) {
-    assert(element >= (void*) p->mem); // check lower bound
-    u64 offset = (u8*) element -  p->mem;
-    assert(offset % p->block_size == 0); // check alignment
-    assert(offset < p->block_size * p->nblocks); // check upper bound
+bool PoolCheckAddress(MPool *p, void *ptr) {
+    if (ptr == NULL) {
+        return false;
+    }
+    bool b1 = (ptr >= (void*) p->mem); // check lower bound
+    if (b1 == false) {
+        return false;
+    }
+    u64 offset = (u8*) ptr -  p->mem;
+    bool b2 = (offset % p->block_size == 0); // check alignment
+    bool b3 = (offset < p->block_size * p->nblocks); // check upper bound
 
-    LList1 *element_as_list = (LList1*) element;
-    element_as_list->next = p->free_list;
-    p->free_list = element_as_list;
+    return b2 && b3;
+}
+bool PoolFree(MPool *p, void *element, bool enable_strict_mode = true) {
+    assert(PoolCheckAddress(p, element) && "input address aligned and in range");
+    LList1 *e = (LList1*) element;
+
+    // check element didn't carry valid free-list pointer
+    bool target_valid = PoolCheckAddress(p, e->next);
+    if (target_valid) {
+        if (enable_strict_mode) {
+            assert(target_valid == false && "trying to free an element probably on the free list");
+        }
+        else {
+            return false;
+        }
+    }
+
+    // free it
+    e->next = p->free_list.next;
+    p->free_list.next = e;
+    --p->occupancy;
+
+    return true;
 }
 
 
