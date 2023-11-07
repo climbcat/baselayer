@@ -279,6 +279,10 @@ struct EntityStream {
         // TODO: switch by type
         return linesize / sizeof(Vector3f);
     }
+    u32 GetDatumSize() {
+        // TODO: switch by type
+        return sizeof(Vector3f);
+    }
     ImageU32 GetDataRGBA();
     ImageF32 GetDataF32();
     List<Vector2f> GetDataTexCoords();
@@ -322,27 +326,46 @@ void EntityStreamPrint(EntityStream *et, char *tag) {
         ++didx;
     }
 }
-EntityStream *InitEntityStream(MArena *a, EntityDataType tpe, u32 npoints, EntityStream *prev = NULL) {
+EntityStream *InitEntityStream(MArena *a, EntityDataType tpe, u32 npoints_max, EntityStream *prev) {
+    // NOTE: next is safely set on prev here
     EntityStream *es = (EntityStream*) ArenaAlloc(a, sizeof(EntityStream), true);
     es->next = 0;
     es->id = 0;
     es->time = 0;
-    es->datasize = npoints * sizeof(Vector3f);
+    es->SetVertexCount(npoints_max);
     es->linesize = 0;
     es->transform = Matrix4f_Identity();
     es->tpe = tpe;
 
     // linked list pointer is assigned on prevíous element
     if (prev != NULL) {
-        assert(es > prev && "");
+        assert(es > prev && "InitEntityStream");
         prev->next = (u8*) es - (u8*) prev;
     }
 
     // TODO: switch by data type to determine allocation size
-    List<Vector3f> points = InitList<Vector3f>(a, npoints);
-    assert((Vector3f*) points.lst == (Vector3f*) es->GetData());
+    List<Vector3f> points = InitList<Vector3f>(a, npoints_max);
+    assert((Vector3f*) points.lst == (Vector3f*) es->GetData() && "InitEntityStream");
 
     return es;
+}
+u32 PointerDiff(void *from, void *to) {
+    assert(from < to && "PointerDiff");
+    u32 result = (u8*) to - (u8*) from;
+    return result;
+}
+u8 *PointerOffsetBytes(void *ptr, int offset) {
+    assert(ptr != NULL && "PointerOffsetBytes");
+    u8 *result = (u8*) ptr + offset;
+    return result;
+}
+void EntityStreamFinalize(MArena *a, u32 npoints_actual, EntityStream *hdr) {
+    // NOTE: next is not set at this point
+    u32 offset = npoints_actual * hdr->GetDatumSize();
+    u8 *hdr_next = PointerOffsetBytes(hdr, offset);
+    u8 *arena_current = a->mem + a->used;
+    a->used = a->used - PointerDiff( hdr_next, arena_current );
+    hdr->SetVertexCount(npoints_actual);
 }
 struct Entity {
     // TODO: move to using ids / idxs rather than pointers. These can be u16
@@ -460,7 +483,7 @@ void EntitySystemPrint(EntitySystem *es) {
             printf("%u: analytic, vertices %u -> %u lines %u -> %u\n", eidx, next->verts_low, next->verts_high, next->lines_low, next->lines_high);
         }
         else {
-            printf("%u: data, %d bytes\n", eidx, next->entity_stream->tpe, next->entity_stream->datasize);
+            printf("%u: data#%d, %u bytes\n", eidx, next->entity_stream->tpe, next->entity_stream->datasize);
         }
         eidx++;
         next = next->next;
@@ -708,7 +731,9 @@ Entity *InitAndActivateCoordAxes(EntitySystem *es, SwRenderer *r) {
 // Point cloud
 
 
-Entity *InitAndActivateDataEntity(EntitySystem *es, EntityStream *hdr, SwRenderer *r) {
+Entity *InitAndActivateDataEntity(EntitySystem *es, SwRenderer *r, MArena *a, EntityDataType tpe, u32 npoints_max, u32 id, EntityStream *prev) {
+    EntityStream *hdr = InitEntityStream(a, tpe, npoints_max, prev);
+    hdr->id = id;
     Entity *pc = es->AllocEntity();
     pc->tpe = ET_STREAMDATA;
     pc->entity_stream = hdr;
