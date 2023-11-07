@@ -265,6 +265,9 @@ struct EntityStream {
         data.len = GetDatumCount();
         return data;
     }
+    void SetVertexCount(u32 npoints) {
+        datasize = npoints * sizeof(Vector3f);
+    }
     List<Vector3i> GetDataVector3i() {
         List<Vector3i> data;
         data.lst = (Vector3i*) GetData();
