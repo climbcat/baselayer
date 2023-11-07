@@ -195,7 +195,7 @@ enum EntityType {
 
     ET_COUNT,
 };
-enum EntityStreamDataType {
+enum EntityDataType {
     DT_VERTICES,
     DT_NORMALS,
     DT_INDICES2,
@@ -237,10 +237,16 @@ struct EntityStream {
     u32 npoints; // purpose: data size // conveniently in data type units (a misconception??)
     u32 width; // purpose: gives dimensions of 2d data (should be also in u8, with a GetPointWidth() method)
     Matrix4f transform; // purpose: storage of this ever-present header info
-    EntityType tpe; // purpose: allows enterpritation of data payload
+    EntityDataType tpe; // purpose: allows enterpritation of data payload
 
-    u8* GetData(); // returns a pointer to where the data is supposed to start (right after this struct's location in memory)
-    u32 GetDataSize(); // just the amount of bytes in the payload
+    u8 *GetData() {
+        // returns a pointer to where the data is supposed to start (right after this struct's location in memory)
+        return (u8*) this + sizeof(EntityStream);
+    }
+    u32 GetDataSize() {
+        // just the amount of bytes in the payload
+        return npoints * sizeof(Vector3f);
+    } 
     u32 GetDatumCount(); // returns data count in iteration-ready units of 4B / 8B
     u32 Get2DWidth(); // returns data width (line width) in iteration-ready units of 4B / 8B
     // typed data getters
@@ -256,6 +262,18 @@ struct EntityStream {
     //      data storage system. Entity should be serializable as well, maybe as an EntityStream data type, but
     //      first is must be pooled and id-based for its references, u16s that do next, parent, children
 };
+EntityStream *InitEntityStream(MArena *a, EntityDataType tpe, u32 npoints) {
+    EntityStream *es = (EntityStream*) ArenaAlloc(a, sizeof(EntityStream), true);
+    es->transform = Matrix4f_Identity();
+    es->tpe = tpe;
+    es->npoints = npoints;
+
+    // TODO: switch by data type to determine allocation size
+    List<Vector3f> points = InitList<Vector3f>(a, npoints);
+    assert((Vector3f*) points.lst == (Vector3f*) es->GetData());
+
+    return es;
+}
 struct Entity {
     // TODO: move to using ids / idxs rather than pointers. These can be u16
     Entity *next = NULL;
@@ -375,36 +393,6 @@ void EntitySystemPrint(EntitySystem *es) {
 
 
 //
-// Point cloud
-
-
-struct PointCloud {
-    Entity _entity;
-    List<Vector3f> points;
-};
-PointCloud InitPointCloud() {
-    PointCloud pc;
-    pc.points.len = 0;
-    pc.points.lst = NULL;
-    pc._entity = InitEntity(ET_STREAMDATA);
-    pc._entity.color = { RGBA_GREEN };
-    return pc;
-}
-PointCloud InitPointCloud(List<Vector3f> points) {
-    PointCloud pc;
-    pc._entity = InitEntity(ET_STREAMDATA);
-    pc.points = points;
-    return pc;
-}
-PointCloud InitPointCloud(Vector3f *points, u32 npoints) {
-    return InitPointCloud( List<Vector3f> { points, npoints });
-}
-PointCloud InitPointCloudF(float *points, u32 npoints) {
-    return InitPointCloud((Vector3f*) points, npoints);
-}
-
-
-//
 // Rendering functions wrapper
 
 
@@ -479,7 +467,10 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
             mvp = *vp;
 
             // render pointcloud
-            RenderPointCloud(r->image_buffer, r->w, r->h, &mvp, ((PointCloud*)next)->points, next->color);
+            //RenderPointCloud(r->image_buffer, r->w, r->h, &mvp, ((PointCloud*)next)->points, next->color);
+            EntityStream *hdr = next->entity_stream;
+            List<Vector3f> points { (Vector3f*) hdr->GetData(), hdr->npoints };
+            RenderPointCloud(r->image_buffer, r->w, r->h, &mvp, points, next->color);
         }
         eidx++;
         next = next->next;
@@ -637,6 +628,21 @@ Entity *InitAndActivateCoordAxes(EntitySystem *es, SwRenderer *r) {
     *axes = InitAndActivateCoordAxes(r);
     EntitySystemChain(es, axes);
     return axes;
+}
+
+
+//
+// Point cloud
+
+
+Entity *InitAndActivateDataEntity(EntitySystem *es, EntityStream *hdr, SwRenderer *r) {
+    Entity *pc = es->AllocEntity();
+    pc->tpe = ET_STREAMDATA;
+    pc->entity_stream = hdr;
+    pc->color  = { RGBA_GREEN };
+    pc->transform = hdr->transform;
+    EntitySystemChain(es, pc);
+    return pc;
 }
 
 

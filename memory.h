@@ -53,7 +53,7 @@ MArena ArenaCreate() {
     return a;
 }
 inline
-void *ArenaAlloc(MArena *a, u64 len) {
+void *ArenaAlloc(MArena *a, u64 len, bool zerod = true) {
     assert(!a->locked && "ArenaAlloc: memory arena is open, use MArenaClose to allocate");
 
     if (a->committed < a->used + len) {
@@ -63,6 +63,9 @@ void *ArenaAlloc(MArena *a, u64 len) {
     }
     void *result = a->mem + a->used;
     a->used += len;
+    if (zerod) {
+        _memzero(result, len);
+    }
 
     return result;
 }

@@ -46,24 +46,36 @@ void RunProgram() {
     box2->tpe = ET_LINES_ROT;
     box3->tpe = ET_LINES_ROT;
 
-    PointCloud pc_1;
+    Entity *pc_1;
     {
         RandInit();
         u32 npoints = 90;
-        List<Vector3f> points = InitList<Vector3f>(a, npoints);
+
+        EntityStream *hdr = InitEntityStream(a, DT_VERTICES, npoints);
+        pc_1 = InitAndActivateDataEntity(es, hdr, loop.GetRenderer());
+
+        List<Vector3f> points { (Vector3f*) hdr->GetData(), npoints };
         Vector3f min { -2, -2, -2 };
         Vector3f max { 2, 2, 2 };
         Vector3f range { max.x - min.x, max.y - min.y, max.z - min.z };
         for (u32 i = 0; i < npoints; ++i) {
-            *(points.lst + points.len++) = Vector3f {
+            Vector3f v {
                 range.x * Rand01_f32() + min.x,
                 range.y * Rand01_f32() + min.y,
                 range.z * Rand01_f32() + min.z
             };
+            points.lst[i] = v;
+            points.len++;
         }
-        pc_1 = InitPointCloud(points);
-        pc_1._entity.color = { RGBA_BLUE };
+
+        // print those points
+        for (u32 i = 0; i < hdr->npoints; ++i) {
+            Vector3f v = points.lst[i];
+            printf("%f %f %f\n", v.x, v.y, v.z);
+        }
     }
+
+    /*
     PointCloud pc_2;
     {
         RandInit();
@@ -100,10 +112,11 @@ void RunProgram() {
         pc_3 = InitPointCloud(points);
         pc_3._entity.color = { RGBA_RED };
     }
+    */
 
-    EntitySystemChain(es, &pc_1._entity);
-    EntitySystemChain(es, &pc_2._entity);
-    EntitySystemChain(es, &pc_3._entity);
+    //EntitySystemChain(es, &pc_1._entity);
+    //EntitySystemChain(es, &pc_2._entity);
+    //EntitySystemChain(es, &pc_3._entity);
     EntitySystemPrint(es);
 
 
