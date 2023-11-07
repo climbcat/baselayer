@@ -289,11 +289,35 @@ struct EntityStream {
     //      data storage system. Entity should be serializable as well, maybe as an EntityStream data type, but
     //      first is must be pooled and id-based for its references, u16s that do next, parent, children
 };
+Vector3f PointCloudAverage(Vector3f *data, u32 npoints, bool nonzero_only) {
+    Vector3f result = Vector3f_Zero();
+    Vector3f v;
+    Vector3f zero = Vector3f_Zero();
+    u32 cnt = 0;
+    for (u32 i = 0; i < npoints; ++i) {
+        v = data[i];
+        if (nonzero_only && (v == zero)) {
+            continue;
+        }
+        ++cnt;
+        result = result + v;
+    }
+    f32 factor = 0;
+    if (cnt > 0) {
+        factor = 1.0f / cnt;
+    }
+    result.x *= factor;
+    result.y *= factor;
+    result.z *= factor;
+    return result;
+}
 void EntityStreamPrint(EntityStream *et, char *tag) {
-    printf("data stream: %s \n", tag);
+    printf("data: %s \n", tag);
     u32 didx = 0;
     while (et) {
-        printf("%u: data stream type: %d carries %d bytes\n", didx, et->tpe, et->datasize);
+        printf("%u: data type: %d carries %d bytes", didx, et->tpe, et->datasize);
+        Vector3f av = PointCloudAverage((Vector3f*) et->GetData(), et->GetDatumCount(), true);
+        printf(" av. %f %f %f\n", av.x, av.y, av.z);
         et = et->GetNext();
         ++didx;
     }
@@ -433,10 +457,10 @@ void EntitySystemPrint(EntitySystem *es) {
     printf("entities: \n");
     while (next != NULL) {
         if (next->tpe != ET_STREAMDATA) {
-            printf("%u: vertices %u -> %u lines %u -> %u\n", eidx, next->verts_low, next->verts_high, next->lines_low, next->lines_high);
+            printf("%u: analytic, vertices %u -> %u lines %u -> %u\n", eidx, next->verts_low, next->verts_high, next->lines_low, next->lines_high);
         }
         else {
-            printf("%u: data entity type: %d carries %d bytes\n", eidx, next->entity_stream->tpe, next->entity_stream->datasize);
+            printf("%u: data, %d bytes\n", eidx, next->entity_stream->tpe, next->entity_stream->datasize);
         }
         eidx++;
         next = next->next;
