@@ -211,6 +211,10 @@ struct Vector3i {
     u32 i2;
     u32 i3;
 };
+struct Vector2i {
+    u32 i1;
+    u32 i2;
+};
 struct ImageF32 { // e.g. a depth image
     u32 width;
     u32 height;
@@ -221,6 +225,10 @@ struct ImageU32 { // e.g. a bit map
     u32 height;
     f32 *data;
 };
+struct Vector2f {
+    f32 x;
+    f32 y;
+};
 struct EntityStream {
     u32 next; // purpose: byte offset for iterating the chunk, zero indicates the final entry
     u32 id; // purpose: for associating different EntityStream entries with the same object within the chunk (e.g. depth + colour)
@@ -230,8 +238,17 @@ struct EntityStream {
     u32 width; // purpose: gives dimensions of 2d data (should be also in u8, with a GetPointWidth() method)
     Matrix4f transform; // purpose: storage of this ever-present header info
     EntityType tpe; // purpose: allows enterpritation of data payload
+
+    u8* GetData(); // returns a pointer to where the data is supposed to start (right after this struct's location in memory)
+    u32 GetDataSize(); // just the amount of bytes in the payload
     u32 GetDatumCount(); // returns data count in iteration-ready units of 4B / 8B
     u32 Get2DWidth(); // returns data width (line width) in iteration-ready units of 4B / 8B
+    // typed data getters
+    List<Vector3f> GetDataVector3f();
+    List<Vector3f> GetDataVector3i();
+    List<Color> GetDataRGBA();
+    List<f32> GetDataF32();
+    List<Vector2f> GetDataTexCoords();
 
     // TODO: Q. How will EntityStream get ported to OGL? Using one VBO with DrawIndices, one VBO pr. stream, or something else?
     //      Sbould data structure or EntityStream be redone to accomodate easy uploading of its data?
@@ -256,24 +273,12 @@ struct Entity {
     // analytic entity parameters (AABox, CoordAxes)
     Vector3f origo;
     Vector3f dims;
-    inline float XMin() {
-        return origo.x - dims.x;
-    }
-    inline float XMax() {
-        return origo.x + dims.x;
-    }
-    inline float YMin() {
-        return origo.y - dims.y;
-    }
-    inline float YMax() {
-        return origo.y + dims.y;
-    }
-    inline float ZMin() {
-        return origo.z - dims.z;
-    }
-    inline float ZMax() {
-        return origo.z + dims.z;
-    }
+    inline float XMin() { return origo.x - dims.x; }
+    inline float XMax() { return origo.x + dims.x; }
+    inline float YMin() { return origo.y - dims.y; }
+    inline float YMax() { return origo.y + dims.y; }
+    inline float ZMin() { return origo.z - dims.z; }
+    inline float ZMax() { return origo.z + dims.z; }
     inline bool FitsWithinBox(Vector3f v) {
         bool result =
             XMin() <= v.x && XMax() >= v.x &&
@@ -282,18 +287,18 @@ struct Entity {
         return result;
     }
 
-
     // TODO: for "empiric" entities (point cloud, mesh, texture, images // all sorts of array-able data ):
     //      How do I store the data?
 
-    void *data; // <<-- should I have a StreamedEntitySystem rather than this? We do need a system for setting up the data ptr anyways ...
-    void *GetData();
-    List<Vector3f> GetVertices();
-    List<Vector3f> GetNormals();
-    List<Vector3i> GetIndices();
-    ImageF32 GetDepthImage();
-    ImageU32 GetBitmap();
-
+    EntityStream *entity_stream; // <<-- should I have a StreamedEntitySystem rather than this? We do need a system for setting up the data ptr anyways ...
+    List<u8> GetData() {
+        List<u8> data;
+        if (entity_stream != NULL) {
+            data.lst = entity_stream->GetData();
+            data.len = entity_stream->GetDataSize();
+        }
+        return data;
+    }
 
     bool active = true;
     void Activate() {
@@ -302,7 +307,6 @@ struct Entity {
     void DeActivate() {
         active = false;
     }
-
 };
 Entity InitEntity(EntityType tpe) {
     Entity e;
@@ -317,8 +321,9 @@ Entity InitEntity(EntityType tpe) {
 //
 // Entity System organizes into a linked list / tree
 
-
+#define ENTITY_MAX_COUNT 200
 struct EntitySystem {
+    MPool pool;
     Entity *first = NULL;
     Entity *next = NULL;
     Entity *last = NULL;
@@ -332,7 +337,16 @@ struct EntitySystem {
         }
         return result;
     }
+    Entity *AllocEntity() {
+        Entity *result = (Entity*) PoolAlloc(&pool);
+        return result;
+    }
 };
+EntitySystem InitEntitySystem() {
+    EntitySystem es;
+    es.pool = PoolCreate(sizeof(Entity), ENTITY_MAX_COUNT);
+    return es;
+}
 void EntitySystemChain(EntitySystem *es, Entity *next) {
     if (es->first == NULL) {
         es->first = next;
@@ -574,6 +588,12 @@ Entity InitAndActivateAABox(Vector3f center_transf, float radius, SwRenderer *r)
 
     return aabox;
 }
+Entity *InitAndActivateAABox(EntitySystem *es, Vector3f center_transf, float radius, SwRenderer *r) {
+    Entity *box = es->AllocEntity();
+    *box = InitAndActivateAABox(center_transf, radius, r);
+    EntitySystemChain(es, box);
+    return box;
+}
 
 
 //
@@ -611,6 +631,12 @@ Entity InitAndActivateCoordAxes(SwRenderer *r) {
     axes->lines_high = r->index_buffer.len - 1;
 
     return ax;
+}
+Entity *InitAndActivateCoordAxes(EntitySystem *es, SwRenderer *r) {
+    Entity *axes = es->AllocEntity();
+    *axes = InitAndActivateCoordAxes(r);
+    EntitySystemChain(es, axes);
+    return axes;
 }
 
 

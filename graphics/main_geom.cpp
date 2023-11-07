@@ -25,35 +25,32 @@ void RunProgram() {
     u32 height = 800;
     GameLoopOne loop = InitGameLoopOne(width, height);
 
+    // data memory pool
+    MArena _pointcloud_arena = ArenaCreate();
+    MArena *a = &_pointcloud_arena;
+
 
     //
     // just set up entities, the rest is automated
 
 
-    // data memory pool
-    MArena _a2 = ArenaCreate();
-    MArena *a2 = &_a2;
+    EntitySystem _entity_system = InitEntitySystem();
+    EntitySystem *es = &_entity_system;
 
-    Entity axes = InitAndActivateCoordAxes(loop.GetRenderer());
-    Entity box = InitAndActivateAABox({ 0.3, 0, 0.7 }, 0.2, loop.GetRenderer());
-    Entity box2 = InitAndActivateAABox({ 0.3, 0.0, -0.7 }, 0.2, loop.GetRenderer());
-    Entity box3 = InitAndActivateAABox({ -0.7, 0, 0.0 }, 0.2, loop.GetRenderer());
+    Entity *axes = InitAndActivateCoordAxes(es, loop.GetRenderer());
+    Entity *box = InitAndActivateAABox(es, { 0.3, 0, 0.7 }, 0.2, loop.GetRenderer());
+    Entity *box2 = InitAndActivateAABox(es, { 0.3, 0.0, -0.7 }, 0.2, loop.GetRenderer());
+    Entity *box3 = InitAndActivateAABox(es, { -0.7, 0, 0.0 }, 0.2, loop.GetRenderer());
 
-    box.tpe = ET_LINES_ROT;
-    box2.tpe = ET_LINES_ROT;
-    box3.tpe = ET_LINES_ROT;
-
-    EntitySystem es;
-    EntitySystemChain(&es, &axes);
-    EntitySystemChain(&es, &box);
-    EntitySystemChain(&es, &box2);
-    EntitySystemChain(&es, &box3);
+    box->tpe = ET_LINES_ROT;
+    box2->tpe = ET_LINES_ROT;
+    box3->tpe = ET_LINES_ROT;
 
     PointCloud pc_1;
     {
         RandInit();
         u32 npoints = 90;
-        List<Vector3f> points = InitList<Vector3f>(a2, npoints);
+        List<Vector3f> points = InitList<Vector3f>(a, npoints);
         Vector3f min { -2, -2, -2 };
         Vector3f max { 2, 2, 2 };
         Vector3f range { max.x - min.x, max.y - min.y, max.z - min.z };
@@ -71,7 +68,7 @@ void RunProgram() {
     {
         RandInit();
         u32 npoints = 300;
-        List<Vector3f> points = InitList<Vector3f>(a2, npoints);
+        List<Vector3f> points = InitList<Vector3f>(a, npoints);
         Vector3f min { -2, -2, -2 };
         Vector3f max { 2, 2, 0 };
         Vector3f range { max.x - min.x, max.y - min.y, max.z - min.z };
@@ -89,7 +86,7 @@ void RunProgram() {
     {
         RandInit();
         u32 npoints = 600;
-        List<Vector3f> points = InitList<Vector3f>(a2, npoints);
+        List<Vector3f> points = InitList<Vector3f>(a, npoints);
         Vector3f min { -2, -2, -2 };
         Vector3f max { 0, 0, 0 };
         Vector3f range { max.x - min.x, max.y - min.y, max.z - min.z };
@@ -104,10 +101,10 @@ void RunProgram() {
         pc_3._entity.color = { RGBA_RED };
     }
 
-    EntitySystemChain(&es, &pc_1._entity);
-    EntitySystemChain(&es, &pc_2._entity);
-    EntitySystemChain(&es, &pc_3._entity);
-    EntitySystemPrint(&es);
+    EntitySystemChain(es, &pc_1._entity);
+    EntitySystemChain(es, &pc_2._entity);
+    EntitySystemChain(es, &pc_3._entity);
+    EntitySystemPrint(es);
 
 
     //
@@ -121,7 +118,7 @@ void RunProgram() {
         // E.g.: run simulations
         // E.g.: pull worker thread statuses
 
-        loop.CycleFrame(&es);
+        loop.CycleFrame(es);
     }
 }
 
