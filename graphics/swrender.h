@@ -215,6 +215,11 @@ struct Vector2i {
     u32 i1;
     u32 i2;
 };
+struct Vector2f {
+    f32 x;
+    f32 y;
+};
+
 struct ImageF32 { // e.g. a depth image
     u32 width;
     u32 height;
@@ -225,35 +230,54 @@ struct ImageU32 { // e.g. a bit map
     u32 height;
     f32 *data;
 };
-struct Vector2f {
-    f32 x;
-    f32 y;
-};
 struct EntityStream {
     u32 next; // purpose: byte offset for iterating the chunk, zero indicates the final entry
     u32 id; // purpose: for associating different EntityStream entries with the same object within the chunk (e.g. depth + colour)
     u32 time; // purpose: real-time data header info for sorting & filtering by post- or external process
     // TODO: just have payload_size; plus a GetPointCount() method that translates into the current units
-    u32 npoints; // purpose: data size // conveniently in data type units (a misconception??)
-    u32 width; // purpose: gives dimensions of 2d data (should be also in u8, with a GetPointWidth() method)
+    u32 datasize; // payload size
+    u32 linesize; // line size for 2d data
     Matrix4f transform; // purpose: storage of this ever-present header info
     EntityDataType tpe; // purpose: allows enterpritation of data payload
 
+    //
+    // utility functions
+
+    EntityStream *GetNext() {
+        EntityStream *result = NULL;
+        if (next) {
+            result = (EntityStream *) ((u8*) this + next);
+        }
+        return result;
+    }
     u8 *GetData() {
         // returns a pointer to where the data is supposed to start (right after this struct's location in memory)
         return (u8*) this + sizeof(EntityStream);
     }
-    u32 GetDataSize() {
-        // just the amount of bytes in the payload
-        return npoints * sizeof(Vector3f);
-    } 
-    u32 GetDatumCount(); // returns data count in iteration-ready units of 4B / 8B
-    u32 Get2DWidth(); // returns data width (line width) in iteration-ready units of 4B / 8B
-    // typed data getters
-    List<Vector3f> GetDataVector3f();
-    List<Vector3f> GetDataVector3i();
-    List<Color> GetDataRGBA();
-    List<f32> GetDataF32();
+    u32 GetDatumCount() {
+        // returns data count in iteration-ready units of 4B / 8B
+        // TODO: switch by type
+        return datasize / sizeof(Vector3f);
+    }
+    List<Vector3f> GetDataVector3f() {
+        List<Vector3f> data;
+        data.lst = (Vector3f*) GetData();
+        data.len = GetDatumCount();
+        return data;
+    }
+    List<Vector3i> GetDataVector3i() {
+        List<Vector3i> data;
+        data.lst = (Vector3i*) GetData();
+        data.len = GetDatumCount();
+        return data;
+    }
+    u32 Get2DWidth() {
+        // returns data width (line width) in iteration-ready units of 4B / 8B
+        // TODO: switch by type
+        return linesize / sizeof(Vector3f);
+    }
+    ImageU32 GetDataRGBA();
+    ImageF32 GetDataF32();
     List<Vector2f> GetDataTexCoords();
 
     // TODO: Q. How will EntityStream get ported to OGL? Using one VBO with DrawIndices, one VBO pr. stream, or something else?
@@ -262,11 +286,30 @@ struct EntityStream {
     //      data storage system. Entity should be serializable as well, maybe as an EntityStream data type, but
     //      first is must be pooled and id-based for its references, u16s that do next, parent, children
 };
-EntityStream *InitEntityStream(MArena *a, EntityDataType tpe, u32 npoints) {
+void EntityStreamPrint(EntityStream *et, char *tag) {
+    printf("data stream: %s \n", tag);
+    u32 didx = 0;
+    while (et) {
+        printf("%u: data stream type: %d carries %d bytes\n", didx, et->tpe, et->datasize);
+        et = et->GetNext();
+        ++didx;
+    }
+}
+EntityStream *InitEntityStream(MArena *a, EntityDataType tpe, u32 npoints, EntityStream *prev = NULL) {
     EntityStream *es = (EntityStream*) ArenaAlloc(a, sizeof(EntityStream), true);
+    es->next = 0;
+    es->id = 0;
+    es->time = 0;
+    es->datasize = npoints * sizeof(Vector3f);
+    es->linesize = 0;
     es->transform = Matrix4f_Identity();
     es->tpe = tpe;
-    es->npoints = npoints;
+
+    // linked list pointer is assigned on prevíous element
+    if (prev != NULL) {
+        assert(es > prev && "");
+        prev->next = (u8*) es - (u8*) prev;
+    }
 
     // TODO: switch by data type to determine allocation size
     List<Vector3f> points = InitList<Vector3f>(a, npoints);
@@ -278,11 +321,10 @@ struct Entity {
     // TODO: move to using ids / idxs rather than pointers. These can be u16
     Entity *next = NULL;
     EntityType tpe;
-
-    Matrix4f transform;
+    Matrix4f transform; // TODO: make this into a transform_id and store externally
     Color color { RGBA_WHITE };
 
-    // analytic entity data: (kept in a single "vbo" within the renderer)
+    // analytic entity indices (kept in a single "vbo" within the renderer)
     u16 verts_low = 0;
     u16 verts_high = 0;
     u16 lines_low = 0;
@@ -305,19 +347,25 @@ struct Entity {
         return result;
     }
 
-    // TODO: for "empiric" entities (point cloud, mesh, texture, images // all sorts of array-able data ):
-    //      How do I store the data?
-
-    EntityStream *entity_stream; // <<-- should I have a StreamedEntitySystem rather than this? We do need a system for setting up the data ptr anyways ...
+    // data entity parameters (pointcloud, ...)
+    EntityStream *entity_stream;
     List<u8> GetData() {
         List<u8> data;
         if (entity_stream != NULL) {
             data.lst = entity_stream->GetData();
-            data.len = entity_stream->GetDataSize();
+            data.len = entity_stream->datasize;
         }
         return data;
     }
+    List<Vector3f> GetVertices() {
+        List<Vector3f> verts;
+        if (entity_stream != NULL) {
+            verts = entity_stream->GetDataVector3f();
+        }
+        return verts;
+    }
 
+    // scene graph behavior
     bool active = true;
     void Activate() {
         active = true;
@@ -379,12 +427,13 @@ void EntitySystemChain(EntitySystem *es, Entity *next) {
 void EntitySystemPrint(EntitySystem *es) {
     u32 eidx = 0;
     Entity *next = es->first;
+    printf("entities: \n");
     while (next != NULL) {
         if (next->tpe != ET_STREAMDATA) {
             printf("%u: vertices %u -> %u lines %u -> %u\n", eidx, next->verts_low, next->verts_high, next->lines_low, next->lines_high);
         }
         else {
-            printf("%u: point cloud \n", eidx);
+            printf("%u: data entity type: %d carries %d bytes\n", eidx, next->entity_stream->tpe, next->entity_stream->datasize);
         }
         eidx++;
         next = next->next;
@@ -467,10 +516,7 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
             mvp = *vp;
 
             // render pointcloud
-            //RenderPointCloud(r->image_buffer, r->w, r->h, &mvp, ((PointCloud*)next)->points, next->color);
-            EntityStream *hdr = next->entity_stream;
-            List<Vector3f> points { (Vector3f*) hdr->GetData(), hdr->npoints };
-            RenderPointCloud(r->image_buffer, r->w, r->h, &mvp, points, next->color);
+            RenderPointCloud(r->image_buffer, r->w, r->h, &mvp, next->GetVertices(), next->color);
         }
         eidx++;
         next = next->next;

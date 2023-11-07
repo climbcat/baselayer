@@ -53,6 +53,7 @@ void RunProgram() {
 
         EntityStream *hdr = InitEntityStream(a, DT_VERTICES, npoints);
         pc_1 = InitAndActivateDataEntity(es, hdr, loop.GetRenderer());
+        pc_1->color = { RGBA_BLUE };
 
         List<Vector3f> points { (Vector3f*) hdr->GetData(), npoints };
         Vector3f min { -2, -2, -2 };
@@ -67,57 +68,56 @@ void RunProgram() {
             points.lst[i] = v;
             points.len++;
         }
-
-        // print those points
-        for (u32 i = 0; i < hdr->npoints; ++i) {
-            Vector3f v = points.lst[i];
-            printf("%f %f %f\n", v.x, v.y, v.z);
-        }
     }
 
-    /*
-    PointCloud pc_2;
+    Entity *pc_2;
     {
         RandInit();
         u32 npoints = 300;
-        List<Vector3f> points = InitList<Vector3f>(a, npoints);
+
+        EntityStream *hdr = InitEntityStream(a, DT_VERTICES, npoints, pc_1->entity_stream);
+        pc_2 = InitAndActivateDataEntity(es, hdr, loop.GetRenderer());
+        pc_2->color = { RGBA_GREEN };
+
+        List<Vector3f> points { (Vector3f*) hdr->GetData(), npoints };
         Vector3f min { -2, -2, -2 };
         Vector3f max { 2, 2, 0 };
         Vector3f range { max.x - min.x, max.y - min.y, max.z - min.z };
         for (u32 i = 0; i < npoints; ++i) {
-            *(points.lst + points.len++) = Vector3f {
+            Vector3f v {
                 range.x * Rand01_f32() + min.x,
                 range.y * Rand01_f32() + min.y,
                 range.z * Rand01_f32() + min.z
             };
+            points.lst[i] = v;
+            points.len++;
         }
-        pc_2 = InitPointCloud(points);
-        pc_2._entity.color = { RGBA_GREEN };
     }
-    PointCloud pc_3;
+    Entity *pc_3;
     {
         RandInit();
         u32 npoints = 600;
-        List<Vector3f> points = InitList<Vector3f>(a, npoints);
+
+        EntityStream *hdr = InitEntityStream(a, DT_VERTICES, npoints, pc_2->entity_stream);
+        pc_3 = InitAndActivateDataEntity(es, hdr, loop.GetRenderer());
+        pc_3->color = { RGBA_RED };
+
+        List<Vector3f> points { (Vector3f*) hdr->GetData(), npoints };
         Vector3f min { -2, -2, -2 };
         Vector3f max { 0, 0, 0 };
         Vector3f range { max.x - min.x, max.y - min.y, max.z - min.z };
         for (u32 i = 0; i < npoints; ++i) {
-            *(points.lst + points.len++) = Vector3f {
+            Vector3f v {
                 range.x * Rand01_f32() + min.x,
                 range.y * Rand01_f32() + min.y,
                 range.z * Rand01_f32() + min.z
             };
+            points.lst[i] = v;
+            points.len++;
         }
-        pc_3 = InitPointCloud(points);
-        pc_3._entity.color = { RGBA_RED };
     }
-    */
-
-    //EntitySystemChain(es, &pc_1._entity);
-    //EntitySystemChain(es, &pc_2._entity);
-    //EntitySystemChain(es, &pc_3._entity);
     EntitySystemPrint(es);
+    EntityStreamPrint(pc_1->entity_stream, (char*) "random point clouds");
 
 
     //
