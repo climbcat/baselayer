@@ -154,9 +154,10 @@ bool PoolFree(MPool *p, void *element, bool enable_strict_mode = true) {
     assert(PoolCheckAddress(p, element) && "input address aligned and in range");
     LList1 *e = (LList1*) element;
 
-    // check element didn't carry valid free-list pointer
+    // check element didn't carry valid free-list pointe
+    bool is_first_free_element = p->free_list.next == e;
     bool target_valid = PoolCheckAddress(p, e->next);
-    if (target_valid) {
+    if (target_valid || is_first_free_element) {
         if (enable_strict_mode) {
             assert(target_valid == false && "trying to free an element probably on the free list");
         }

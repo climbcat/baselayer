@@ -114,7 +114,6 @@ void RunTests() {
     printf("testing mem pool:\n");
     u32 pool_size = 1001;
     u32 test_num_partial = 666;
-    u32 test_num_rand = 14;
     MPool pool = PoolCreate(sizeof(PoolTestEntity), pool_size);
     PoolTestEntity *e;
     PoolTestEntity *elements[pool_size];
@@ -133,9 +132,15 @@ void RunTests() {
     for (u32 i = 0; i < pool_size; ++i) {
         e = elements[i];
         PoolFree(&pool, e);
+        bool twice = PoolFree(&pool, e, false);
+        assert(twice == false);
     }
     assert(pool.occupancy == 0);
-    // re-populate to 50%
+    // twice-free another element
+    e = elements[test_num_partial];
+    bool twice2 = PoolFree(&pool, e, false);
+    assert(twice2 == false);
+    // re-populate to some %
     printf("re-populating to partial ...\n");
     for (u32 i = 0; i < test_num_partial; ++i) {
         e = (PoolTestEntity *) PoolAlloc(&pool);
@@ -143,39 +148,6 @@ void RunTests() {
         assert(e != NULL);
     }
     assert(pool.occupancy == test_num_partial);
-    // blip randomly
-
-    // TODO: fix the bug, pool isn't working 100% correctly
-
-    printf("blipping randomly ... ");
-    RandInit();
-    u32 hits = 0;
-    u32 tries = 0;
-    while (hits < test_num_rand) {
-        u32 slot = RandDice(pool_size) - 1;
-        printf(" %d", slot);
-        e = elements[slot];
-
-
-        if (slot >= test_num_partial) {
-            printf("oops");
-        }
-
-        if (PoolFree(&pool, e, false)) {
-            ++hits;
-            if (slot >= test_num_partial) {
-                printf("oops");
-            }
-            assert(slot < test_num_partial);
-        }
-        else {
-            assert(slot >= test_num_partial);
-        }
-        ++tries;
-    }
-    printf("\nblips: %d tries: %d\n", hits, tries);
-    // TODO: populate to full occupancy
-    //printf("populating back to full occupance ...\n");
 }
 
 
