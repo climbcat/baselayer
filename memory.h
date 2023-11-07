@@ -181,8 +181,8 @@ bool PoolFree(MPool *p, void *element, bool enable_strict_mode = true) {
 
 template<typename T>
 struct List {
-    T *lst;
-    u32 len;
+    T *lst = NULL;
+    u32 len = 0;
 };
 
 template<class T>
