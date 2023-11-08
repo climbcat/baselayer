@@ -232,13 +232,12 @@ struct ImageU32 { // e.g. a bit map
 };
 struct EntityStream {
     u32 next; // purpose: byte offset for iterating the chunk, zero indicates the final entry
+    EntityDataType tpe; // purpose: allows enterpritation of data payload
     u32 id; // purpose: for associating different EntityStream entries with the same object within the chunk (e.g. depth + colour)
     u32 time; // purpose: real-time data header info for sorting & filtering by post- or external process
-    // TODO: just have payload_size; plus a GetPointCount() method that translates into the current units
     u32 datasize; // payload size
     u32 linesize; // line size for 2d data
     Matrix4f transform; // purpose: storage of this ever-present header info
-    EntityDataType tpe; // purpose: allows enterpritation of data payload
 
     //
     // utility functions
