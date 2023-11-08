@@ -2,6 +2,15 @@
 #define __GAMELOOP_H__
 
 
+#include <GL/glew.h>
+
+
+#define SDL_MAIN_HANDLED
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_opengl.h>
+#include <signal.h>
+
+
 // gameloop.h: Platform code exclusively goes here, e.g. SDL / glfw / linux / win code and other APIs (but not glew / OpenGL)
 
 

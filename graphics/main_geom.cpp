@@ -1,10 +1,3 @@
-#include <GL/glew.h>
-
-#define SDL_MAIN_HANDLED
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_opengl.h>
-#include <signal.h>
-
 #include "../baselayer.h"
 #include "geometry.h"
 #include "shaders.h"
