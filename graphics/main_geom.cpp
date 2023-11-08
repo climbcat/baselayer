@@ -33,14 +33,14 @@ void RunProgram() {
     //
     // just set up entities, the rest is automated
 
-
+    SwRenderer *r = loop.GetRenderer();
     EntitySystem _entity_system = InitEntitySystem();
     EntitySystem *es = &_entity_system;
 
     Entity *axes = InitAndActivateCoordAxes(es, loop.GetRenderer());
-    Entity *box = InitAndActivateAABox(es, { 0.3, 0, 0.7 }, 0.2, loop.GetRenderer());
-    Entity *box2 = InitAndActivateAABox(es, { 0.3, 0.0, -0.7 }, 0.2, loop.GetRenderer());
-    Entity *box3 = InitAndActivateAABox(es, { -0.7, 0, 0.0 }, 0.2, loop.GetRenderer());
+    Entity *box = InitAndActivateAABox(es, { 0.3, 0, 0.7 }, 0.2, r);
+    Entity *box2 = InitAndActivateAABox(es, { 0.3, 0.0, -0.7 }, 0.2, r);
+    Entity *box3 = InitAndActivateAABox(es, { -0.7, 0, 0.0 }, 0.2, r);
 
     box->tpe = ET_LINES_ROT;
     box2->tpe = ET_LINES_ROT;
@@ -51,11 +51,10 @@ void RunProgram() {
         RandInit();
         u32 npoints = 90;
 
-        EntityStream *hdr = InitEntityStream(a, DT_VERTICES, npoints);
-        pc_1 = InitAndActivateDataEntity(es, hdr, loop.GetRenderer());
+        pc_1 = InitAndActivateDataEntity(es, r, a, DT_VERTICES, npoints, 0, NULL);
         pc_1->color = { RGBA_BLUE };
 
-        List<Vector3f> points { (Vector3f*) hdr->GetData(), npoints };
+        List<Vector3f> points { (Vector3f*) pc_1->entity_stream->GetData(), npoints };
         Vector3f min { -2, -2, -2 };
         Vector3f max { 2, 2, 2 };
         Vector3f range { max.x - min.x, max.y - min.y, max.z - min.z };
@@ -75,11 +74,10 @@ void RunProgram() {
         RandInit();
         u32 npoints = 300;
 
-        EntityStream *hdr = InitEntityStream(a, DT_VERTICES, npoints, pc_1->entity_stream);
-        pc_2 = InitAndActivateDataEntity(es, hdr, loop.GetRenderer());
+        pc_2 = InitAndActivateDataEntity(es, r, a, DT_VERTICES, npoints, 1, pc_1->entity_stream);
         pc_2->color = { RGBA_GREEN };
 
-        List<Vector3f> points { (Vector3f*) hdr->GetData(), npoints };
+        List<Vector3f> points { (Vector3f*) pc_2->entity_stream->GetData(), npoints };
         Vector3f min { -2, -2, -2 };
         Vector3f max { 2, 2, 0 };
         Vector3f range { max.x - min.x, max.y - min.y, max.z - min.z };
@@ -98,11 +96,10 @@ void RunProgram() {
         RandInit();
         u32 npoints = 600;
 
-        EntityStream *hdr = InitEntityStream(a, DT_VERTICES, npoints, pc_2->entity_stream);
-        pc_3 = InitAndActivateDataEntity(es, hdr, loop.GetRenderer());
+        pc_3 = InitAndActivateDataEntity(es, r, a, DT_VERTICES, npoints, 1, pc_2->entity_stream);
         pc_3->color = { RGBA_RED };
 
-        List<Vector3f> points { (Vector3f*) hdr->GetData(), npoints };
+        List<Vector3f> points { (Vector3f*) pc_3->entity_stream->GetData(), npoints };
         Vector3f min { -2, -2, -2 };
         Vector3f max { 0, 0, 0 };
         Vector3f range { max.x - min.x, max.y - min.y, max.z - min.z };
