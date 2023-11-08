@@ -742,5 +742,14 @@ Entity *InitAndActivateDataEntity(EntitySystem *es, SwRenderer *r, MArena *a, En
     return pc;
 }
 
+Entity *LoadAndActivateDataEntity(EntitySystem *es, SwRenderer *r, EntityStream *data) {
+    Entity *pc = es->AllocEntity();
+    pc->tpe = ET_STREAMDATA;
+    pc->entity_stream = data;
+    pc->color  = { RGBA_GREEN };
+    pc->transform = data->transform;
+    EntitySystemChain(es, pc);
+    return pc;
+}
 
 #endif
