@@ -5,16 +5,12 @@
 #include <SDL2/SDL_opengl.h>
 #include <signal.h>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
-
 #include "../baselayer.h"
 #include "geometry.h"
 #include "shaders.h"
 #include "ui.h"
 #include "swrender.h"
+#include "gameloop.h"
 #include "test.cpp"
 
 
@@ -28,7 +24,6 @@ void RunProgram() {
     // data memory pool
     MArena _pointcloud_arena = ArenaCreate();
     MArena *a = &_pointcloud_arena;
-
 
     //
     // just set up entities, the rest is automated
@@ -46,75 +41,7 @@ void RunProgram() {
     box2->tpe = ET_LINES_ROT;
     box3->tpe = ET_LINES_ROT;
 
-    Entity *pc_1;
-    {
-        RandInit();
-        u32 npoints = 90;
-
-        pc_1 = InitAndActivateDataEntity(es, r, a, DT_VERTICES, npoints, 0, NULL);
-        pc_1->color = { RGBA_BLUE };
-
-        List<Vector3f> points { (Vector3f*) pc_1->entity_stream->GetData(), npoints };
-        Vector3f min { -2, -2, -2 };
-        Vector3f max { 2, 2, 2 };
-        Vector3f range { max.x - min.x, max.y - min.y, max.z - min.z };
-        for (u32 i = 0; i < npoints; ++i) {
-            Vector3f v {
-                range.x * Rand01_f32() + min.x,
-                range.y * Rand01_f32() + min.y,
-                range.z * Rand01_f32() + min.z
-            };
-            points.lst[i] = v;
-            points.len++;
-        }
-    }
-
-    Entity *pc_2;
-    {
-        RandInit();
-        u32 npoints = 300;
-
-        pc_2 = InitAndActivateDataEntity(es, r, a, DT_VERTICES, npoints, 1, pc_1->entity_stream);
-        pc_2->color = { RGBA_GREEN };
-
-        List<Vector3f> points { (Vector3f*) pc_2->entity_stream->GetData(), npoints };
-        Vector3f min { -2, -2, -2 };
-        Vector3f max { 2, 2, 0 };
-        Vector3f range { max.x - min.x, max.y - min.y, max.z - min.z };
-        for (u32 i = 0; i < npoints; ++i) {
-            Vector3f v {
-                range.x * Rand01_f32() + min.x,
-                range.y * Rand01_f32() + min.y,
-                range.z * Rand01_f32() + min.z
-            };
-            points.lst[i] = v;
-            points.len++;
-        }
-    }
-    Entity *pc_3;
-    {
-        RandInit();
-        u32 npoints = 600;
-
-        pc_3 = InitAndActivateDataEntity(es, r, a, DT_VERTICES, npoints, 1, pc_2->entity_stream);
-        pc_3->color = { RGBA_RED };
-
-        List<Vector3f> points { (Vector3f*) pc_3->entity_stream->GetData(), npoints };
-        Vector3f min { -2, -2, -2 };
-        Vector3f max { 0, 0, 0 };
-        Vector3f range { max.x - min.x, max.y - min.y, max.z - min.z };
-        for (u32 i = 0; i < npoints; ++i) {
-            Vector3f v {
-                range.x * Rand01_f32() + min.x,
-                range.y * Rand01_f32() + min.y,
-                range.z * Rand01_f32() + min.z
-            };
-            points.lst[i] = v;
-            points.len++;
-        }
-    }
     EntitySystemPrint(es);
-    EntityStreamPrint(pc_1->entity_stream, (char*) "random point clouds");
 
 
     //
@@ -135,7 +62,7 @@ void RunProgram() {
 
 int main (int argc, char **argv) {
     TimeProgram;
-    bool force_testing = false;
+    bool force_testing = true;
 
     if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv)) {
         printf("--help:          display help (this text)\n");

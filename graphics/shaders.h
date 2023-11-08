@@ -1,6 +1,7 @@
 #ifndef __SHADERS_H__
 #define __SHADERS_H__
 
+
 void CheckShaderCompilationErrors(GLuint shader, const char *header_info) {
     int success;
     char info_log[512];
