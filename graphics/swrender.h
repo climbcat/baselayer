@@ -562,7 +562,7 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
             LinesToScreenCoords(r->w, r->h, &r->screen_buffer, &r->index_buffer, &r->ndc_buffer, next->lines_low, next->lines_high, next->color);
         }
         else {
-            mvp = *vp;
+            mvp = TransformBuildMVP(next->transform, *vp);
 
             // render pointcloud
             RenderPointCloud(r->image_buffer, r->w, r->h, &mvp, next->GetVertices(), next->color);
