@@ -95,7 +95,7 @@ unsigned long _hash(unsigned long x) {
 }
 unsigned long g_state[7];
 bool g_didinit = false;
-#define Random() Kiss_Random(g_state)
+#define McRandom() Kiss_Random(g_state)
 u32 RandInit(u32 seed = 0) {
     if (g_didinit == true)
         return 0;
@@ -112,39 +112,39 @@ u32 RandInit(u32 seed = 0) {
 
 f64 Rand01() {
     f64 randnum;
-    randnum = (f64) Random();
+    randnum = (f64) McRandom();
     randnum /= (f64) ULONG_MAX + 1;
     return randnum;
 }
 f32 Rand01_f32() {
     f32 randnum;
-    randnum = (f32) Random();
+    randnum = (f32) McRandom();
     randnum /= (f32) ULONG_MAX + 1;
     return randnum;
 }
 f32 Rand0132() {
-    f64 num = Random();
+    f64 num = McRandom();
     num /= (f32) ULONG_MAX + 1;
     return num;
 }
 f64 RandPM1() {
     double randnum;
-    randnum = (f64) Random();
+    randnum = (f64) McRandom();
     randnum /= ((f64) ULONG_MAX + 1) / 2;
     randnum -= 1;
     return randnum;
 }
 int RandMinMaxI(int min, int max) {
     assert(max > min);
-    return Random() % (max - min + 1) + min;
+    return McRandom() % (max - min + 1) + min;
 }
 int RandDice(u32 max) {
     assert(max > 0);
-    return Random() % max + 1;
+    return McRandom() % max + 1;
 }
 int RandIntMax(u32 max) {
     assert(max > 0);
-    return Random() % max + 1;
+    return McRandom() % max + 1;
 }
 
 void PrintHex(u8* data, u32 len) {
