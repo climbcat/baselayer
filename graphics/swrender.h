@@ -187,15 +187,20 @@ void RenderPointCloud(u8* image_buffer, u16 w, u16 h, Matrix4f *mvp, List<Vector
 // Entity System
 
 
+enum EntityDataType {
+    EDT_ANALYTIC,
+    EDT_EXTERNAL,
+};
 enum EntityType {
     ET_AXES,
     ET_LINES,
     ET_LINES_ROT,
-    ET_STREAMDATA,
+    ET_POINTCLOUD,
+    ET_MESH,
 
     ET_COUNT,
 };
-enum EntityDataType {
+enum EntityStreamDataType {
     DT_VERTICES,
     DT_NORMALS,
     DT_INDICES2,
@@ -232,7 +237,7 @@ struct ImageU32 { // e.g. a bit map
 };
 struct EntityStream {
     u32 next; // purpose: byte offset for iterating the chunk, zero indicates the final entry
-    EntityDataType tpe; // purpose: allows enterpritation of data payload
+    EntityStreamDataType tpe; // purpose: allows interpretation of data payload
     u32 id; // purpose: for associating different EntityStream entries with the same object within the chunk (e.g. depth + colour)
     u32 time; // purpose: real-time data header info for sorting & filtering by post- or external process
     u32 datasize; // payload size
@@ -325,7 +330,7 @@ void EntityStreamPrint(EntityStream *et, char *tag) {
         ++didx;
     }
 }
-EntityStream *InitEntityStream(MArena *a, EntityDataType tpe, u32 npoints_max, EntityStream *prev) {
+EntityStream *InitEntityStream(MArena *a, EntityStreamDataType tpe, u32 npoints_max, EntityStream *prev) {
     // NOTE: next is safely set on prev here
     EntityStream *es = (EntityStream*) ArenaAlloc(a, sizeof(EntityStream), true);
     es->next = 0;
@@ -369,6 +374,7 @@ void EntityStreamFinalize(MArena *a, u32 npoints_actual, EntityStream *hdr) {
 struct Entity {
     // TODO: move to using ids / idxs rather than pointers. These can be u16
     Entity *next = NULL;
+    EntityDataType data_tpe;
     EntityType tpe;
     Matrix4f transform; // TODO: make this into a transform_id and store externally
     Color color { RGBA_WHITE };
@@ -427,6 +433,12 @@ Entity InitEntity(EntityType tpe) {
     Entity e;
     e.next = NULL;
     e.tpe = tpe;
+    if (tpe == ET_MESH || tpe == ET_POINTCLOUD) {
+        e.data_tpe = EDT_EXTERNAL;
+    }
+    else {
+        e.data_tpe = EDT_ANALYTIC;
+    }
     e.transform = Matrix4f_Identity();
     e.active = true;
     return e;
@@ -434,7 +446,8 @@ Entity InitEntity(EntityType tpe) {
 
 
 //
-// Entity System organizes into a linked list / tree
+// Organization of entities
+
 
 #define ENTITY_MAX_COUNT 200
 struct EntitySystem {
@@ -478,7 +491,7 @@ void EntitySystemPrint(EntitySystem *es) {
     Entity *next = es->first;
     printf("entities: \n");
     while (next != NULL) {
-        if (next->tpe != ET_STREAMDATA) {
+        if (next->data_tpe == EDT_ANALYTIC) {
             printf("%u: analytic, vertices %u -> %u lines %u -> %u\n", eidx, next->verts_low, next->verts_high, next->lines_low, next->lines_high);
         }
         else {
@@ -544,7 +557,7 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
     es->IterReset();
     Entity *next = es->IterNext();
     while (next != NULL) {
-        if (next ->tpe != ET_STREAMDATA) {
+        if (next ->data_tpe == EDT_ANALYTIC) {
             if (next->tpe == ET_LINES_ROT) {
                 model = next->transform * TransformBuildRotateY(0.03f * frameno);
             }
@@ -561,7 +574,7 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
             // render lines
             LinesToScreenCoords(r->w, r->h, &r->screen_buffer, &r->index_buffer, &r->ndc_buffer, next->lines_low, next->lines_high, next->color);
         }
-        else {
+        else if (next->data_tpe == EDT_EXTERNAL) {
             mvp = TransformBuildMVP(next->transform, *vp);
 
             // render pointcloud
@@ -681,11 +694,12 @@ Entity *InitAndActivateCoordAxes(EntitySystem *es, SwRenderer *r) {
 // Point cloud
 
 
-Entity *InitAndActivateDataEntity(EntitySystem *es, SwRenderer *r, MArena *a, EntityDataType tpe, u32 npoints_max, u32 id, EntityStream *prev) {
+Entity *InitAndActivateDataEntity(EntitySystem *es, SwRenderer *r, MArena *a, EntityStreamDataType tpe, u32 npoints_max, u32 id, EntityStream *prev) {
     EntityStream *hdr = InitEntityStream(a, tpe, npoints_max, prev);
     hdr->id = id;
     Entity *pc = es->AllocEntity();
-    pc->tpe = ET_STREAMDATA;
+    pc->data_tpe = EDT_EXTERNAL;
+    pc->tpe = ET_POINTCLOUD;
     pc->entity_stream = hdr;
     pc->color  = { RGBA_GREEN };
     pc->transform = hdr->transform;
@@ -695,7 +709,8 @@ Entity *InitAndActivateDataEntity(EntitySystem *es, SwRenderer *r, MArena *a, En
 
 Entity *LoadAndActivateDataEntity(EntitySystem *es, SwRenderer *r, EntityStream *data) {
     Entity *pc = es->AllocEntity();
-    pc->tpe = ET_STREAMDATA;
+    pc->data_tpe = EDT_EXTERNAL;
+    pc->tpe = ET_POINTCLOUD;
     pc->entity_stream = data;
     pc->color  = { RGBA_GREEN };
     pc->transform = data->transform;
