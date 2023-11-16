@@ -181,6 +181,9 @@ void RenderPointCloud(u8* image_buffer, u16 w, u16 h, Matrix4f *mvp, List<Vector
         image_buffer[4 * pix_idx + 3] = color.a;
     }
 }
+void RenderMesh() {
+    printf("RenderMesh: not implemented\n");
+}
 
  
 //
@@ -419,6 +422,17 @@ struct Entity {
         }
         return verts;
     }
+    List<Vector3i> GetIndices() {
+        List<Vector3i> indices;
+        EntityStream *nxt = this->entity_stream;
+        if (entity_stream != NULL) {
+            while (nxt->tpe != DT_INDICES3) {
+                nxt = nxt->GetNext();
+            }
+            indices = entity_stream->GetDataVector3i();
+        }
+        return indices;
+    }
 
     // scene graph behavior
     bool active = true;
@@ -578,7 +592,15 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
             mvp = TransformBuildMVP(next->transform, *vp);
 
             // render pointcloud
-            RenderPointCloud(r->image_buffer, r->w, r->h, &mvp, next->GetVertices(), next->color);
+            if (next->tpe == ET_POINTCLOUD) {
+                RenderPointCloud(r->image_buffer, r->w, r->h, &mvp, next->GetVertices(), next->color);
+            }
+            else if (next->tpe == ET_MESH) {
+                RenderMesh();
+            }
+            else {
+                printf("Unknown entity type: %d (external data type)\n", next->tpe);
+            }
         }
         eidx++;
         next = next->next;
