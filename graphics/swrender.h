@@ -239,7 +239,7 @@ struct ImageU32 { // e.g. a bit map
     f32 *data;
 };
 struct EntityStream {
-    u32 next; // purpose: byte offset for iterating the chunk, zero indicates the final entry
+    u32 next; // purpose: byte offset for iterating the chunk, zero indicates the final entry. (!Can in principle be != sizeof(EntityStream) + datasize)
     EntityStreamDataType tpe; // purpose: allows interpretation of data payload
     u32 id; // purpose: for associating different EntityStream entries with the same object within the chunk (e.g. depth + colour)
     u32 time; // purpose: real-time data header info for sorting & filtering by post- or external process
@@ -250,9 +250,13 @@ struct EntityStream {
     //
     // utility functions
 
-    EntityStream *GetNext() {
+    EntityStream *GetNext(bool fallback_next_at_payload_end = false) {
         EntityStream *result = NULL;
-        if (next) {
+        if (fallback_next_at_payload_end && next == 0 && datasize > 0) {
+            u32 calcnext = sizeof(EntityStream) + datasize;
+            result = (EntityStream *) ((u8*) this + calcnext);
+        }
+        else if (next) {
             result = (EntityStream *) ((u8*) this + next);
         }
         return result;
