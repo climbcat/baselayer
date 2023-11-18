@@ -204,6 +204,7 @@ enum EntityType {
     ET_COUNT,
 };
 enum EntityStreamDataType {
+    DT_POINTS,
     DT_VERTICES,
     DT_NORMALS,
     DT_INDICES2,
@@ -250,14 +251,21 @@ struct EntityStream {
     //
     // utility functions
 
-    EntityStream *GetNext(bool fallback_next_at_payload_end = false) {
+    EntityStream *GetNext(bool load_nonext = false) {
         EntityStream *result = NULL;
-        if (fallback_next_at_payload_end && next == 0 && datasize > 0) {
+        if (load_nonext && next == 0 && datasize > 0) {
             u32 calcnext = sizeof(EntityStream) + datasize;
             result = (EntityStream *) ((u8*) this + calcnext);
         }
         else if (next) {
             result = (EntityStream *) ((u8*) this + next);
+        }
+        return result;
+    }
+    EntityStream *GetNextId(bool load_nonext = false) {
+        EntityStream *result = GetNext(load_nonext);
+        while (result && result->id == this->id) {
+            result = result->GetNext(load_nonext);
         }
         return result;
     }
@@ -337,11 +345,11 @@ void EntityStreamPrint(EntityStream *et, char *tag) {
         ++didx;
     }
 }
-EntityStream *InitEntityStream(MArena *a, EntityStreamDataType tpe, u32 npoints_max, EntityStream *prev) {
+EntityStream *InitEntityStream(MArena *a, EntityStreamDataType tpe, u32 npoints_max, EntityStream *prev, u32 id = 0) {
     // NOTE: next is safely set on prev here
     EntityStream *es = (EntityStream*) ArenaAlloc(a, sizeof(EntityStream), true);
     es->next = 0;
-    es->id = 0;
+    es->id = id;
     es->time = 0;
     es->SetVertexCount(npoints_max);
     es->linesize = 0;
@@ -371,6 +379,7 @@ u8 *PointerOffsetBytes(void *ptr, int offset) {
     return result;
 }
 void EntityStreamFinalize(MArena *a, u32 npoints_actual, EntityStream *hdr) {
+    // Use with InitEntityStream after knowning that npoints_actual < npoints_max
     // NOTE: next is not set at this point
     u32 offset = npoints_actual * hdr->GetDatumSize();
     u8 *hdr_next = PointerOffsetBytes(hdr, offset);
@@ -420,6 +429,7 @@ struct Entity {
         return data;
     }
     List<Vector3f> GetVertices() {
+        assert(data_tpe == EDT_EXTERNAL && (tpe == ET_POINTCLOUD || tpe == ET_MESH) && "GetVertices: Only call with point cloud or mesh ext data");
         List<Vector3f> verts;
         if (entity_stream != NULL) {
             verts = entity_stream->GetDataVector3f();
@@ -601,6 +611,8 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
             }
             else if (next->tpe == ET_MESH) {
                 RenderMesh();
+                // fallback, just render the vertices as a point cloud:
+                RenderPointCloud(r->image_buffer, r->w, r->h, &mvp, next->GetVertices(), next->color);
             }
             else {
                 printf("Unknown entity type: %d (external data type)\n", next->tpe);
@@ -734,14 +746,22 @@ Entity *InitAndActivateDataEntity(EntitySystem *es, SwRenderer *r, MArena *a, En
 }
 
 Entity *LoadAndActivateDataEntity(EntitySystem *es, SwRenderer *r, EntityStream *data) {
-    Entity *pc = es->AllocEntity();
-    pc->data_tpe = EDT_EXTERNAL;
-    pc->tpe = ET_POINTCLOUD;
-    pc->entity_stream = data;
-    pc->color  = { RGBA_GREEN };
-    pc->transform = data->transform;
-    EntitySystemChain(es, pc);
-    return pc;
+    Entity *ent = es->AllocEntity();
+    ent->data_tpe = EDT_EXTERNAL;
+    if (data->tpe == DT_POINTS) {
+        ent->tpe = ET_POINTCLOUD;
+        ent->color  = { RGBA_GREEN };
+        ent->transform = TransformGetInverse(&data->transform);
+    }
+    else if (data->tpe == DT_VERTICES || DT_NORMALS || DT_INDICES3) {
+        ent->tpe = ET_MESH;
+        ent->color  = { RGBA_BLUE };
+        ent->transform = data->transform;
+    }
+    ent->entity_stream = data;
+
+    EntitySystemChain(es, ent);
+    return ent;
 }
 
 
