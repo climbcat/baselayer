@@ -4,3 +4,9 @@
 *.out
 *.o
 *.so
+build/*
+*/build/*
+*/*/build/*
+.vscode/*
+*/.vscode/*
+*/*/.vscode/*
