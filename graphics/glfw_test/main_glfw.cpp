@@ -3,12 +3,13 @@
 #include <signal.h>
 
 
-#include "../../../baselayer/baselayer.h"
+#include "../../baselayer.h"
+#include "../geometry.h"
+#include "../shaders.h"
+#include "../ui.h"
+#include "../swrender.h"
+#include "../gameloop.h"
 
-void CtrlCHandler(int i) {
-    printf("\n");
-    exit(1);
-}
 
 void RunProgram() {
     TimeFunction;
@@ -16,6 +17,7 @@ void RunProgram() {
 
     signal(SIGINT, CtrlCHandler);
 
+    glewExperimental = GL_TRUE;
     auto glew_init = glewInit();
     auto glfw_init = glfwInit();
     printf("glew: %d glfw: %d\n", glew_init, glfw_init);

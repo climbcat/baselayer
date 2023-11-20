@@ -38,5 +38,6 @@ add_executable( ${PROJECT_NAME} main_glfw.cpp )
 # link
 target_link_libraries( ${PROJECT_NAME} glfw3 )
 target_link_libraries( ${PROJECT_NAME} glew32 )
+target_link_libraries( ${PROJECT_NAME} OpenGL32 )
 
 endif()

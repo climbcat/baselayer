@@ -1,2 +1,1 @@
-g++ -IC:/Users/garde/lib/glfw/include/ -IC:/Users/garde/lib/glew/include/ main_glfw.cpp glfw3.dll glew32.dll
-
+g++ main_glfw.cpp  -IC:/Users/garde/lib/glfw/include/ -IC:/Users/garde/lib/glew/include/ glfw3.dll glew32.dll opengl32.dll
