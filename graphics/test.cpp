@@ -12,18 +12,18 @@ void TestRandomImageOGL() {
     u8 *image = (u8*) ArenaAlloc(a, nchannels * w * h);
 
     // OGL window & sharder
-    SDL_Window *window = InitSDL(w, h);
+    GLFWwindow *window = InitGLFW(w, h);
     ScreenQuadTextureProgram screen;
     screen.Init(image, w, h);
     
     MouseTrap mouse;
-    while (Running(&mouse)) {
+    while (Running(window, &mouse)) {
         XSleep(50);
 
         RenderRandomPatternRGBA(image, w, h);
 
         screen.Draw(image, w, h);
-        SDL_GL_SwapWindow(window);
+        glfwSwapBuffers(window);
     }
 
 }
@@ -38,13 +38,13 @@ void TestRDrawLines() {
     MArena arena = ArenaCreate();
     MArena *a = &arena;
     u8 *image = (u8*) ArenaAlloc(a, nchannels * w * h);
-    SDL_Window *window = InitSDL(w, h);
+    GLFWwindow *window = InitGLFW(w, h);
     ScreenQuadTextureProgram screen;
     screen.Init(image, w, h);
     
     MouseTrap mouse;
     Color color_rgba { RGBA_WHITE };
-    while (Running(&mouse)) {
+    while (Running(window, &mouse)) {
         XSleep(50);
 
         RenderLineRGBA(image, w, h, 15, 200, 500, 500, color_rgba);
@@ -55,7 +55,7 @@ void TestRDrawLines() {
         RenderLineRGBA(image, w, h, 920, 120, 950, 790, color_rgba);
 
         screen.Draw(image, w, h);
-        SDL_GL_SwapWindow(window);
+        glfwSwapBuffers(window);
     }
 }
 

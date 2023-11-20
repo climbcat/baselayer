@@ -50,6 +50,7 @@ void RunProgram() {
 
         loop.CycleFrame(es);
     }
+    loop.Terminate();
 }
 
 

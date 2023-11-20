@@ -1,36 +1,44 @@
 cmake_minimum_required(VERSION 3.13.0)
 project(geometry VERSION 0.1.0)
 
+
 # linux:
 if (UNIX)
-    find_package(SDL2 REQUIRED)
-    find_package(OpenGL REQUIRED)
-    find_package(GLEW REQUIRED)
+message("UNIX configuration")
 
-    include_directories(${SDL2_INCLUDE_DIRS})
-    include_directories(${OPENGL_INCLUDE_DIRS})
+find_package(OpenGL REQUIRED)
+find_package(GLEW REQUIRED)
+find_package(glfw3 3.3 REQUIRED)
 
-    add_executable(geometry main_geom.cpp)
+include_directories(${OPENGL_INCLUDE_DIRS})
 
-    target_link_libraries(geometry ${SDL2_LIBRARIES})
-    target_link_libraries(geometry ${OPENGL_LIBRARIES})
-    target_link_libraries(geometry ${GLEW_LIBRARIES})
-endif()
+add_executable(geometry main_geom.cpp)
 
-# windows:
-if (WIN32)
-    link_directories("C:/Program Files (x86)/Windows Kits/10/Lib/10.0.22621.0/um/x64")
+target_link_libraries(geometry ${OPENGL_LIBRARIES})
+target_link_libraries(geometry ${GLEW_LIBRARIES})
+target_link_libraries(geometry glfw)
 
-    include_directories(C:/Users/garde/lib/glew-2.1.0/include/)
-    link_directories(C:/Users/garde/lib/glew-2.1.0/lib/Release/x64/)
 
-    link_directories(C:/Users/garde/lib/SDL2-2.28.4/lib/x64)
-    include_directories(C:/Users/garde/lib/SDL2-2.28.4/include/)
+# Windows:
+else()
+message("WIN32 configuration")
 
-    add_executable(geometry main_geom.cpp)
+set( LIB_GLFW glfw )
+set( LIB_GLEW glew )
+set( DIR_SCANNER_LIBS $ENV{PRESCANNING_LIBS_DIR} )
 
-    target_link_libraries(geometry SDL2)
-    target_link_libraries(geometry OpenGL32)
-    target_link_libraries(geometry glew32)
-    target_link_libraries(geometry glew32s)
+# glfw
+include_directories( ${DIR_SCANNER_LIBS}/${LIB_GLFW}/include/ )
+link_directories( ${DIR_SCANNER_LIBS}/${LIB_GLFW}/lib/ )
+
+# glew
+include_directories( ${DIR_SCANNER_LIBS}/${LIB_GLEW}/include/ )
+link_directories( ${DIR_SCANNER_LIBS}/${LIB_GLEW}/lib/ )
+
+add_executable( ${PROJECT_NAME} main_glfw.cpp )
+
+# link
+target_link_libraries( ${PROJECT_NAME} glfw3 )
+target_link_libraries( ${PROJECT_NAME} glew32s )
+
 endif()
