@@ -1,4 +1,3 @@
-#define GLEW_STATIC
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <signal.h>
@@ -17,8 +16,9 @@ void RunProgram() {
 
     signal(SIGINT, CtrlCHandler);
 
-    glewInit();
-    glfwInit();
+    auto glew_init = glewInit();
+    auto glfw_init = glfwInit();
+    printf("glew: %d glfw: %d\n", glew_init, glfw_init);
 
     GLFWwindow* window = glfwCreateWindow(640, 480, "glew & glfw link test window", NULL, NULL);
 
