@@ -3,8 +3,19 @@ project(glfw_test VERSION 0.1.0)
 
 # Linux:
 if (UNIX)
-message(FATAL_EFFOR "UNIX configuration")
-# TODO: impl.
+message("UNIX configuration")
+
+find_package(OpenGL REQUIRED)
+find_package(GLEW REQUIRED)
+find_package(glfw3 3.3 REQUIRED)
+
+include_directories(${OPENGL_INCLUDE_DIRS})
+
+add_executable( ${PROJECT_NAME} main_glfw.cpp )
+
+target_link_libraries(${PROJECT_NAME} ${OPENGL_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${GLEW_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} glfw)
 
 # Windows:
 else()
