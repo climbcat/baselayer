@@ -186,6 +186,10 @@ template<typename T>
 struct List {
     T *lst = NULL;
     u32 len = 0;
+
+    void Add(T *element) {
+        lst[len++] = *element;
+    }
 };
 
 template<class T>

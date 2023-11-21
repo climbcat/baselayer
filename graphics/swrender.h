@@ -358,13 +358,16 @@ EntityStream *InitEntityStream(MArena *a, EntityStreamDataType tpe, u32 npoints_
 
     // linked list pointer is assigned on prevíous element
     if (prev != NULL) {
-        assert(es > prev && "InitEntityStream");
+        assert(es > prev && "InitEntityStream data contiguity");
         prev->next = (u8*) es - (u8*) prev;
+        assert((u8*) prev + prev->next == (u8*) es && "InitEntityStream data contiguity");
     }
 
     // TODO: switch by data type to determine allocation size
+
+    // allocate / reserve npoints worth of memory
     List<Vector3f> points = InitList<Vector3f>(a, npoints_max);
-    assert((Vector3f*) points.lst == (Vector3f*) es->GetData() && "InitEntityStream");
+    assert( (Vector3f*) points.lst == (Vector3f*) es->GetData() && "InitEntityStream" );
 
     return es;
 }
@@ -373,19 +376,23 @@ u32 PointerDiff(void *from, void *to) {
     u32 result = (u8*) to - (u8*) from;
     return result;
 }
-u8 *PointerOffsetBytes(void *ptr, int offset) {
-    assert(ptr != NULL && "PointerOffsetBytes");
-    u8 *result = (u8*) ptr + offset;
+u8 *PointerOffsetByDist(void *ptr, int offset_dist) {
+    assert(ptr != NULL && "PointerOffsetByDist");
+    u8 *result = (u8*) ptr + offset_dist;
     return result;
 }
 void EntityStreamFinalize(MArena *a, u32 npoints_actual, EntityStream *hdr) {
     // Use with InitEntityStream after knowning that npoints_actual < npoints_max
-    // NOTE: next is not set at this point
-    u32 offset = npoints_actual * hdr->GetDatumSize();
-    u8 *hdr_next = PointerOffsetBytes(hdr, offset);
-    u8 *arena_current = a->mem + a->used;
-    a->used = a->used - PointerDiff( hdr_next, arena_current );
-    hdr->SetVertexCount(npoints_actual);
+    // NOTE: next is set on "prev_hdr" during Init
+    u32 bytes_actual = npoints_actual * hdr->GetDatumSize();
+    u32 bytes_reserved = hdr->datasize;
+
+    assert(bytes_actual <= bytes_reserved && "EntityStreamFinalize: bytes_actual <= bytes_reserved");
+    assert(a->mem <= (u8*) hdr && "EntityStreamFinalize: header >= arena base pointer");
+    assert(a->mem + a->used == (u8*) hdr->GetData() + bytes_reserved && "EntityStreamFinalize: reserved bytes == current arena pointer");
+
+    a->used = a->used - (bytes_reserved - bytes_actual);
+    hdr->datasize = bytes_actual;
 }
 struct Entity {
     // TODO: move to using ids / idxs rather than pointers. These can be u16
