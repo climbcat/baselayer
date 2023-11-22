@@ -35,10 +35,11 @@ link_directories( ${DIR_SCANNER_LIBS}/${LIB_GLFW}/lib/ )
 include_directories( ${DIR_SCANNER_LIBS}/${LIB_GLEW}/include/ )
 link_directories( ${DIR_SCANNER_LIBS}/${LIB_GLEW}/lib/ )
 
-add_executable( ${PROJECT_NAME} main_glfw.cpp )
+add_executable( ${PROJECT_NAME} main_geom.cpp )
 
 # link
 target_link_libraries( ${PROJECT_NAME} glfw3 )
-target_link_libraries( ${PROJECT_NAME} glew32s )
+target_link_libraries( ${PROJECT_NAME} glew32 )
+target_link_libraries( ${PROJECT_NAME} OpenGL32 )
 
 endif()

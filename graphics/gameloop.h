@@ -4,7 +4,7 @@
 
 #include <GLFW/glfw3.h>
 #include <signal.h>
-
+#include <assert.h>
 
 // gameloop.h: Platform code exclusively goes here, e.g. SDL / glfw / linux / win code and other APIs, but not glew / OpenGL
 
@@ -45,7 +45,7 @@ GLFWwindow *InitGLFW(u32 width, u32 height, bool fullscreen_mode = false) {
 
 void MouseCursorPositionCallBack(GLFWwindow* window, double xpos, double ypos) {
     MouseTrap *mouse = (MouseTrap*) glfwGetWindowUserPointer(window);
-    
+
     // NOTE: The frame-constant mouse x, y, dx and dy are handled by polling during the GameLoop
 }
 void MouseButtonCallBack(GLFWwindow* window, int button, int action, int mods)
@@ -79,8 +79,8 @@ void MouseScrollCallBack(GLFWwindow* window, double xoffset, double yoffset)
 }
 void KeyCallBack(GLFWwindow* window, int key, int scancode, int action, int mods) {
     MouseTrap *mouse = (MouseTrap*) glfwGetWindowUserPointer(window);
-    
-    if (key == GLFW_KEY_ESCAPE) {
+
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
         mouse->key_esc = true;
     }
     else if (key == GLFW_KEY_SPACE) {
@@ -103,7 +103,7 @@ struct GameLoopOne {
     MouseTrap mouse;
     OrbitCamera cam;
 
-    bool debug_info = false;
+    bool debug_info = true;
 
     // as pointer
     inline
@@ -164,13 +164,16 @@ GameLoopOne InitGameLoopOne(u32 width, u32 height) {
     s32 y = (s32) ypos;
     gl.mouse = InitMouseTrap(x, y);
 
-    glfwSetWindowUserPointer(gl.window, &gl.mouse);
+    //glfwSetWindowUserPointer(gl.window, &gl.mouse);
     glfwSetKeyCallback(gl.window, KeyCallBack);
     glfwSetCursorPosCallback(gl.window, MouseCursorPositionCallBack);
     glfwSetMouseButtonCallback(gl.window, MouseButtonCallBack);
     glfwSetScrollCallback(gl.window, MouseScrollCallBack);
 
     return gl;
+}
+void InitGameLoopWindowPointer_Hack(GameLoopOne *gl) {
+    glfwSetWindowUserPointer(gl->window, &gl->mouse);
 }
 
 

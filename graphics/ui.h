@@ -35,6 +35,11 @@ struct MouseTrap {
         wdown = false;
         wyoffset = 0;
     }
+    void ResetMouse(int mouse_x, int mouse_y) {
+        x = mouse_x;
+        y = mouse_y;
+        held = false;
+        rheld = false;    }
     void PrintState() {
         printf("mouse trap state: %d %d %d %d %d %d %d %d %d %d %d %f\n",
             held, rheld, wup, wdown,
@@ -46,12 +51,8 @@ struct MouseTrap {
 };
 MouseTrap InitMouseTrap(int mouse_x, int mouse_y) {
     MouseTrap m;
-    m.x = mouse_x;
-    m.y = mouse_y;
-    m.held = false;
-    m.rheld = false;
-    m.wup = true;
-    m.wdown = true;
+    m.ResetKeyAndScrollFlags();
+    m.ResetMouse(mouse_x, mouse_y);
     return m;
 }
 
