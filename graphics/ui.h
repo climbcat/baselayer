@@ -84,15 +84,19 @@ struct OrbitCamera {
         float result = MaxF32(clamp_up, min);
         return result;
     }
-    void Update(MouseTrap *m, bool invert_x) {
+    void Update(MouseTrap *m, bool flip_x, bool flip_y) {
         float sign_x = 1;
-        if (invert_x) {
-            sign_x = - 1;
+        float sign_y = 1;
+        if (flip_x) {
+            sign_x = -1;
+        }
+        if (flip_y) {
+            sign_y = -1;
         }
 
         if (m->held) {
             // orbit
-            theta = OrbitCamera::ClampTheta(theta - m->dy * mouse2rot);
+            theta = OrbitCamera::ClampTheta(theta - sign_y * m->dy * mouse2rot);
             phi += sign_x * m->dx * mouse2rot;
         }
         else if (m->wdown) {
@@ -128,7 +132,7 @@ OrbitCamera InitOrbitCamera(float aspect) {
     cam.phi = 35;
     cam.radius = 8;
     cam.view = Matrix4f_Identity();
-    cam.proj = PerspectiveMatrixOpenGL(cam.frustum, false, false, false);
+    cam.proj = PerspectiveMatrixOpenGL(cam.frustum, true, true, false);
     return cam;
 }
 
