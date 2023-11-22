@@ -15,9 +15,34 @@ struct MouseTrap {
     bool rheld;
     bool wup;
     bool wdown;
+    float wyoffset;
 
     bool key_space;
     bool key_s;
+    bool key_esc;
+
+    void UpdatePosition(s32 xpos, s32 ypos) {
+        dx = xpos - x;
+        dy = ypos - y;
+        x = xpos;
+        y = ypos;
+    }
+    void ResetKeyAndScrollFlags() {
+        key_space = false;
+        key_s = false;
+        key_esc = false;
+        wup = false;
+        wdown = false;
+        wyoffset = 0;
+    }
+    void PrintState() {
+        printf("mouse trap state: %d %d %d %d %d %d %d %d %d %d %d %f\n",
+            held, rheld, wup, wdown,
+            key_space, key_s, key_esc,
+            x, y, dx, dy,
+            wyoffset
+        );
+    }
 };
 MouseTrap InitMouseTrap(int mouse_x, int mouse_y) {
     MouseTrap m;
@@ -28,6 +53,17 @@ MouseTrap InitMouseTrap(int mouse_x, int mouse_y) {
     m.wup = true;
     m.wdown = true;
     return m;
+}
+
+
+inline float PositiveSqrtMultiplier(float value) {
+    if (value == 0) {
+        value = 1;
+    }
+    else if (value < 0) {
+        value = -1 * value;
+    }
+    return sqrt(value);
 }
 
 
@@ -60,10 +96,12 @@ struct OrbitCamera {
             phi += sign_x * m->dx * mouse2rot;
         }
         else if (m->wdown) {
-            radius *= 1.1;
+            float mult = PositiveSqrtMultiplier(m->wyoffset);
+            radius *= 1.1 * mult;
         }
         else if (m->wup) {
-            radius /= 1.1;
+            float mult = PositiveSqrtMultiplier(m->wyoffset);
+            radius /= 1.1 * mult;
         }
         else if (m->rheld) {
             // pan
