@@ -151,7 +151,7 @@ struct GameLoopOne {
     }
 };
 
-GameLoopOne InitGameLoopOne(u32 width, u32 height) {
+GameLoopOne *InitGameLoopOne(MArena *a, u32 width, u32 height) {
     GameLoopOne gl;
     gl.frameno = 0;
     gl.window = InitGLFW(width, height, false);
@@ -164,16 +164,15 @@ GameLoopOne InitGameLoopOne(u32 width, u32 height) {
     s32 y = (s32) ypos;
     gl.mouse = InitMouseTrap(x, y);
 
-    //glfwSetWindowUserPointer(gl.window, &gl.mouse);
     glfwSetKeyCallback(gl.window, KeyCallBack);
     glfwSetCursorPosCallback(gl.window, MouseCursorPositionCallBack);
     glfwSetMouseButtonCallback(gl.window, MouseButtonCallBack);
     glfwSetScrollCallback(gl.window, MouseScrollCallBack);
 
-    return gl;
-}
-void InitGameLoopWindowPointer_Hack(GameLoopOne *gl) {
-    glfwSetWindowUserPointer(gl->window, &gl->mouse);
+    GameLoopOne *result = (GameLoopOne*) ArenaPush(a, &gl, sizeof(GameLoopOne));
+    glfwSetWindowUserPointer(result->window, &result->mouse);
+
+    return result;
 }
 
 
