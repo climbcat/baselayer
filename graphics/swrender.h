@@ -30,13 +30,9 @@ struct Vector2_u16 {
     u16 x;
     u16 y;
 };
-struct Vector2_s16 {
+struct ScreenAnchor {
     u16 x;
     u16 y;
-};
-struct ScreenAnchor { // screen coords can be negative if offscreen
-    s16 x;
-    s16 y;
     Color c;
 };
 inline
@@ -50,23 +46,23 @@ u32 ScreenCoordsPosition2Idx(u32 pos_x, u32 pos_y, u32 width) {
     return result;
 }
 inline
-Vector2_s16 NDC2Screen(u32 w, u32 h, Vector3f ndc) {
-    Vector2_s16 pos;
+Vector2_u16 NDC2Screen(u32 w, u32 h, Vector3f ndc) {
+    Vector2_u16 pos;
 
     pos.x = (u32) ((ndc.x + 1) / 2 * w);
     pos.y = (u32) ((ndc.y + 1) / 2 * h);
 
     return pos;
 }
-u32 LinesToScreenCoords(u32 w, u32 h, List<ScreenAnchor> *dest_screen_buffer, List<Vector2_u16> *index_buffer, List<Vector3f> *ndc_buffer, u32 lines_low, u32 lines_high, Color color) {
-    u32 nlines_remaining = 0;
+u16 LinesToScreenCoords(u32 w, u32 h, List<ScreenAnchor> *dest_screen_buffer, List<Vector2_u16> *index_buffer, List<Vector3f> *ndc_buffer, u32 lines_low, u32 lines_high, Color color) {
+    u16 nlines_remaining = 0;
     for (u32 i = lines_low; i <= lines_high; ++i) {
         Vector2_u16 line = index_buffer->lst[i];
-        Vector2_s16 a = NDC2Screen(w, h, ndc_buffer->lst[line.x]);
-        Vector2_s16 b = NDC2Screen(w, h, ndc_buffer->lst[line.y]);
+        Vector2_u16 a = NDC2Screen(w, h, ndc_buffer->lst[line.x]);
+        Vector2_u16 b = NDC2Screen(w, h, ndc_buffer->lst[line.y]);
 
-        // TODO: tolerate half-off-screen lines in line rendering function
-        if (CullScreenCoords(a.x, a.y, w, h) && CullScreenCoords(b.x, b.y, w, h)) {
+        // TODO: crop to NDC box
+        if (CullScreenCoords(a.x, a.y, w, h) || CullScreenCoords(b.x, b.y, w, h)) {
             continue;
         }
 
@@ -98,7 +94,7 @@ void RenderRandomPatternRGBA(u8* image_buffer, u32 w, u32 h) {
         }
     }
 }
-void RenderLineRGBA(u8* image_buffer, u16 w, u16 h, s16 ax, s16 ay, s16 bx, s16 by, Color color) {
+void RenderLineRGBA(u8* image_buffer, u16 w, u16 h, u16 ax, u16 ay, u16 bx, u16 by, Color color) {
 
     // initially working from a to b
     // there are four cases:
@@ -124,15 +120,11 @@ void RenderLineRGBA(u8* image_buffer, u16 w, u16 h, s16 ax, s16 ay, s16 bx, s16 
             by = swapy;
         }
 
-        s16 x, y;
+        u16 x, y;
         u32 pix_idx;
         for (u16 i = 0; i <= bx - ax; ++i) {
             x = ax + i;
             y = ay + floor(slope * i);
-
-            if (x < 0 || x >= w || y < 0 || y >= h) {
-                continue;
-            }
 
             pix_idx = x + y*w;
             image_buffer[4 * pix_idx + 0] = color.r;
@@ -147,8 +139,8 @@ void RenderLineRGBA(u8* image_buffer, u16 w, u16 h, s16 ax, s16 ay, s16 bx, s16 
 
         // swap a & b ?
         if (ay > by) {
-            s16 swapx = ax;
-            s16 swapy = ay;
+            u16 swapx = ax;
+            u16 swapy = ay;
 
             ax = bx;
             ay = by;
@@ -156,15 +148,11 @@ void RenderLineRGBA(u8* image_buffer, u16 w, u16 h, s16 ax, s16 ay, s16 bx, s16 
             by = swapy;
         }
 
-        s16 x, y;
+        u16 x, y;
         u32 pix_idx;
         for (u16 i = 0; i <= by - ay; ++i) {
             y = ay + i;
             x = ax + floor(slope_inv * i);
-
-            if (x < 0 || x >= w || y < 0 || y >= h) {
-                continue;
-            }
 
             pix_idx = x + y*w;
             image_buffer[4 * pix_idx + 0] = color.r;
@@ -175,14 +163,14 @@ void RenderLineRGBA(u8* image_buffer, u16 w, u16 h, s16 ax, s16 ay, s16 bx, s16 
     }
 }
 inline
-void RenderLineRGBA(u8* image_buffer, s16 w, s16 h, ScreenAnchor a, ScreenAnchor b) {
+void RenderLineRGBA(u8* image_buffer, u16 w, u16 h, ScreenAnchor a, ScreenAnchor b) {
     RenderLineRGBA(image_buffer, w, h, a.x, a.y, b.x, b.y, a.c);
 }
 void RenderPointCloud(u8* image_buffer, u16 w, u16 h, Matrix4f *mvp, List<Vector3f> points, Color color) {
     for (u32 i = 0; i < points.len; ++i) {
 
         Vector3f p_ndc = TransformPerspective( *mvp, points.lst[i] );
-        Vector2_s16 p_screen = NDC2Screen(w, h, p_ndc);
+        Vector2_u16 p_screen = NDC2Screen(w, h, p_ndc);
         if (CullScreenCoords(p_screen.x, p_screen.y, w, h) ) {
             continue;
         }
@@ -770,7 +758,7 @@ Entity *LoadAndActivateDataEntity(EntitySystem *es, SwRenderer *r, EntityStream 
     if (data->tpe == DT_POINTS) {
         ent->tpe = ET_POINTCLOUD;
         ent->color  = { RGBA_GREEN };
-        ent->transform = data->transform;
+        ent->transform = TransformGetInverse(&data->transform);
     }
     else if (data->tpe == DT_VERTICES || DT_NORMALS || DT_INDICES3) {
         ent->tpe = ET_MESH;

@@ -137,7 +137,7 @@ struct GameLoopOne {
     }
     void CycleFrame(EntitySystem *es) {
         // this frame
-        cam.Update(&mouse, false, true);
+        cam.Update(&mouse, true);
         SwRenderFrame(&renderer, es, &cam.vp, frameno);
         glfwSwapBuffers(window);
         frameno++;
