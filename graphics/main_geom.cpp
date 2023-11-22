@@ -13,6 +13,7 @@ void RunProgram() {
     u32 width = 1280;
     u32 height = 800;
     GameLoopOne loop = InitGameLoopOne(width, height);
+    InitGameLoopWindowPointer_Hack(&loop);
 
     // data memory pool
     MArena _pointcloud_arena = ArenaCreate();

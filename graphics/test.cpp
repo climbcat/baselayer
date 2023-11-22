@@ -1,5 +1,5 @@
 
-
+/*
 void TestRandomImageOGL() {
     printf("TestRandomImageOGL\n");
 
@@ -58,7 +58,7 @@ void TestRDrawLines() {
         glfwSwapBuffers(window);
     }
 }
-
+*/
 
 void TestRandomPCsRotatingBoxes() {
     printf("TestRandomPCsRotatingBoxes\n");
@@ -66,6 +66,7 @@ void TestRandomPCsRotatingBoxes() {
     u32 width = 1280;
     u32 height = 800;
     GameLoopOne loop = InitGameLoopOne(width, height);
+    InitGameLoopWindowPointer_Hack(&loop);
 
     // data memory pool
     MArena _pointcloud_arena = ArenaCreate();
