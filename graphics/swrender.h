@@ -30,9 +30,13 @@ struct Vector2_u16 {
     u16 x;
     u16 y;
 };
+struct Vector2_s16 {
+    s16 x;
+    s16 y;
+};
 struct ScreenAnchor {
-    u16 x;
-    u16 y;
+    s16 x;
+    s16 y;
     Color c;
 };
 inline
@@ -46,11 +50,11 @@ u32 ScreenCoordsPosition2Idx(u32 pos_x, u32 pos_y, u32 width) {
     return result;
 }
 inline
-Vector2_u16 NDC2Screen(u32 w, u32 h, Vector3f ndc) {
-    Vector2_u16 pos;
+Vector2_s16 NDC2Screen(u32 w, u32 h, Vector3f ndc) {
+    Vector2_s16 pos;
 
-    pos.x = (u32) ((ndc.x + 1) / 2 * w);
-    pos.y = (u32) ((ndc.y + 1) / 2 * h);
+    pos.x = (s16) ((ndc.x + 1) / 2 * w);
+    pos.y = (s16) ((ndc.y + 1) / 2 * h);
 
     return pos;
 }
@@ -58,11 +62,10 @@ u16 LinesToScreenCoords(u32 w, u32 h, List<ScreenAnchor> *dest_screen_buffer, Li
     u16 nlines_remaining = 0;
     for (u32 i = lines_low; i <= lines_high; ++i) {
         Vector2_u16 line = index_buffer->lst[i];
-        Vector2_u16 a = NDC2Screen(w, h, ndc_buffer->lst[line.x]);
-        Vector2_u16 b = NDC2Screen(w, h, ndc_buffer->lst[line.y]);
+        Vector2_s16 a = NDC2Screen(w, h, ndc_buffer->lst[line.x]);
+        Vector2_s16 b = NDC2Screen(w, h, ndc_buffer->lst[line.y]);
 
-        // TODO: crop to NDC box
-        if (CullScreenCoords(a.x, a.y, w, h) || CullScreenCoords(b.x, b.y, w, h)) {
+        if (CullScreenCoords(a.x, a.y, w, h) && CullScreenCoords(b.x, b.y, w, h)) {
             continue;
         }
 
@@ -94,7 +97,7 @@ void RenderRandomPatternRGBA(u8* image_buffer, u32 w, u32 h) {
         }
     }
 }
-void RenderLineRGBA(u8* image_buffer, u16 w, u16 h, u16 ax, u16 ay, u16 bx, u16 by, Color color) {
+void RenderLineRGBA(u8* image_buffer, u16 w, u16 h, s16 ax, s16 ay, s16 bx, s16 by, Color color) {
 
     // initially working from a to b
     // there are four cases:
@@ -120,11 +123,15 @@ void RenderLineRGBA(u8* image_buffer, u16 w, u16 h, u16 ax, u16 ay, u16 bx, u16 
             by = swapy;
         }
 
-        u16 x, y;
+        s16 x, y;
         u32 pix_idx;
         for (u16 i = 0; i <= bx - ax; ++i) {
             x = ax + i;
             y = ay + floor(slope * i);
+
+            if (CullScreenCoords(x, y, w, h)) {
+                continue;
+            }
 
             pix_idx = x + y*w;
             image_buffer[4 * pix_idx + 0] = color.r;
@@ -148,11 +155,15 @@ void RenderLineRGBA(u8* image_buffer, u16 w, u16 h, u16 ax, u16 ay, u16 bx, u16 
             by = swapy;
         }
 
-        u16 x, y;
+        s16 x, y;
         u32 pix_idx;
         for (u16 i = 0; i <= by - ay; ++i) {
             y = ay + i;
             x = ax + floor(slope_inv * i);
+
+            if (CullScreenCoords(x, y, w, h)) {
+                continue;
+            }
 
             pix_idx = x + y*w;
             image_buffer[4 * pix_idx + 0] = color.r;
@@ -170,7 +181,7 @@ void RenderPointCloud(u8* image_buffer, u16 w, u16 h, Matrix4f *mvp, List<Vector
     for (u32 i = 0; i < points.len; ++i) {
 
         Vector3f p_ndc = TransformPerspective( *mvp, points.lst[i] );
-        Vector2_u16 p_screen = NDC2Screen(w, h, p_ndc);
+        Vector2_s16 p_screen = NDC2Screen(w, h, p_ndc);
         if (CullScreenCoords(p_screen.x, p_screen.y, w, h) ) {
             continue;
         }

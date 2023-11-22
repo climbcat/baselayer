@@ -103,7 +103,7 @@ struct GameLoopOne {
     MouseTrap mouse;
     OrbitCamera cam;
 
-    bool debug_info = true;
+    bool debug_info = false;
 
     // as pointer
     inline
