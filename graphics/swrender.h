@@ -406,7 +406,8 @@ void EntityStreamFinalize(MArena *a, u32 npoints_actual, EntityStream *hdr) {
     hdr->datasize = bytes_actual;
 }
 struct Entity {
-    // TODO: move to using ids / idxs rather than pointers. These can be u16
+    // header
+    // TODO: move to using ids / idxs rather than pointers. These could be u16
     Entity *next = NULL;
     EntityDataType data_tpe;
     EntityType tpe;
@@ -419,9 +420,25 @@ struct Entity {
     u16 lines_low = 0;
     u16 lines_high = 0;
 
-    // analytic entity parameters (AABox, CoordAxes)
+    // utility fields
     Vector3f origo;
     Vector3f dims;
+
+    // external data
+    EntityStream *entity_stream;
+
+    // scene graph switch
+    bool active = true;
+
+    // transforms
+    inline Matrix4f GetLocal2World() {
+        return transform;
+    }
+    inline Matrix4f GetWorld2Local() {
+        return TransformGetInverse(&transform);
+    }
+
+    // analytic entity parameters (AABox, CoordAxes)
     inline float XMin() { return origo.x - dims.x; }
     inline float XMax() { return origo.x + dims.x; }
     inline float YMin() { return origo.y - dims.y; }
@@ -437,7 +454,6 @@ struct Entity {
     }
 
     // data entity parameters (pointcloud, ...)
-    EntityStream *entity_stream;
     List<u8> GetData() {
         List<u8> data;
         if (entity_stream != NULL) {
@@ -467,7 +483,6 @@ struct Entity {
     }
 
     // scene graph behavior
-    bool active = true;
     void Activate() {
         active = true;
     }
@@ -652,9 +667,9 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
 // Axis-aligned box
 
 
-Entity InitAndActivateAABox(Vector3f center_transf, float radius, SwRenderer *r) {
+Entity InitAndActivateAABox(Vector3f translate_coords, float radius, SwRenderer *r) {
     Entity aabox = InitEntity(ET_LINES);
-    aabox.transform = TransformBuild(y_hat, 0, center_transf);
+    aabox.transform = TransformBuild(y_hat, 0, translate_coords);
     aabox.color = { RGBA_GREEN };
     aabox.origo = Vector3f { 0, 0, 0 },
     aabox.dims = Vector3f { radius, radius, radius };
@@ -769,7 +784,7 @@ Entity *LoadAndActivateDataEntity(EntitySystem *es, SwRenderer *r, EntityStream 
     if (data->tpe == DT_POINTS) {
         ent->tpe = ET_POINTCLOUD;
         ent->color  = { RGBA_GREEN };
-        ent->transform = TransformGetInverse(&data->transform);
+        ent->transform = data->transform;
     }
     else if (data->tpe == DT_VERTICES || DT_NORMALS || DT_INDICES3) {
         ent->tpe = ET_MESH;
