@@ -31,8 +31,8 @@ struct Vector2_u16 {
     u16 y;
 };
 struct Vector2_s16 {
-    u16 x;
-    u16 y;
+    s16 x;
+    s16 y;
 };
 struct ScreenAnchor { // screen coords can be negative if offscreen
     s16 x;
@@ -53,8 +53,8 @@ inline
 Vector2_s16 NDC2Screen(u32 w, u32 h, Vector3f ndc) {
     Vector2_s16 pos;
 
-    pos.x = (u32) ((ndc.x + 1) / 2 * w);
-    pos.y = (u32) ((ndc.y + 1) / 2 * h);
+    pos.x = (s16) ((ndc.x + 1) / 2 * w);
+    pos.y = (s16) ((ndc.y + 1) / 2 * h);
 
     return pos;
 }

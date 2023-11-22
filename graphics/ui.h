@@ -116,8 +116,8 @@ struct OrbitCamera {
             Vector3f right = - left;
             Vector3f up = forward.Cross(left);
             up.Normalize();
-            center = center + mouse2pan * m->dx * right;
-            center = center + mouse2pan * m->dy * up;
+            center = center - mouse2pan * sign_x * m->dx * right;
+            center = center + mouse2pan * sign_y * m->dy * up;
         }
 
         // build orbit camp transform
