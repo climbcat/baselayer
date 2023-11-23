@@ -178,17 +178,22 @@ void RenderLineRGBA(u8* image_buffer, u16 w, u16 h, ScreenAnchor a, ScreenAnchor
     RenderLineRGBA(image_buffer, w, h, a.x, a.y, b.x, b.y, a.c);
 }
 void RenderPointCloud(u8* image_buffer, u16 w, u16 h, Matrix4f *mvp, List<Vector3f> points, Color color) {
+    float color_fade = 1;
+    Vector3f p;
+    Vector3f p_ndc;
+    Vector2_s16 p_screen;
+    u32 pix_idx;
     for (u32 i = 0; i < points.len; ++i) {
-
-        Vector3f p_ndc = TransformPerspective( *mvp, points.lst[i] );
-        Vector2_s16 p_screen = NDC2Screen(w, h, p_ndc);
+        p = points.lst[i];
+        p_ndc = TransformPerspective( *mvp, p );
+        p_screen = NDC2Screen(w, h, p_ndc);
         if (CullScreenCoords(p_screen.x, p_screen.y, w, h) ) {
             continue;
         }
-        u32 pix_idx = ScreenCoordsPosition2Idx(p_screen.x, p_screen.y, w);
-        image_buffer[4 * pix_idx + 0] = color.r;
-        image_buffer[4 * pix_idx + 1] = color.g;
-        image_buffer[4 * pix_idx + 2] = color.b;
+        pix_idx = ScreenCoordsPosition2Idx(p_screen.x, p_screen.y, w);
+        image_buffer[4 * pix_idx + 0] = color.r * color_fade;
+        image_buffer[4 * pix_idx + 1] = color.g * color_fade;
+        image_buffer[4 * pix_idx + 2] = color.b * color_fade;
         image_buffer[4 * pix_idx + 3] = color.a;
     }
 }

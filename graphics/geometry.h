@@ -290,14 +290,6 @@ void MatrixNf_MultVector(float *dest, float *a, float *v, u32 dims) {
         }
     }
 }
-inline
-Vector4f ToV4f_Homogeneous(Vector3f v) {
-    return Vector4f { v.x, v.y, v.z, 1 };
-}
-inline
-Vector3f ToV3f_Homogeneous(Vector4f v) {
-    return Vector3f { v.x / v.w, v.y / v.w, v.z / v.w };
-}
 
 
 //
@@ -554,7 +546,10 @@ Matrix4f TransformBuildOrbitCam(Vector3f center, float theta_degs, float phi_deg
 }
 inline
 Vector3f TransformPerspective(Matrix4f p, Vector3f v) {
-    Vector3f result = ToV3f_Homogeneous(p * ToV4f_Homogeneous(v));
+    Vector4f v_hom { v.x, v.y, v.z, 1 }; // homogeneous coordinates
+    Vector4f v_clip = p * v_hom; // clipping space
+    Vector3f result { v_clip.x / v_clip.w, v_clip.y / v_clip.w, v_clip.z / v_clip.w }; // ndc coordinates
+
     return result;
 }
 

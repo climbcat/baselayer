@@ -121,9 +121,23 @@ struct OrbitCamera {
         view = TransformBuildOrbitCam(center, theta, phi, radius);
         vp = TransformBuildViewProj(view, proj);
     }
+    Vector3f Forward() {
+        Vector3f forward = - SphericalCoordsY(theta*deg2rad, phi*deg2rad, radius);
+        return forward;
+    }
+    Vector3f Position() {
+        Vector3f position = center + SphericalCoordsY(theta*deg2rad, phi*deg2rad, radius);
+        return position;
+    }
+    Ray CameraRay() {
+        Vector3f forward = - SphericalCoordsY(theta*deg2rad, phi*deg2rad, radius);
+        Vector3f position = center + SphericalCoordsY(theta*deg2rad, phi*deg2rad, radius);
+        Ray camray { position, forward };
+        return camray;
+    }
 };
 OrbitCamera InitOrbitCamera(float aspect) {
-    OrbitCamera cam { PerspectiveFrustum { 90, aspect, 0.1, 20 } };
+    OrbitCamera cam { PerspectiveFrustum { 90, aspect, 0.01, 10 } };
     cam.center = Vector3f_Zero();
     cam.theta = 60;
     cam.phi = 35;
