@@ -50,12 +50,13 @@ void ProfilerPrint(Profiler *p) {
         printf("  %s: ", current->tag);
 
         u64 self_tsc = current->elapsed_tsc - current->elapsed_children_tsc;
+        u64 self_ms = self_tsc / p->cpu_freq / 1000;
         float self_pct = (float) self_tsc / p->total_tsc * 100;
         u64 total_tsc = current->elapsed_atroot_tsc;
         float total_pct = (float) total_tsc / p->total_tsc * 100;
 
         u32 hits = current->hits;
-        printf("%lu (%.2f%%) self, %lu (%.2f%%) tot %u hits)\n", self_tsc, self_pct, total_tsc, total_pct, hits);
+        printf("%lu tsc %lu ms (%.2f%%) self, %lu (%.2f%%) tot %u hits)\n", self_tsc, self_ms, self_pct, total_tsc, total_pct, hits);
     }
 }
 
