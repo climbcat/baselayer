@@ -374,6 +374,7 @@ Matrix4f TransformGetInverse(Matrix4f *a) {
 Matrix4f TransformGetInverse(Matrix4f a) {
     return TransformGetInverse(&a);
 }
+inline
 Vector3f TransformPoint(Matrix4f *a, Vector3f *v) {
     // NOTE: Only for isometric transforms ! (Not perspective)
     Vector3f result;
@@ -387,6 +388,7 @@ Vector3f TransformPoint(Matrix4f *a, Vector3f *v) {
     return result;
 }
 // TODO: how do I build a vector that does this ?
+inline
 Vector3f TransformInversePoint(Matrix4f *a, Vector3f *v) {
     Vector3f r;
     Vector3f tmp;
@@ -404,6 +406,7 @@ Vector3f TransformInversePoint(Matrix4f *a, Vector3f *v) {
     // TODO: scale back
     return r;
 }
+inline
 Vector3f TransformDirection(Matrix4f *a, Vector3f *d) {
     Vector3f result;
 
@@ -415,6 +418,7 @@ Vector3f TransformDirection(Matrix4f *a, Vector3f *d) {
     // TODO: scale
     return result;
 }
+inline
 Vector3f TransformInverseDirection(Matrix4f *a, Vector3f *d) {
     Vector3f result;
 

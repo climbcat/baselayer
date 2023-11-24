@@ -8,6 +8,7 @@
 
 #define RGBA_BLACK      0, 0, 0, 255
 #define RGBA_WHITE      255, 255, 255, 255
+#define RGBA_GRAY_50    128, 128, 128, 255
 #define RGBA_RED        255, 0, 0, 255
 #define RGBA_GREEN      0, 255, 0, 255
 #define RGBA_BLUE       0, 0, 255, 255
@@ -532,7 +533,9 @@ struct EntitySystem {
         return result;
     }
     Entity *AllocEntity() {
+        Entity default_val;
         Entity *result = (Entity*) PoolAlloc(&pool);
+        *result = default_val;
         return result;
     }
 };
@@ -623,7 +626,7 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
     es->IterReset();
     Entity *next = es->IterNext();
     while (next != NULL) {
-        if (next ->data_tpe == EDT_ANALYTIC) {
+        if (next->active && (next ->data_tpe == EDT_ANALYTIC)) {
             if (next->tpe == ET_LINES_ROT) {
                 model = next->transform * TransformBuildRotateY(0.03f * frameno);
             }
@@ -640,7 +643,7 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
             // render lines
             LinesToScreenCoords(r->w, r->h, &r->screen_buffer, &r->index_buffer, &r->ndc_buffer, next->lines_low, next->lines_high, next->color);
         }
-        else if (next->data_tpe == EDT_EXTERNAL) {
+        else if (next->active && (next->data_tpe == EDT_EXTERNAL)) {
             mvp = TransformBuildMVP(next->transform, *vp);
 
             // render pointcloud
