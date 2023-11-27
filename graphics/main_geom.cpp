@@ -1,5 +1,6 @@
 #include "../baselayer.h"
 #include "geometry.h"
+#include "octree.h"
 #include "shaders.h"
 #include "ui.h"
 #include "swrender.h"
@@ -58,7 +59,7 @@ void RunProgram() {
 
 int main (int argc, char **argv) {
     TimeProgram;
-    bool force_testing = false;
+    bool force_testing = true;
 
     if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv)) {
         printf("--help:          display help (this text)\n");
