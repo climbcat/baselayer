@@ -178,16 +178,14 @@ void TestRandomPCsRotatingBoxes() {
 
 void TestVGROcTree() {
     // we don't really need these numbers, since we shouldn't allocate this much stuff at all
-    u8 dm = 5; // max octree depth
-    u32 max_cubes = SubCubesTotal(dm);
-    u32 max_branches = SubCubesTotal(dm - 1);
+    u8 depth_max = 5; // max octree depth
+    u32 max_cubes = SubCubesTotal(depth_max);
+    u32 max_branches = SubCubesTotal(depth_max - 1);
     u32 max_leaves = max_cubes - max_branches;
 
     // AA cube
     Vector3f rootcube_center { 0, 0, 0}; // AABox / octree root-cube center
     float rootcube_radius = 0.2;
-    Vector3f c = rootcube_center;
-    float r = rootcube_radius;
 
     // two tmp destinations to avoid allocating max_branches and max_leaves
     MArena _a = ArenaCreate();
@@ -201,9 +199,9 @@ void TestVGROcTree() {
     RandInit();
     for (u32 i = 0; i < nvertices; ++i) {
         Vector3f v {
-            rootcube_center.x - r + 2*r*Rand01_f32(),
-            rootcube_center.y - r + 2*r*Rand01_f32(),
-            rootcube_center.y - r + 2*r*Rand01_f32(),
+            rootcube_center.x - rootcube_radius + 2*rootcube_radius*Rand01_f32(),
+            rootcube_center.y - rootcube_radius + 2*rootcube_radius*Rand01_f32(),
+            rootcube_center.y - rootcube_radius + 2*rootcube_radius*Rand01_f32(),
         };
         vertices.Add(&v);
     }
@@ -211,56 +209,59 @@ void TestVGROcTree() {
     // octree data
     // NOTE: these lists much be zerod before use !
     // TODO: use another scheme, this one isn't going to cut it (this commits max_branches of memory)
-    List<VGRBranch> branches = InitListOpen<VGRBranch>(a, max_branches);
-    List<VGRLeaf> leaves = InitListOpen<VGRLeaf>(b, max_leaves);
-    u8 depth_max = dm;
+    List<VGRBranchBlock> branch_lst = InitList<VGRBranchBlock>(a, 0);
     assert(depth_max >= 2 && "octree min depth is currently 2");
 
     // assign level 1 branches:
-    VGRBranch root;
-    VGRBranch *branch = &root;
-    root.subcube_block_index = SubCubeAllocBranches(*branch, &branches);
-    assert(root.subcube_block_index == 0 && "the first 8 blocks make up level 1 depth branches");
-    branches.len = 8;
+    SubCubeAllocBranchBlock(a, &branch_lst);
+    VGRBranchBlock *branch_block;
 
-    // assign 8 level d_max leaves:
-    VGRLeaf *leaf;
-
+    // leaves dest
+    List<VGRLeafBlock> leaf_lst = InitList<VGRLeafBlock>(b, 0);
+    VGRLeafBlock *leaf_block;
 
     // loop points
-    Vector3f p;
+    Vector3f p, c;
+    float r;
     for (u32 i = 0; i < vertices.len; ++i) {
-        printf("a point %u\n", i);
+        printf("%u: ", i);
+        // get vertex
         p = vertices.lst[i];
 
-        // find descend path
-        for (u32 d = 1; d < depth_max; ++d) {
-            u8 subcube_idx = SubcubeSelect(p, c, r, &c); // select path
-            u32 next_idx = 8*branch->subcube_block_index + subcube_idx;
-            branch = branches.lst + next_idx; // step down
+        // init
+        branch_block = branch_lst.lst;
+        c = rootcube_center;
+        r = rootcube_radius;
 
-            if (branch->subcube_block_index == 0) {
-                // encountered unassigned level d+1 branch
-                
-                if (d < depth_max - 1) {
-                    // refer to more branches
-                    branch->subcube_block_index = SubCubeAllocBranches(*branch, &branches);
-                }
-                else {
-                    // refer to leaves
-                    branch->subcube_block_index = SubCubeAllocLeaves(*branch, &leaves);
-                }
+        // descend
+        for (u32 d = 1; d < depth_max - 1; ++d) {
+            u8 sub_idx = SubcubeSelect(p, c, r, &c, &r);
+            u16 *block_idx = &branch_block->subcube_block_indices[sub_idx];
+
+            if (*block_idx == 0) {
+                // unassigned level d+1 branch
+                *block_idx = SubCubeAllocBranchBlock(a, &branch_lst);
             }
+            branch_block = branch_lst.lst + *block_idx;
         }
 
-        // d == depth_max: select leaf
-        u8 subcube_idx = SubcubeSelect(p, c, r, &c); // select path
-        u32 leaf_idx = 8*branch->subcube_block_index + subcube_idx;
-        leaf = leaves.lst + leaf_idx;
-        
-        // finally at our leaf, time to put data
-        leaf->sum = leaf->sum + p;
-        ++leaf->cnt;
+        // almost there, d == d_max - 1
+        u8 sub_idx = SubcubeSelect(p, c, r, &c, &r);
+        u16 *leaf_block_idx = &branch_block->subcube_block_indices[sub_idx];
+        if (*leaf_block_idx == 0) {
+            // unassigned level d_max leaf
+            *leaf_block_idx = SubCubeAllocLeafBlock(b, &leaf_lst);
+        }
+        leaf_block = leaf_lst.lst + *leaf_block_idx;
+
+        // finally at d == depth_max: select leaf in leaf_block
+        sub_idx = SubcubeSelect(p, c, r, &c, &r);
+        printf("lbi/scube: %u %u \n", *leaf_block_idx, sub_idx);
+
+        Vector3f *sum = &leaf_block->sum[sub_idx];
+        *sum = *sum + p;
+        u32 *cnt = &leaf_block->cnt[sub_idx];
+        *cnt = *cnt + 1;
     }
 
     // TODO: write a thing that iterates the octree and pushes its cubes to the renderer, or similar
