@@ -92,6 +92,9 @@ void ArenaClose(MArena *a, u64 len) {
     a->locked = false;
     ArenaAlloc(a, len);
 }
+void ArenaPrint(MArena *a) {
+    printf("Arena mapped/committed/used: %lu %lu %lu\n", a->mapped, a->committed, a->used);
+}
 
 
 //
@@ -232,6 +235,17 @@ List<T> InitList(MArena *a, u32 count) {
     _lst.len = 0;
     _lst.lst = (T*) ArenaAlloc(a, sizeof(T) * count);
     return _lst;
+}
+template<class T>
+List<T> InitListOpen(MArena *a, u32 max_len) {
+    List<T> _lst;
+    _lst.len = 0;
+    _lst.lst = (T*) ArenaOpen(a, max_len);
+    return _lst;
+}
+template<class T>
+void InitListClose(MArena *a, u32 count) {
+    ArenaClose(a, sizeof(T) * count);
 }
 
 
