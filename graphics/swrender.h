@@ -413,8 +413,10 @@ void EntityStreamFinalize(MArena *a, u32 npoints_actual, EntityStream *hdr) {
 }
 struct Entity {
     // header
-    // TODO: move to using ids / idxs rather than pointers. These could be u16
-    Entity *next = NULL;
+    u16 up = 0;
+    u16 down = 0;
+    u16 prev = 0;
+    u16 next = 0;
     EntityDataType data_tpe;
     EntityType tpe;
     Matrix4f transform; // TODO: make this into a transform_id and store externally
@@ -498,7 +500,6 @@ struct Entity {
 };
 Entity InitEntity(EntityType tpe) {
     Entity e;
-    e.next = NULL;
     e.tpe = tpe;
     if (tpe == ET_MESH || tpe == ET_POINTCLOUD) {
         e.data_tpe = EDT_EXTERNAL;
@@ -519,16 +520,21 @@ Entity InitEntity(EntityType tpe) {
 #define ENTITY_MAX_COUNT 200
 struct EntitySystem {
     MPool pool;
-    Entity *first = NULL;
-    Entity *next = NULL;
-    Entity *last = NULL;
+    u16 first = 0;
+    u16 iter_next = 0;
+    u16 last = 0;
+
+    Entity *GetEntityByIdx(u16 idx) {
+        Entity *result = (Entity*) PoolIdx2Ptr(&pool, idx);
+        return result;
+    }
     void IterReset() {
-        next = first;
+        iter_next = first;
     }
     Entity *IterNext() {
-        Entity *result = next;
-        if (next != NULL) {
-            next = next->next;
+        Entity *result = GetEntityByIdx(iter_next);
+        if (iter_next > 0) {
+            iter_next = result->next;
         }
         return result;
     }
@@ -542,23 +548,27 @@ struct EntitySystem {
 EntitySystem InitEntitySystem() {
     EntitySystem es;
     es.pool = PoolCreate(sizeof(Entity), ENTITY_MAX_COUNT);
+    void *zero = PoolAlloc(&es.pool);
     return es;
 }
 void EntitySystemChain(EntitySystem *es, Entity *next) {
-    if (es->first == NULL) {
-        es->first = next;
-        es->last = next;
+    u16 next_idx = PoolPtr2Idx(&es->pool, next);
+    if (es->first == 0) {
+        es->first = next_idx;
+        es->last = next_idx;
         es->IterReset();
     }
     else {
-        es->last->next = next;
-        es->last = next;
+        Entity * es_last = es->GetEntityByIdx(es->last);
+        es_last->next = next_idx;
+        es->last = next_idx;
     }
 }
 void EntitySystemPrint(EntitySystem *es) {
     u32 eidx = 0;
-    Entity *next = es->first;
     printf("entities: \n");
+    es->IterReset();
+    Entity *next = es->IterNext();
     while (next != NULL) {
         if (next->data_tpe == EDT_ANALYTIC) {
             printf("%u: analytic, vertices %u -> %u lines %u -> %u\n", eidx, next->verts_low, next->verts_high, next->lines_low, next->lines_high);
@@ -567,7 +577,7 @@ void EntitySystemPrint(EntitySystem *es) {
             printf("%u: data#%d, %u bytes\n", eidx, next->entity_stream->tpe, next->entity_stream->datasize);
         }
         eidx++;
-        next = next->next;
+        next = es->IterNext();
     }
 }
 
@@ -660,7 +670,7 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
             }
         }
         eidx++;
-        next = next->next;
+        next = es->IterNext();
     }
     r->ndc_buffer.len = r->vertex_buffer.len;
     for (u32 i = 0; i < r->screen_buffer.len / 2; ++i) {

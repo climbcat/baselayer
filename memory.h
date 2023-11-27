@@ -95,8 +95,10 @@ void ArenaClose(MArena *a, u64 len) {
 
 
 //
-// Memory pool allocator / slot based allocation with a free-list
+// Memory pool allocator / slot based allocation impl. using a free-list
+//
 
+// NOTE: Pool indices, if used, are counted from 1, and the value 0 is reserved as the NULL equivalent.
 
 struct MPool {
     u8 *mem;
@@ -153,11 +155,39 @@ bool PoolCheckAddress(MPool *p, void *ptr) {
 
     return b2 && b3;
 }
+u32 PoolAllocIdx(MPool *p) {
+    assert(p->nblocks <= 2^16 && "indices will always fit within 16 bit limits");
+
+    void *element = PoolAlloc(p);
+    if (element == NULL) {
+        return 0;
+    }
+
+    u32 idx = ((u8*) element - (u8*) p->mem) / p->block_size;
+    assert(idx < p->nblocks && "block index must be positive and less and the number of blocks");
+    return idx;
+}
+u32 PoolPtr2Idx(MPool *p, void *ptr) {
+    PoolCheckAddress(p, ptr);
+    if (ptr == NULL) {
+        return 0;
+    }
+    u32 idx = ((u8*) ptr - (u8*) p->mem) / p->block_size;
+    return idx;
+}
+void *PoolIdx2Ptr(MPool *p, u32 idx) {
+    assert(idx < p->block_size);
+    if (idx == 0) {
+        return NULL;
+    }
+    void *ptr = (u8*) p->mem + idx * p->block_size;
+    return ptr;
+}
 bool PoolFree(MPool *p, void *element, bool enable_strict_mode = true) {
     assert(PoolCheckAddress(p, element) && "input address aligned and in range");
     LList1 *e = (LList1*) element;
 
-    // check element didn't carry valid free-list pointe
+    // check element doesn't carry a valid free-list pointer
     bool is_first_free_element = p->free_list.next == e;
     bool target_valid = PoolCheckAddress(p, e->next);
     if (target_valid || is_first_free_element) {
@@ -175,6 +205,10 @@ bool PoolFree(MPool *p, void *element, bool enable_strict_mode = true) {
     --p->occupancy;
 
     return true;
+}
+bool PoolFreeIdx(MPool *p, u32 idx) {
+    void * ptr = PoolIdx2Ptr(p, idx);
+    return PoolFree(p, ptr);
 }
 
 
