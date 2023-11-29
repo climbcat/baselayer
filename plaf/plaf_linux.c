@@ -106,3 +106,16 @@ StrLst GetFilesInFolderPaths(MArena *a, char *rootpath) {
 
     return *first;
 }
+bool SaveFile(char *filepath, u8 *data, u32 len) {
+    FILE *f = fopen(filepath, "w");
+
+    if (f == NULL) {
+        printf("SaveFile: Could not open file %s\n", filepath);
+        return false;
+    }
+
+    fwrite(data, 1, len, f);
+    fclose(f);
+
+    return true;
+}

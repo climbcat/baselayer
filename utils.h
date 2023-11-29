@@ -22,7 +22,6 @@ u8 *LoadFileMMAP(const char *filepath, u64 *size_bytes) {
 }
 StrLst GetFilesInFolderPaths(MArena *a, char *rootpath);
 
-
 u32 LoadFileFSeek(char* filepath, u8* dest) {
     assert(dest != NULL && "data destination must be valid");
     u32 len = 0;
@@ -41,19 +40,8 @@ u32 LoadFileFSeek(char* filepath, u8* dest) {
 
     return len;
 }
-bool SaveFile(char *filepath, u8 *data, u32 len) {
-    FILE *f = fopen(filepath, "w");
 
-    if (f == NULL) {
-        printf("SaveFile: Could not open file %s\n", filepath);
-        return false;
-    }
-
-    fwrite(data, 1, len, f);
-    fclose(f);
-
-    return true;
-}
+bool SaveFile(char *filepath, u8 *data, u32 len);
 bool SaveFile(const char *filepath, u8 *data, u32 len) {
     return SaveFile((char *)filepath, data, len);
 }

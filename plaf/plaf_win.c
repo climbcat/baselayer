@@ -1,5 +1,6 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <fstream>
 #include <fileapi.h>
 #include <intrin.h>
 
@@ -113,4 +114,12 @@ StrLst GetFilesInFolderPaths(MArena *a, char *rootpath) {
     }
 
     return *first;
+}
+bool SaveFile(char *filepath, u8 *data, u32 len) {
+    std::ofstream outstream(filepath, std::ios::out | std::ios::binary);
+    outstream.write((const char*) data, len);
+    bool result = outstream.good();
+    outstream.close();
+
+    return result;
 }
