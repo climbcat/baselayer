@@ -207,6 +207,9 @@ void RenderMesh() {
 // Entity System
 
 
+// TODO: could be renamed into "data stream"
+
+
 enum EntityDataType {
     EDT_ANALYTIC,
     EDT_EXTERNAL,
@@ -411,6 +414,40 @@ void EntityStreamFinalize(MArena *a, u32 npoints_actual, EntityStream *hdr) {
     a->used = a->used - (bytes_reserved - bytes_actual);
     hdr->datasize = bytes_actual;
 }
+EntityStream *EntityStreamCopy(MArena *a, Matrix4f transform, List<Vector3f> src, u32 id) {
+    // allocate and copy header + payload
+    EntityStream stream;
+    stream.next = 0;
+    stream.tpe = DT_POINTS;
+    stream.id = id;
+    stream.transform = transform;
+    stream.SetVertexCount(src.len);
+
+    EntityStream *result = (EntityStream*) ArenaPush(a, &stream, sizeof(stream));
+    ArenaPush(a, src.lst, stream.datasize);
+
+    return result;
+}
+EntityStream *EntityStreamReserve(MArena *a, Matrix4f transform, List<Vector3f> src, u32 id) {
+    // allocate and copy header, allocate payload (no copy)
+    EntityStream stream;
+    stream.next = 0;
+    stream.tpe = DT_POINTS;
+    stream.id = id;
+    stream.transform = transform;
+    stream.SetVertexCount(src.len);
+
+    EntityStream *result = (EntityStream*) ArenaPush(a, &stream, sizeof(stream));
+    ArenaAlloc(a, stream.datasize);
+
+    return result;
+}
+
+
+//
+// Entity
+
+
 struct Entity {
     // header
     u16 up = 0;
