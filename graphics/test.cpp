@@ -60,6 +60,27 @@ void TestRDrawLines() {
 }
 */
 
+
+inline
+u16 SubCubeAllocBranchBlock(MArena *a_branches, List<VGRBranchBlock> *branch_lst) {
+    assert((u8*) (branch_lst->lst + branch_lst->len) == a_branches->mem + a_branches->used && "check memory contiguity");
+
+    u16 result = branch_lst->len;
+    ArenaAlloc(a_branches, sizeof(VGRBranchBlock));
+    ++branch_lst->len; // TODO: make this a real alloc call (local / safe)
+
+    return result;
+}
+inline
+u16 SubCubeAllocLeafBlock(MArena *a_leaves, List<VGRLeafBlock> *leaf_lst) {
+    assert((u8*) (leaf_lst->lst + leaf_lst->len) == a_leaves->mem + a_leaves->used && "check memory contiguity");
+
+    u16 result = leaf_lst->len;
+    ArenaAlloc(a_leaves, sizeof(VGRLeafBlock));
+    ++leaf_lst->len;
+
+    return result;
+}
 void TestRandomPCsRotatingBoxes() {
     printf("TestRandomPCsRotatingBoxes\n");
 
@@ -176,12 +197,14 @@ void TestRandomPCsRotatingBoxes() {
     }
 }
 
-void TestVGROcTree() {
+void TestVGROcTreeInitial() {
+    printf("TestVGROcTreeInitial\n");
     // we don't really need these numbers, since we shouldn't allocate this much stuff at all
-    u8 depth_max = 5; // max octree depth
+    u32 depth_max = 5; // max octree depth
     u32 max_cubes = SubCubesTotal(depth_max);
     u32 max_branches = SubCubesTotal(depth_max - 1);
     u32 max_leaves = max_cubes - max_branches;
+    printf("max_depth: %u, max_cubes: %u, max_branches: %u, max_leaves: %u\n", depth_max, max_cubes, max_branches, max_leaves);
 
     // AA cube
     Vector3f rootcube_center { 0, 0, 0}; // AABox / octree root-cube center
@@ -299,12 +322,45 @@ void TestVGROcTree() {
     cnt_avg = cnt_sum / dest.len;
     ArenaClose(d, sizeof(Vector3f) * dest.len);
     printf("Outputs: %u vectors (avg. %f verts pr. leaf cube)\n", dest.len, cnt_avg);
+    printf("\n");
 }
 
+
+void TestVGROcTree() {
+    printf("TestVGROcTree\n");
+
+    Vector3f rootcube_center { 0, 0, 0}; // AABox / octree root-cube center
+    float rootcube_radius = 0.2;
+    float leaf_size_max = rootcube_radius / (2 * 2 * 2 * 2 * 2 * 1.9);
+
+    MArena _tmp = ArenaCreate(); // vertices & branch list location
+    MArena *tmp = &_tmp;
+    MArena _dest = ArenaCreate(); // dest
+    MArena *dest = &_dest;
+
+    // test vertices
+    u32 nvertices = 190000;
+    List<Vector3f> vertices = InitList<Vector3f>(tmp, nvertices);
+    RandInit();
+    for (u32 i = 0; i < nvertices; ++i) {
+        Vector3f v {
+            rootcube_center.x - rootcube_radius + 2*rootcube_radius*Rand01_f32(),
+            rootcube_center.y - rootcube_radius + 2*rootcube_radius*Rand01_f32(),
+            rootcube_center.y - rootcube_radius + 2*rootcube_radius*Rand01_f32(),
+        };
+        vertices.Add(&v);
+    }
+
+    VGRTreeStats stats;
+    List<Vector3f> filtered = VoxelGridReduce(dest, tmp, vertices, rootcube_center, rootcube_radius, leaf_size_max, &stats);
+    stats.Print();
+    printf("\n");
+}
 
 void Test() {
     //TestRandomImageOGL();
     //TestRDrawLines();
     //TestRandomPCsRotatingBoxes();
+    TestVGROcTreeInitial();
     TestVGROcTree();
 }

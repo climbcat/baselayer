@@ -20,13 +20,15 @@ struct VGRLeafBlock {
     u32 cnt[8];
 };
 
-u32 SubCubesTotal(u8 depth) {
+u32 SubCubesTotal(u32 depth) {
     // NOTE: root cube is not counted
     u32 ncubes = 0;
-    for (u32 i = 0; i < depth; ++i) {
-        ncubes += 8^i;
+    u32 power_of_eight = 1;
+    for (u32 i = 1; i <= depth; ++i) {
+        power_of_eight *= 8;
+        ncubes += power_of_eight;
     }
-    return ncubes - 1;
+    return ncubes;
 }
 
 u8 SubcubeSelect(Vector3f target, Vector3f cube_center, float cube_radius, Vector3f *subcube_center, float *subcube_radius) {
@@ -54,23 +56,160 @@ u8 SubcubeSelect(Vector3f target, Vector3f cube_center, float cube_radius, Vecto
     return subcube_idx;
 }
 
-inline
-u16 SubCubeAllocBranchBlock(MArena *a_branches, List<VGRBranchBlock> *branch_lst) {
-    assert((u8*) (branch_lst->lst + branch_lst->len) == a_branches->mem + a_branches->used && "check memory contiguity");
+struct VGRTreeStats {
+    u32 depth_max;
 
-    u16 result = branch_lst->len;
-    ArenaAlloc(a_branches, sizeof(VGRBranchBlock));
-    ++branch_lst->len; // TODO: make this a real alloc call (local / safe)
+    u32 max_branches;
+    u32 max_leaves;
+    u32 actual_branches;
+    u32 actual_leaves;
 
-    return result;
-}
-inline
-u16 SubCubeAllocLeafBlock(MArena *a_leaves, List<VGRLeafBlock> *leaf_lst) {
-    assert((u8*) (leaf_lst->lst + leaf_lst->len) == a_leaves->mem + a_leaves->used && "check memory contiguity");
+    Vector3f box_center;
+    float box_radius;
+    float max_leaf_size;
+    float actual_leaf_size;
 
-    u16 result = leaf_lst->len;
-    ArenaAlloc(a_leaves, sizeof(VGRLeafBlock));
-    ++leaf_lst->len;
+    float avg_verts_pr_leaf;
+    u32 nvertices_in;
+    u32 nvertices_out;
+    float PctReduced() {
+        assert(nvertices_in != 0 && "ensure initialization");
+        float pct_reduced = 100.0f * nvertices_out / nvertices_in;
+        return pct_reduced;
+    }
+
+    void Print() {
+        printf("Voxel Grid Reduce to depth %u:\n", depth_max);
+        printf("Box radius: %f and leaf sz: %f, gives actual leaf sz: %f):\n", box_radius, max_leaf_size, actual_leaf_size);
+        printf("Built %u branch node blocks and %u leaf node blocks\n", actual_branches, actual_leaves);
+        printf("Inputs: %u, outputs: %u vertices (avg. %f verts pr. leaf cube)\n", nvertices_in, nvertices_out, avg_verts_pr_leaf);
+        printf("Reduced by: %.2f pct (from %u to %u)\n", 100 - PctReduced(), nvertices_in, nvertices_out);
+    }
+};
+
+List<Vector3f> VoxelGridReduce(MArena *dest, MArena *tmp, List<Vector3f> vertices, Vector3f box_center, float box_radius, float leaf_size_max, VGRTreeStats *stats_out = NULL) {
+    // setup
+    VGRTreeStats stats;
+    {
+        // determine depth
+        u32 depth = 2;
+        u32 power_of_two = 2 * 2;
+        while (leaf_size_max < box_radius / power_of_two) {
+            power_of_two *= 2;
+            ++depth;
+        }
+        float actual_leaf_size = box_radius / power_of_two;
+        assert(depth <= 8 && "recommended max depth is 8");
+        assert(depth >= 2 && "min depth is 2");
+
+        // determine reserve sizes, record params
+        stats.depth_max = depth;
+        u32 max_cubes = SubCubesTotal(depth);
+        stats.max_branches = SubCubesTotal(depth - 1);
+        stats.max_leaves = max_cubes - stats.max_branches;
+        stats.box_center = box_center;
+        stats.box_radius = box_radius;
+        stats.max_leaf_size = leaf_size_max;
+        stats.actual_leaf_size = actual_leaf_size;
+        stats.nvertices_in = vertices.len;
+
+        assert(stats.max_leaves / 8 <= 65535 && "block index address space max exceeded");
+    }
+
+    // reserve branch memory, assign level 1 branches:
+    List<VGRBranchBlock> branch_lst = InitList<VGRBranchBlock>(tmp, stats.max_branches / 8);
+    static VGRBranchBlock branch_zero;
+    branch_lst.Add(&branch_zero);
+    VGRBranchBlock *branch_block = branch_lst.lst;
+
+    // open-ended size for leaf blocks:
+    List<VGRLeafBlock> leaf_lst = InitList<VGRLeafBlock>(tmp, 0);
+    static VGRLeafBlock leaf_zero;
+    VGRLeafBlock *leaf_block;
+
+    // build the tree
+    Vector3f p, c;
+    float r;
+    for (u32 i = 0; i < vertices.len; ++i) {
+        // Db print:
+        //printf("%u: ", i);
+
+        // get vertex
+        p = vertices.lst[i];
+
+        // init
+        branch_block = branch_lst.lst;
+        c = stats.box_center;
+        r = stats.box_radius;
+
+        // descend
+        for (u32 d = 1; d < stats.depth_max - 1; ++d) {
+            u8 sub_idx = SubcubeSelect(p, c, r, &c, &r);
+            u16 *block_idx = &branch_block->subcube_block_indices[sub_idx];
+
+            if (*block_idx == 0) {
+                // unassigned level d+1 branch
+                // TODO: inline Add zero'd block to branch_lst
+                *block_idx = branch_lst.len;
+                branch_lst.Add(&branch_zero);
+            }
+            branch_block = branch_lst.lst + *block_idx;
+        }
+
+        // almost there, d == d_max - 1
+        u8 sub_idx = SubcubeSelect(p, c, r, &c, &r);
+        u16 *leaf_block_idx = &branch_block->subcube_block_indices[sub_idx];
+        if (*leaf_block_idx == 0) {
+            // unassigned level d_max leaf
+            assert((u8*) (leaf_lst.lst + leaf_lst.len) == tmp->mem + tmp->used && "check memory contiguity");
+
+            *leaf_block_idx = leaf_lst.len;
+            ArenaAlloc(tmp, sizeof(VGRLeafBlock));
+            leaf_lst.Add(&leaf_zero);
+        }
+        leaf_block = leaf_lst.lst + *leaf_block_idx;
+
+        // finally at d == depth_max: select leaf in leaf_block
+        sub_idx = SubcubeSelect(p, c, r, &c, &r);
+        // Db print:
+        //printf("lbi/scube: %u %u \n", *leaf_block_idx, sub_idx);
+
+        Vector3f *sum = &leaf_block->sum[sub_idx];
+        *sum = *sum + p;
+        u32 *cnt = &leaf_block->cnt[sub_idx];
+        *cnt = *cnt + 1;
+    }
+    stats.actual_branches = branch_lst.len;
+    stats.actual_leaves = leaf_lst.len;
+
+    // walk the tree
+    List<Vector3f> result = InitList<Vector3f>(dest, 0);
+    ArenaOpen(dest);
+    Vector3f avg;
+    Vector3f sum;
+    u32 cnt = 0;
+    float cnt_inv;
+    float cnt_sum = 0.0f;
+    for (u32 i = 0; i < leaf_lst.len; ++i) {
+        VGRLeafBlock lb = leaf_lst.lst[i];
+        for (u32 j = 0; j < 8; ++j) {
+            cnt = lb.cnt[j];
+            if (cnt > 0) {
+                sum = lb.sum[j];
+                cnt_inv = 1.0f / cnt;
+                avg = cnt_inv * sum;
+                result.Add(&avg);
+
+                cnt_sum += cnt;
+            }
+        }
+    }
+    ArenaClose(dest, sizeof(Vector3f) * result.len);
+    stats.avg_verts_pr_leaf = cnt_sum / result.len;
+    stats.nvertices_out = result.len;
+    if (stats_out != NULL) {
+        *stats_out = stats;
+    }
 
     return result;
 }
