@@ -376,7 +376,6 @@ Matrix4f TransformGetInverse(Matrix4f a) {
 }
 inline
 Vector3f TransformPoint(Matrix4f *a, Vector3f *v) {
-    // NOTE: Only for isometric transforms ! (Not perspective)
     Vector3f result;
 
     // rot / trans
@@ -384,7 +383,19 @@ Vector3f TransformPoint(Matrix4f *a, Vector3f *v) {
     result.y = a->m[1][0]*v->x + a->m[1][1]*v->y + a->m[1][2]*v->z + a->m[1][3];
     result.z = a->m[2][0]*v->x + a->m[2][1]*v->y + a->m[2][2]*v->z + a->m[2][3];
 
-    // TODO: scale
+    // TODO: apply scale
+    return result;
+}
+inline
+Vector3f TransformPoint(Matrix4f a, Vector3f v) {
+    Vector3f result;
+
+    // rot / trans
+    result.x = a.m[0][0]*v.x + a.m[0][1]*v.y + a.m[0][2]*v.z + a.m[0][3];
+    result.y = a.m[1][0]*v.x + a.m[1][1]*v.y + a.m[1][2]*v.z + a.m[1][3];
+    result.z = a.m[2][0]*v.x + a.m[2][1]*v.y + a.m[2][2]*v.z + a.m[2][3];
+
+    // TODO: apply scale
     return result;
 }
 // TODO: how do I build a vector that does this ?

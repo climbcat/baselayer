@@ -1,6 +1,7 @@
 #ifndef __OCTREE_H__
 #define __OCTREE_H__
 
+#include "geometry.h"
 
 
 //
@@ -32,7 +33,7 @@ u32 SubCubesTotal(u32 depth) {
 }
 
 u8 SubcubeSelect(Vector3f target, Vector3f cube_center, float cube_radius, Vector3f *subcube_center, float *subcube_radius) {
-    assert(subcube_center != NULL && "check out variable");
+    assert(subcube_center != NULL && subcube_radius != NULL && "non-NULL output variables");
 
     Vector3f relative = target - cube_center;
     bool neg_x = relative.x < 0;
@@ -87,7 +88,25 @@ struct VGRTreeStats {
     }
 };
 
-List<Vector3f> VoxelGridReduce(MArena *dest, MArena *tmp, List<Vector3f> vertices, Vector3f box_center, float box_radius, float leaf_size_max, VGRTreeStats *stats_out = NULL) {
+inline
+bool FitsWithinBox(Vector3f point, Vector3f center, float radius) {
+    bool result = (abs( point.x - center.x ) <= radius) &&
+        (abs( point.y - center.y ) <= radius) && 
+        (abs( point.z - center.z ) <= radius);
+    return result;
+}
+
+List<Vector3f> VoxelGridReduce(
+    MArena *dest,
+    MArena *tmp,
+    List<Vector3f> vertices,
+    Vector3f box_center,
+    float box_radius,
+    float leaf_size_max,
+    Matrix4f transform_p2box,
+    VGRTreeStats *stats_out = NULL,
+    bool flip_y = false)
+{
     // setup
     VGRTreeStats stats;
     {
@@ -130,12 +149,20 @@ List<Vector3f> VoxelGridReduce(MArena *dest, MArena *tmp, List<Vector3f> vertice
     // build the tree
     Vector3f p, c;
     float r;
+    float sign = 1.0f;
+    if (flip_y == true) {
+        sign = -1.0f;
+    }
     for (u32 i = 0; i < vertices.len; ++i) {
         // Db print:
         //printf("%u: ", i);
 
-        // get vertex
-        p = vertices.lst[i];
+        // get vertex, transform, flip and box filter
+        p = sign * TransformPoint( transform_p2box, vertices.lst[i] );
+        bool keep = FitsWithinBox(p, stats.box_center, stats.box_radius);
+        if (keep == false) {
+            continue;
+        }
 
         // init
         branch_block = branch_lst.lst;
@@ -205,6 +232,7 @@ List<Vector3f> VoxelGridReduce(MArena *dest, MArena *tmp, List<Vector3f> vertice
         }
     }
     ArenaClose(dest, sizeof(Vector3f) * result.len);
+
     stats.avg_verts_pr_leaf = cnt_sum / result.len;
     stats.nvertices_out = result.len;
     if (stats_out != NULL) {

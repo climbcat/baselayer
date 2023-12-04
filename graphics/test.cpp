@@ -1,4 +1,10 @@
 
+#include "../baselayer.h"
+#include "gameloop.h"
+#include "swrender.h"
+#include "octree.h"
+
+
 /*
 void TestRandomImageOGL() {
     printf("TestRandomImageOGL\n");
@@ -352,7 +358,7 @@ void TestVGROcTree() {
     }
 
     VGRTreeStats stats;
-    List<Vector3f> filtered = VoxelGridReduce(dest, tmp, vertices, rootcube_center, rootcube_radius, leaf_size_max, &stats);
+    List<Vector3f> filtered = VoxelGridReduce(dest, tmp, vertices, rootcube_center, rootcube_radius, leaf_size_max, Matrix4f_Identity(), &stats);
     stats.Print();
     printf("\n");
 }
@@ -361,6 +367,6 @@ void Test() {
     //TestRandomImageOGL();
     //TestRDrawLines();
     //TestRandomPCsRotatingBoxes();
-    TestVGROcTreeInitial();
+    //TestVGROcTreeInitial();
     TestVGROcTree();
 }
