@@ -188,13 +188,15 @@ void TestVGROcTree() {
     float rootcube_radius = 0.2;
 
     // two tmp destinations to avoid allocating max_branches and max_leaves
-    MArena _a = ArenaCreate();
+    MArena _a = ArenaCreate(); // vertices & branch list location
     MArena *a = &_a;
-    MArena _b = ArenaCreate();
+    MArena _b = ArenaCreate(); // leaf list location
     MArena *b = &_b;
+    MArena _dest = ArenaCreate(); // dest
+    MArena *d = &_dest;
 
     // imaginary vertex data
-    u32 nvertices = 1900;
+    u32 nvertices = 190000;
     List<Vector3f> vertices = InitList<Vector3f>(a, nvertices);
     RandInit();
     for (u32 i = 0; i < nvertices; ++i) {
@@ -205,6 +207,7 @@ void TestVGROcTree() {
         };
         vertices.Add(&v);
     }
+    printf("Inputs %u vertices\n", vertices.len);
 
     // octree data
     // NOTE: these lists much be zerod before use !
@@ -224,7 +227,9 @@ void TestVGROcTree() {
     Vector3f p, c;
     float r;
     for (u32 i = 0; i < vertices.len; ++i) {
-        printf("%u: ", i);
+        // Db print:
+        //printf("%u: ", i);
+
         // get vertex
         p = vertices.lst[i];
 
@@ -256,15 +261,44 @@ void TestVGROcTree() {
 
         // finally at d == depth_max: select leaf in leaf_block
         sub_idx = SubcubeSelect(p, c, r, &c, &r);
-        printf("lbi/scube: %u %u \n", *leaf_block_idx, sub_idx);
+        // Db print:
+        //printf("lbi/scube: %u %u \n", *leaf_block_idx, sub_idx);
 
         Vector3f *sum = &leaf_block->sum[sub_idx];
         *sum = *sum + p;
         u32 *cnt = &leaf_block->cnt[sub_idx];
         *cnt = *cnt + 1;
     }
+    printf("Built %u branch node blocks\n", branch_lst.len);
+    printf("Built %u leaf node blocks\n", leaf_lst.len);
 
-    // TODO: write a thing that iterates the octree and pushes its cubes to the renderer, or similar
+
+    List<Vector3f> dest = InitList<Vector3f>(d, 0);
+    Vector3f avg;
+    Vector3f sum;
+    u32 cnt = 0;
+    float cnt_inv;
+    float cnt_sum = 0.0f;
+    float cnt_nzro = 0;
+    float cnt_avg;
+    ArenaOpen(d);
+    for (u32 i = 0; i < leaf_lst.len; ++i) {
+        VGRLeafBlock lb = leaf_lst.lst[i];
+        for (u32 j = 0; j < 8; ++j) {
+            cnt = lb.cnt[j];
+            if (cnt > 0) {
+                sum = lb.sum[j];
+                cnt_inv = 1.0f / cnt;
+                avg = cnt_inv * sum;
+                dest.Add(&avg);
+
+                cnt_sum += cnt;
+            }
+        }
+    }
+    cnt_avg = cnt_sum / dest.len;
+    ArenaClose(d, sizeof(Vector3f) * dest.len);
+    printf("Outputs: %u vectors (avg. %f verts pr. leaf cube)\n", dest.len, cnt_avg);
 }
 
 
