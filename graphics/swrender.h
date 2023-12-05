@@ -837,13 +837,18 @@ Entity *InitAndActivateDataEntity(EntitySystem *es, SwRenderer *r, MArena *a, En
     return pc;
 }
 
-Entity *LoadAndActivateDataEntity(EntitySystem *es, SwRenderer *r, EntityStream *data) {
+Entity *LoadAndActivateDataEntity(EntitySystem *es, SwRenderer *r, EntityStream *data, bool do_transpose) {
     Entity *ent = es->AllocEntity();
     ent->data_tpe = EDT_EXTERNAL;
     if (data->tpe == DT_POINTS) {
         ent->tpe = ET_POINTCLOUD;
         ent->color  = { RGBA_GREEN };
-        ent->transform = data->transform;
+        if (do_transpose == true) {
+            ent->transform = Matrix4f_Transpose( data->transform );
+        }
+        else {
+            ent->transform = data->transform;
+        }
     }
     else if (data->tpe == DT_VERTICES || DT_NORMALS || DT_INDICES3) {
         ent->tpe = ET_MESH;
