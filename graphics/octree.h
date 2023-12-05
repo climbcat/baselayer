@@ -157,21 +157,10 @@ List<Vector3f> VoxelGridReduce(
     VGRTreeStats stats;
     {
         // determine depth
-        u32 depth = 2;
-        u32 power_of_two = 2 * 2;
-        while (leaf_size_max < box_radius / power_of_two) {
-            power_of_two *= 2;
-            ++depth;
-        }
-        float actual_leaf_size = box_radius / power_of_two;
-        assert(depth <= 8 && "recommended max depth is 8");
+        float actual_leaf_size;
+        u32 depth = MaxLeafSize2Depth(leaf_size_max, box_radius, &actual_leaf_size);
+        assert(depth <= 6 && "recommended max depth is 6");
         assert(depth >= 2 && "min depth is 2");
-
-        // tiny test
-        u32 depth2 = MaxLeafSize2Depth(leaf_size_max, box_radius);
-        float leaf_sz_2 = Depth2LeafSize(depth, box_radius);
-        assert(depth == depth2);
-        assert(leaf_sz_2 = actual_leaf_size);
 
         // determine reserve sizes, record params
         stats.depth_max = depth;
