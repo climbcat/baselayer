@@ -1,6 +1,8 @@
 #ifndef __OCTREE_H__
 #define __OCTREE_H__
 
+
+#include "../baselayer.h"
 #include "geometry.h"
 
 
@@ -65,7 +67,6 @@ struct VGRTreeStats {
     u32 actual_branches;
     u32 actual_leaves;
 
-    Vector3f box_center;
     float box_radius;
     float max_leaf_size;
     float actual_leaf_size;
@@ -95,18 +96,63 @@ bool FitsWithinBox(Vector3f point, Vector3f center, float radius) {
         (abs( point.z - center.z ) <= radius);
     return result;
 }
+inline
+bool FitsWithinBoxRadius(Vector3f point, float radius) {
+    bool result =
+        (abs(point.x) <= radius) &&
+        (abs( point.y) <= radius) && 
+        (abs( point.z) <= radius);
+    return result;
+}
+
+
+u32 MaxLeafSize2Depth(float leaf_size_max, float box_radius, float *leaf_size_out = NULL) {
+    u32 depth = 0;
+    u32 power_of_two = 1;
+    if (leaf_size_max > box_radius / power_of_two) {
+        return depth;
+    }
+
+    depth = 1;
+    power_of_two = 2;
+    while (leaf_size_max < box_radius / power_of_two) {
+        power_of_two *= 2;
+        ++depth;
+    }
+
+    if (leaf_size_out != NULL) {
+        *leaf_size_out = box_radius / power_of_two;
+    }
+    return depth;
+}
+float Depth2LeafSize(u32 depth, float box_radius) {
+    float leaf_sz = box_radius;
+    for (u32 i = 2; i <= depth; ++i) {
+        leaf_sz = leaf_sz / 2;
+    }
+    return leaf_sz;
+}
+
 
 List<Vector3f> VoxelGridReduce(
-    MArena *dest,
-    MArena *tmp,
     List<Vector3f> vertices,
-    Vector3f box_center,
+    MArena *tmp,
     float box_radius,
     float leaf_size_max,
-    Matrix4f transform_p2box,
-    VGRTreeStats *stats_out = NULL,
-    bool flip_y = false)
+    Matrix4f box_transform,
+    Matrix4f src_transform,
+    Vector3f *dest, // you have to reserve memory at this location
+    bool flip_y = false,
+    VGRTreeStats *stats_out = NULL)
 {
+    assert(dest != NULL);
+    assert(box_radius > 0);
+    assert(leaf_size_max > 0);
+    assert(tmp != NULL);
+    assert(vertices.lst != NULL);
+    assert(dest != NULL);
+
+
     // setup
     VGRTreeStats stats;
     {
@@ -121,17 +167,23 @@ List<Vector3f> VoxelGridReduce(
         assert(depth <= 8 && "recommended max depth is 8");
         assert(depth >= 2 && "min depth is 2");
 
+        // tiny test
+        u32 depth2 = MaxLeafSize2Depth(leaf_size_max, box_radius);
+        float leaf_sz_2 = Depth2LeafSize(depth, box_radius);
+        assert(depth == depth2);
+        assert(leaf_sz_2 = actual_leaf_size);
+
         // determine reserve sizes, record params
         stats.depth_max = depth;
         u32 max_cubes = SubCubesTotal(depth);
         stats.max_branches = SubCubesTotal(depth - 1);
         stats.max_leaves = max_cubes - stats.max_branches;
-        stats.box_center = box_center;
         stats.box_radius = box_radius;
         stats.max_leaf_size = leaf_size_max;
         stats.actual_leaf_size = actual_leaf_size;
         stats.nvertices_in = vertices.len;
 
+        // TODO: try and run the alg with max memory, assuming that max occupancy very rarely happens
         assert(stats.max_leaves / 8 <= 65535 && "block index address space max exceeded");
     }
 
@@ -147,26 +199,28 @@ List<Vector3f> VoxelGridReduce(
     VGRLeafBlock *leaf_block;
 
     // build the tree
-    Vector3f p, c;
+    Vector3f p;
+    Vector3f c = Vector3f_Zero();
     float r;
     float sign = 1.0f;
     if (flip_y == true) {
         sign = -1.0f;
     }
+    Matrix4f p2box = TransformGetInverse(box_transform) * src_transform;
     for (u32 i = 0; i < vertices.len; ++i) {
         // Db print:
         //printf("%u: ", i);
 
-        // get vertex, transform, flip and box filter
-        p = sign * TransformPoint( transform_p2box, vertices.lst[i] );
-        bool keep = FitsWithinBox(p, stats.box_center, stats.box_radius);
+        // get vertex, transform, flip and box filter.
+        // NOTE: Everything happens in box coords until the resulting VGR vertex is transformed back to world and added to the box
+        p = sign * TransformPoint(p2box, vertices.lst[i]);
+        bool keep = FitsWithinBoxRadius(p, stats.box_radius);
         if (keep == false) {
             continue;
         }
 
         // init
         branch_block = branch_lst.lst;
-        c = stats.box_center;
         r = stats.box_radius;
 
         // descend
@@ -210,10 +264,10 @@ List<Vector3f> VoxelGridReduce(
     stats.actual_leaves = leaf_lst.len;
 
     // walk the tree
-    List<Vector3f> result = InitList<Vector3f>(dest, 0);
-    ArenaOpen(dest);
+    List<Vector3f> result = { dest, 0 };
     Vector3f avg;
     Vector3f sum;
+    Vector3f p_world;
     u32 cnt = 0;
     float cnt_inv;
     float cnt_sum = 0.0f;
@@ -225,16 +279,18 @@ List<Vector3f> VoxelGridReduce(
                 sum = lb.sum[j];
                 cnt_inv = 1.0f / cnt;
                 avg = cnt_inv * sum;
-                result.Add(&avg);
+
+                // Here, we go back to world coords after having worked in box coords all along
+                p_world = TransformPoint(box_transform, avg);
+                result.Add(&p_world);
 
                 cnt_sum += cnt;
             }
         }
     }
-    ArenaClose(dest, sizeof(Vector3f) * result.len);
 
-    stats.avg_verts_pr_leaf = cnt_sum / result.len;
     stats.nvertices_out = result.len;
+    stats.avg_verts_pr_leaf = cnt_sum / stats.nvertices_out;
     if (stats_out != NULL) {
         *stats_out = stats;
     }

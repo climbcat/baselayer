@@ -335,33 +335,47 @@ void TestVGROcTreeInitial() {
 void TestVGROcTree() {
     printf("TestVGROcTree\n");
 
-    Vector3f rootcube_center { 0, 0, 0}; // AABox / octree root-cube center
+    // filtering box / octree location
     float rootcube_radius = 0.2;
     float leaf_size_max = rootcube_radius / (2 * 2 * 2 * 2 * 2 * 1.9);
 
-    MArena _tmp = ArenaCreate(); // vertices & branch list location
-    MArena *tmp = &_tmp;
-    MArena _dest = ArenaCreate(); // dest
-    MArena *dest = &_dest;
+    // src/dst storage
+    MArena _a_tmp = ArenaCreate(); // vertices & branch list location
+    MArena *a_tmp = &_a_tmp;
+    MArena _a_dest = ArenaCreate(); // dest storage
+    MArena *a_dest = &_a_dest;
 
-    // test vertices
+    // source random point cloud
     u32 nvertices = 190000;
-    List<Vector3f> vertices = InitList<Vector3f>(tmp, nvertices);
+    Vector3f rootcube_center { 0, 0, 0 };
+    float pc_radius = 0.2;
+    List<Vector3f> vertices = InitList<Vector3f>(a_tmp, nvertices);
     RandInit();
     for (u32 i = 0; i < nvertices; ++i) {
         Vector3f v {
-            rootcube_center.x - rootcube_radius + 2*rootcube_radius*Rand01_f32(),
-            rootcube_center.y - rootcube_radius + 2*rootcube_radius*Rand01_f32(),
-            rootcube_center.y - rootcube_radius + 2*rootcube_radius*Rand01_f32(),
+            rootcube_center.x - pc_radius + 2*pc_radius*Rand01_f32(),
+            rootcube_center.y - pc_radius + 2*pc_radius*Rand01_f32(),
+            rootcube_center.y - pc_radius + 2*pc_radius*Rand01_f32(),
         };
         vertices.Add(&v);
     }
 
+    // dest list
+    List<Vector3f> dest = InitList<Vector3f>(a_dest, nvertices);
+
+    // transforms
+    Matrix4f box_transform = TransformBuildRotateX(15*deg2rad);
+    Matrix4f src_transform = TransformBuildRotateY(45*deg2rad);
+    
+
+
     VGRTreeStats stats;
-    List<Vector3f> filtered = VoxelGridReduce(dest, tmp, vertices, rootcube_center, rootcube_radius, leaf_size_max, Matrix4f_Identity(), &stats);
+    dest = VoxelGridReduce(vertices, a_tmp, rootcube_radius, leaf_size_max, box_transform, src_transform, dest.lst, false, &stats);
+
     stats.Print();
     printf("\n");
 }
+
 
 void Test() {
     //TestRandomImageOGL();
