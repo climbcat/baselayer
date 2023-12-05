@@ -219,6 +219,15 @@ Matrix4f Matrix4f_Transpose(Matrix4f *m) {
     }
     return result;
 }
+Matrix4f Matrix4f_Transpose(Matrix4f m) {
+    Matrix4f result;
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            result.m[i][j] = m.m[j][i];
+        }
+    }
+    return result;
+}
 Matrix4f Matrix4f_Multiply(Matrix4f *a, Matrix4f *b) {
     Matrix4f result;
     for (int i = 0; i < 4; ++i) {
