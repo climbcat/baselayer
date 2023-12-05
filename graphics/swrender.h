@@ -668,6 +668,8 @@ SwRenderer InitRenderer(u32 width = 1280, u32 height = 800) {
     return rend;
 }
 void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
+    TimeFunction;
+
     _memzero(r->image_buffer, 4 * r->w * r->h);
     r->screen_buffer.len = 0;
 

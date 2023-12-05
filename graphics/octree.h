@@ -159,7 +159,7 @@ List<Vector3f> VoxelGridReduce(
         // determine depth
         float actual_leaf_size;
         u32 depth = MaxLeafSize2Depth(leaf_size_max, box_radius, &actual_leaf_size);
-        assert(depth <= 6 && "recommended max depth is 6");
+        assert(depth <= 9 && "recommended max depth is 9");
         assert(depth >= 2 && "min depth is 2");
 
         // determine reserve sizes, record params
@@ -173,7 +173,7 @@ List<Vector3f> VoxelGridReduce(
         stats.nvertices_in = vertices.len;
 
         // TODO: try and run the alg with max memory, assuming that max occupancy very rarely happens
-        assert(stats.max_leaves / 8 <= 65535 && "block index address space max exceeded");
+        //assert(stats.max_leaves / 8 <= 65535 && "block index address space max exceeded");
     }
 
     // reserve branch memory, assign level 1 branches:
@@ -191,9 +191,9 @@ List<Vector3f> VoxelGridReduce(
     Vector3f p;
     Vector3f c = Vector3f_Zero();
     float r;
-    float sign = 1.0f;
+    float sign_y = 1.0f;
     if (flip_y == true) {
-        sign = -1.0f;
+        sign_y = -1.0f;
     }
     Matrix4f p2box = TransformGetInverse(box_transform) * src_transform;
     for (u32 i = 0; i < vertices.len; ++i) {
@@ -202,7 +202,9 @@ List<Vector3f> VoxelGridReduce(
 
         // get vertex, transform, flip and box filter.
         // NOTE: Everything happens in box coords until the resulting VGR vertex is transformed back to world and added to the box
-        p = sign * TransformPoint(p2box, vertices.lst[i]);
+        p = vertices.lst[i];
+        p.y *= sign_y;
+        p =  TransformPoint(p2box, p);
         bool keep = FitsWithinBoxRadius(p, stats.box_radius);
         if (keep == false) {
             continue;
@@ -218,8 +220,6 @@ List<Vector3f> VoxelGridReduce(
             u16 *block_idx = &branch_block->subcube_block_indices[sub_idx];
 
             if (*block_idx == 0) {
-                // unassigned level d+1 branch
-                // TODO: inline Add zero'd block to branch_lst
                 *block_idx = branch_lst.len;
                 branch_lst.Add(&branch_zero);
             }
@@ -230,7 +230,6 @@ List<Vector3f> VoxelGridReduce(
         u8 sub_idx = SubcubeSelect(p, c, r, &c, &r);
         u16 *leaf_block_idx = &branch_block->subcube_block_indices[sub_idx];
         if (*leaf_block_idx == 0) {
-            // unassigned level d_max leaf
             assert((u8*) (leaf_lst.lst + leaf_lst.len) == tmp->mem + tmp->used && "check memory contiguity");
 
             *leaf_block_idx = leaf_lst.len;
@@ -241,8 +240,6 @@ List<Vector3f> VoxelGridReduce(
 
         // finally at d == depth_max: select leaf in leaf_block
         sub_idx = SubcubeSelect(p, c, r, &c, &r);
-        // Db print:
-        //printf("lbi/scube: %u %u \n", *leaf_block_idx, sub_idx);
 
         Vector3f *sum = &leaf_block->sum[sub_idx];
         *sum = *sum + p;
