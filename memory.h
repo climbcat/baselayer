@@ -95,6 +95,9 @@ void ArenaClose(MArena *a, u64 len) {
 void ArenaPrint(MArena *a) {
     printf("Arena mapped/committed/used: %lu %lu %lu\n", a->mapped, a->committed, a->used);
 }
+void ArenaClear(MArena *a) {
+    a->used = 0;
+}
 
 
 //
@@ -180,6 +183,7 @@ u32 PoolPtr2Idx(MPool *p, void *ptr) {
 }
 void *PoolIdx2Ptr(MPool *p, u32 idx) {
     assert(idx < p->block_size);
+
     if (idx == 0) {
         return NULL;
     }
@@ -246,6 +250,13 @@ List<T> InitListOpen(MArena *a, u32 max_len) {
 template<class T>
 void InitListClose(MArena *a, u32 count) {
     ArenaClose(a, sizeof(T) * count);
+}
+template<class T>
+void ArenaShedTail(MArena *a, List<T> lst, u32 diff_T) {
+    assert(a->used >= diff_T * sizeof(T));
+    assert(a->mem + a->used == (u8*) (lst.lst + lst.len + diff_T));
+
+    a->mem -= diff_T * sizeof(T);
 }
 
 
