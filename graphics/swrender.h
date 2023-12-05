@@ -526,6 +526,10 @@ struct Entity {
         }
         return indices;
     }
+    void SetVertexCount(u32 npoints) {
+        assert(data_tpe == EDT_EXTERNAL && (tpe == ET_POINTCLOUD || tpe == ET_MESH));
+        entity_stream->SetVertexCount(npoints);
+    }
 
     // scene graph behavior
     void Activate() {
