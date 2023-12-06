@@ -213,6 +213,9 @@ void RenderMesh() {
 enum EntityDataType {
     EDT_ANALYTIC,
     EDT_EXTERNAL,
+    EDT_ANY,
+
+    END_CNT,
 };
 enum EntityType {
     ET_AXES,
@@ -221,7 +224,7 @@ enum EntityType {
     ET_POINTCLOUD,
     ET_MESH,
 
-    ET_COUNT,
+    ET_CNT,
 };
 enum EntityStreamDataType {
     DT_POINTS,
@@ -233,7 +236,7 @@ enum EntityStreamDataType {
     DT_F32, // depth image (4B stride)
     DT_TEXCOORDS, // [0;1]^2 image, (8B stride)
 
-    DT_COUNT,
+    DT_CNT,
 };
 struct Vector3i {
     u32 i1;
@@ -508,6 +511,11 @@ struct Entity {
         return data;
     }
     List<Vector3f> GetVertices() {
+
+        if (!(data_tpe == EDT_EXTERNAL && (tpe == ET_POINTCLOUD || tpe == ET_MESH))) {
+            printf("her\n");
+        }
+
         assert(data_tpe == EDT_EXTERNAL && (tpe == ET_POINTCLOUD || tpe == ET_MESH) && "GetVertices: Only call with point cloud or mesh ext data");
         List<Vector3f> verts;
         if (entity_stream != NULL) {
@@ -572,12 +580,19 @@ struct EntitySystem {
     void IterReset() {
         iter_next = first;
     }
-    Entity *IterNext() {
+    Entity *IterNext(EntityDataType data_tpe = EDT_ANY) {
         Entity *result = GetEntityByIdx(iter_next);
-        if (iter_next > 0) {
-            iter_next = result->next;
+        if (result == NULL) {
+            iter_next = 0;
+            return NULL;
         }
-        return result;
+        iter_next = result->next;
+        if (data_tpe == EDT_ANY || result->data_tpe == data_tpe) {
+            return result;
+        }
+        else {
+            return IterNext(data_tpe);
+        }
     }
     Entity *AllocEntity() {
         Entity default_val;
