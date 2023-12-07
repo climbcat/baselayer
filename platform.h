@@ -34,7 +34,7 @@
 #endif
 #endif
 
-#ifndef DLL_CLIENT
+#ifdef DLL_CLIENT
 #ifndef DLL_IMPORTEXPORT DLL_EXPORT
 #define DLL_IMPORTEXPORT DLL_EXPORT
 #endif
