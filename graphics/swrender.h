@@ -594,6 +594,21 @@ struct EntitySystem {
             return IterNext(data_tpe);
         }
     }
+    Entity *IterNext(Entity *prev, EntityDataType data_tpe = EDT_ANY) {
+        if (prev == NULL) {
+            prev = GetEntityByIdx(first);
+        }
+        Entity *result = GetEntityByIdx(prev->next);
+        if (result == NULL) {
+            return NULL;
+        }
+        if (data_tpe == EDT_ANY || result->data_tpe == data_tpe) {
+            return result;
+        }
+        else {
+            return IterNext(result, data_tpe);
+        }
+    }
     Entity *AllocEntity() {
         Entity default_val;
         Entity *result = (Entity*) PoolAlloc(&pool);
