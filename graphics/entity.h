@@ -38,12 +38,14 @@ enum EntityType {
     ET_LINES_ROT,
     ET_POINTCLOUD,
     ET_MESH,
+    ET_ANY,
 
     ET_CNT,
 };
 enum EntityTypeFilter {
     EF_ANALYTIC,
     EF_STREAM,
+    EF_EXTERNAL,
     EF_ANY,
 
     EF_CNT,
@@ -75,8 +77,11 @@ struct Entity {
     Vector3f origo;
     Vector3f dims;
 
-    // external data
+    // stream data
     StreamHeader *entity_stream;
+
+    // external data
+    List<Vector3f> ext_points;
 
     // scene graph switch
     bool active = true;
@@ -104,40 +109,24 @@ struct Entity {
         return result;
     }
 
-    // data entity parameters (pointcloud, ...)
-    List<u8> GetData() {
-        List<u8> data;
-        if (entity_stream != NULL) {
-            data.lst = entity_stream->GetData();
-            data.len = entity_stream->datasize;
-        }
-        return data;
-    }
     List<Vector3f> GetVertices() {
+        assert(
+            (data_tpe == EF_STREAM || data_tpe == EF_EXTERNAL) &&
+            (tpe == ET_POINTCLOUD || tpe == ET_MESH) && "GetVertices: Only call with point cloud or mesh ext data"
+        );
 
-        if (!(data_tpe == EF_STREAM && (tpe == ET_POINTCLOUD || tpe == ET_MESH))) {
-            printf("her\n");
-        }
-
-        assert(data_tpe == EF_STREAM && (tpe == ET_POINTCLOUD || tpe == ET_MESH) && "GetVertices: Only call with point cloud or mesh ext data");
         List<Vector3f> verts;
-        if (entity_stream != NULL) {
-            verts = entity_stream->GetDataVector3f();
+        if (data_tpe == EF_STREAM)  {
+            if (entity_stream != NULL) {
+                verts = entity_stream->GetDataVector3f();
+            }
+        }
+        else if (data_tpe == EF_EXTERNAL) {
+            verts = ext_points;
         }
         return verts;
     }
-    List<Vector3i> GetIndices() {
-        List<Vector3i> indices;
-        StreamHeader *nxt = this->entity_stream;
-        if (entity_stream != NULL) {
-            while (nxt->tpe != ST_INDICES3) {
-                nxt = nxt->GetNext();
-            }
-            indices = entity_stream->GetDataVector3i();
-        }
-        return indices;
-    }
-    void SetVertexCount(u32 npoints) {
+    void SetStreamVertexCount(u32 npoints) {
         assert(data_tpe == EF_STREAM && (tpe == ET_POINTCLOUD || tpe == ET_MESH));
         entity_stream->SetVertexCount(npoints);
     }
@@ -183,6 +172,7 @@ struct EntitySystem {
     void IterReset() {
         iter_next = first;
     }
+    // TODO: apply EntityType tpe = ET_ANY
     Entity *IterNext(EntityTypeFilter data_tpe = EF_ANY) {
         Entity *result = GetEntityByIdx(iter_next);
         if (result == NULL) {
@@ -197,6 +187,7 @@ struct EntitySystem {
             return IterNext(data_tpe);
         }
     }
+    // TODO: eliminate, not thread safe, use the version above
     Entity *IterNext(Entity *prev, EntityTypeFilter data_tpe = EF_ANY) {
         if (prev == NULL) {
             prev = GetEntityByIdx(first);
@@ -225,6 +216,7 @@ EntitySystem InitEntitySystem() {
     void *zero = PoolAlloc(&es.pool);
     return es;
 }
+// TODO: will we _ever_ allocate an entity, but not chain it here?
 void EntitySystemChain(EntitySystem *es, Entity *next) {
     u16 next_idx = PoolPtr2Idx(&es->pool, next);
     if (es->first == 0) {
@@ -247,8 +239,11 @@ void EntitySystemPrint(EntitySystem *es) {
         if (next->data_tpe == EF_ANALYTIC) {
             printf("%u: analytic, vertices %u -> %u lines %u -> %u\n", eidx, next->verts_low, next->verts_high, next->lines_low, next->lines_high);
         }
-        else {
-            printf("%u: data#%d, %u bytes\n", eidx, next->entity_stream->tpe, next->entity_stream->datasize);
+        else if (next->data_tpe == EF_STREAM) {
+            printf("%u: stream#%d, %u bytes\n", eidx, next->entity_stream->tpe, next->entity_stream->datasize);
+        }
+        else if (next->data_tpe == EF_EXTERNAL) {
+            printf("%u: extdata#%d, %u bytes\n", eidx, next->ext_points.len * sizeof(Vector3f));
         }
         eidx++;
         next = es->IterNext();
@@ -260,7 +255,8 @@ void EntitySystemPrint(EntitySystem *es) {
 // Coordinate axes
 
 
-Entity InitAndActivateCoordAxes(List<Vector3f> *vertex_buffer, List<Vector2_u16> *index_buffer) {
+// TODO: rename
+Entity CoordAxes(List<Vector3f> *vertex_buffer, List<Vector2_u16> *index_buffer) {
     Entity ax = InitEntity(ET_AXES);
     ax.color = { RGBA_BLUE };
     ax.origo = { 0, 0, 0 };
@@ -293,7 +289,8 @@ Entity InitAndActivateCoordAxes(List<Vector3f> *vertex_buffer, List<Vector2_u16>
 // Axis-aligned box
 
 
-Entity InitAndActivateAABox(Vector3f translate_coords, float radius, List<Vector3f> *vertex_buffer, List<Vector2_u16> *index_buffer) {
+// TODO: rename
+Entity AABox(Vector3f translate_coords, float radius, List<Vector3f> *vertex_buffer, List<Vector2_u16> *index_buffer) {
     Entity aabox = InitEntity(ET_LINES);
     aabox.transform = TransformBuild(y_hat, 0, translate_coords);
     aabox.color = { RGBA_GREEN };
@@ -338,20 +335,39 @@ Entity InitAndActivateAABox(Vector3f translate_coords, float radius, List<Vector
 // Point cloud-ish entities
 
 
-Entity *InitAndActivateDataEntity(EntitySystem *es, MArena *a, StreamType tpe, u32 npoints_max, u32 id, StreamHeader *prev) {
-    StreamHeader *hdr = InitStream(a, tpe, npoints_max, prev);
+Entity *EntityPoints(EntitySystem *es, Matrix4f transform, List<Vector3f> points) {
+    Entity *pc = es->AllocEntity();
+    pc->data_tpe = EF_EXTERNAL;
+    pc->tpe = ET_POINTCLOUD;
+    pc->entity_stream = NULL;
+    pc->ext_points = points;
+    pc->color  = { RGBA_GREEN };
+    pc->transform = transform;
+
+    EntitySystemChain(es, pc);
+    return pc;
+}
+Entity *EntityPoints(EntitySystem *es, List<Vector3f> points) {
+    return EntityPoints(es, Matrix4f_Identity(), points);
+}
+
+
+Entity *EntityStream(EntitySystem *es, MArena *a_stream_bld, u32 npoints_max, u32 id, StreamHeader *prev) {
+    StreamHeader *hdr = StreamReserveChain(a_stream_bld, npoints_max, Matrix4f_Identity(), prev);
     hdr->id = id;
+
     Entity *pc = es->AllocEntity();
     pc->data_tpe = EF_STREAM;
     pc->tpe = ET_POINTCLOUD;
     pc->entity_stream = hdr;
     pc->color  = { RGBA_GREEN };
     pc->transform = hdr->transform;
+
     EntitySystemChain(es, pc);
     return pc;
 }
 
-Entity *LoadAndActivateDataEntity(EntitySystem *es, StreamHeader *data, bool do_transpose) {
+Entity *EntityStreamLoad(EntitySystem *es, StreamHeader *data, bool do_transpose) {
     Entity *ent = es->AllocEntity();
     ent->data_tpe = EF_STREAM;
     if (data->tpe == ST_POINTS) {

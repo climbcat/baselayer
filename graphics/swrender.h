@@ -5,6 +5,7 @@
 #include "../baselayer.h"
 #include "geometry.h"
 #include "entity.h"
+#include "shaders.h"
 
 
 //
@@ -235,7 +236,7 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
     es->IterReset();
     Entity *next = es->IterNext();
     while (next != NULL) {
-        if (next->active && (next ->data_tpe == EF_ANALYTIC)) {
+        if (next->active && (next->data_tpe == EF_ANALYTIC)) {
             if (next->tpe == ET_LINES_ROT) {
                 model = next->transform * TransformBuildRotateY(0.03f * frameno);
             }
@@ -252,7 +253,7 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
             // render lines
             LinesToScreenCoords(r->w, r->h, &r->screen_buffer, &r->index_buffer, &r->ndc_buffer, next->lines_low, next->lines_high, next->color);
         }
-        else if (next->active && (next->data_tpe == EF_STREAM)) {
+        else if (next->active && (next->data_tpe == EF_STREAM || next->data_tpe == EF_EXTERNAL)) {
             mvp = TransformBuildMVP(next->transform, *vp);
 
             // render pointcloud
@@ -280,17 +281,19 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
 }
 
 
-Entity *InitAndActivateAABox(EntitySystem *es, Vector3f center_transf, float radius, SwRenderer *r) {
+// TODO: rename
+Entity *EntityAABox(EntitySystem *es, Vector3f center_transf, float radius, SwRenderer *r) {
     Entity *box = es->AllocEntity();
-    *box = InitAndActivateAABox(center_transf, radius, &r->vertex_buffer, &r->index_buffer);
+    *box = AABox(center_transf, radius, &r->vertex_buffer, &r->index_buffer);
     EntitySystemChain(es, box);
     return box;
 }
 
 
-Entity *InitAndActivateCoordAxes(EntitySystem *es, SwRenderer *r) {
+// TODO: rename
+Entity *EntityCoordAxes(EntitySystem *es, SwRenderer *r) {
     Entity *axes = es->AllocEntity();
-    *axes = InitAndActivateCoordAxes(&r->vertex_buffer, &r->index_buffer);
+    *axes = CoordAxes(&r->vertex_buffer, &r->index_buffer);
     EntitySystemChain(es, axes);
     return axes;
 }

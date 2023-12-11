@@ -119,7 +119,7 @@ struct StreamHeader {
     //      data storage system. Entity should be serializable as well, maybe as an EntityStream data type, but
     //      first is must be pooled and id-based for its references, u16s that do next, parent, children
 };
-Vector3f PointCloudAverage(Vector3f *data, u32 npoints, bool nonzero_only) {
+Vector3f _PointCloudAverage(Vector3f *data, u32 npoints, bool nonzero_only) {
     Vector3f result = Vector3f_Zero();
     Vector3f v;
     Vector3f zero = Vector3f_Zero();
@@ -146,88 +146,67 @@ void StreamPrint(StreamHeader *et, char *tag) {
     u32 didx = 0;
     while (et) {
         printf("%u: data type: %d carries %d bytes", didx, et->tpe, et->datasize);
-        Vector3f av = PointCloudAverage((Vector3f*) et->GetData(), et->GetDatumCount(), true);
+        Vector3f av = _PointCloudAverage((Vector3f*) et->GetData(), et->GetDatumCount(), true);
         printf(" av. %f %f %f\n", av.x, av.y, av.z);
         et = et->GetNext();
         ++didx;
     }
 }
-StreamHeader *InitStream(MArena *a, StreamType tpe, u32 npoints_max, StreamHeader *prev, u32 id = 0) {
-    // NOTE: next is safely set on prev here
-    StreamHeader *es = (StreamHeader*) ArenaAlloc(a, sizeof(StreamHeader), true);
-    es->next = 0;
-    es->id = id;
-    es->time = 0;
-    es->SetVertexCount(npoints_max);
-    es->linesize = 0;
-    es->transform = Matrix4f_Identity();
-    es->tpe = tpe;
+StreamHeader *StreamCopy(MArena *a_stream_bld, Matrix4f transform, List<Vector3f> src, u32 id = 0) {
+    // allocate and copy header + payload
+    StreamHeader hdr;
+    hdr.next = 0;
+    hdr.tpe = ST_POINTS;
+    hdr.id = id;
+    hdr.transform = transform;
+    hdr.SetVertexCount(src.len); // sets .datasize
+    hdr.time = 0;
+    hdr.linesize = 0;
 
-    // linked list pointer is assigned on prevíous element
+    StreamHeader *result = (StreamHeader*) ArenaPush(a_stream_bld, &hdr, sizeof(StreamHeader));
+    ArenaPush(a_stream_bld, src.lst, hdr.datasize);
+
+    return result;
+}
+StreamHeader *StreamReserve(MArena *a_stream_bld, Matrix4f transform, u32 npoints, u32 id = 0) {
+    // allocate and copy header, allocate payload (no copy)
+    StreamHeader hdr;
+    hdr.next = 0;
+    hdr.tpe = ST_POINTS;
+    hdr.id = id;
+    hdr.transform = transform;
+    hdr.SetVertexCount(npoints); // sets .datasize
+    hdr.time = 0;
+    hdr.linesize = 0;
+
+    StreamHeader *result = (StreamHeader*) ArenaPush(a_stream_bld, &hdr, sizeof(StreamHeader));
+    ArenaAlloc(a_stream_bld, hdr.datasize);
+
+    return result;
+}
+StreamHeader *StreamReserveChain(MArena *a_stream_bld, u32 npoints, Matrix4f transform, StreamHeader *prev = NULL, u32 id = 0) {
+    StreamHeader *hdr = StreamReserve(a_stream_bld, transform, npoints, id);
+
+    // link here from prev
     if (prev != NULL) {
-        assert(es > prev && "InitEntityStream data contiguity");
-        prev->next = (u8*) es - (u8*) prev;
-        assert((u8*) prev + prev->next == (u8*) es && "InitEntityStream data contiguity");
+        assert(hdr > prev && "InitEntityStream data contiguity");
+        prev->next = (u8*) hdr - (u8*) prev;
+        assert((u8*) hdr == (u8*) prev + prev->next && "InitEntityStream data contiguity");
     }
 
-    // TODO: switch by data type to determine allocation size
-
-    // allocate / reserve npoints worth of memory
-    List<Vector3f> points = InitList<Vector3f>(a, npoints_max);
-    assert( (Vector3f*) points.lst == (Vector3f*) es->GetData() && "InitEntityStream" );
-
-    return es;
+    return hdr;
 }
-u32 PointerDiff(void *from, void *to) {
-    assert(from < to && "PointerDiff");
-    u32 result = (u8*) to - (u8*) from;
-    return result;
-}
-u8 *PointerOffsetByDist(void *ptr, int offset_dist) {
-    assert(ptr != NULL && "PointerOffsetByDist");
-    u8 *result = (u8*) ptr + offset_dist;
-    return result;
-}
-void InitStreamFinalize(MArena *a, u32 npoints_actual, StreamHeader *hdr) {
-    // Use with Inittream after knowning that npoints_actual < npoints_max
-    // NOTE: next is set on "prev_hdr" during Init
+void StreamTrimTail(MArena *a_stream_bld, u32 npoints_actual, StreamHeader *hdr) {
+    // Use when [ npoints_actual < npoints_max ] to shorten the stream tail. Usually happens during data capture or filtering
     u32 bytes_actual = npoints_actual * hdr->GetDatumSize();
     u32 bytes_reserved = hdr->datasize;
 
     assert(bytes_actual <= bytes_reserved && "EntityStreamFinalize: bytes_actual <= bytes_reserved");
-    assert(a->mem <= (u8*) hdr && "EntityStreamFinalize: header >= arena base pointer");
-    assert(a->mem + a->used == (u8*) hdr->GetData() + bytes_reserved && "EntityStreamFinalize: reserved bytes == current arena pointer");
+    assert(a_stream_bld->mem <= (u8*) hdr && "EntityStreamFinalize: header >= arena base pointer");
+    assert(a_stream_bld->mem + a_stream_bld->used == (u8*) hdr->GetData() + bytes_reserved && "EntityStreamFinalize: reserved bytes == current arena pointer");
 
-    a->used = a->used - (bytes_reserved - bytes_actual);
+    a_stream_bld->used = a_stream_bld->used - (bytes_reserved - bytes_actual);
     hdr->datasize = bytes_actual;
-}
-StreamHeader *StreamCopy(MArena *a, Matrix4f transform, List<Vector3f> src, u32 id) {
-    // allocate and copy header + payload
-    StreamHeader stream;
-    stream.next = 0;
-    stream.tpe = ST_POINTS;
-    stream.id = id;
-    stream.transform = transform;
-    stream.SetVertexCount(src.len);
-
-    StreamHeader *result = (StreamHeader*) ArenaPush(a, &stream, sizeof(stream));
-    ArenaPush(a, src.lst, stream.datasize);
-
-    return result;
-}
-StreamHeader *StreamReserve(MArena *a, Matrix4f transform, List<Vector3f> src, u32 id) {
-    // allocate and copy header, allocate payload (no copy)
-    StreamHeader stream;
-    stream.next = 0;
-    stream.tpe = ST_POINTS;
-    stream.id = id;
-    stream.transform = transform;
-    stream.SetVertexCount(src.len);
-
-    StreamHeader *result = (StreamHeader*) ArenaPush(a, &stream, sizeof(stream));
-    ArenaAlloc(a, stream.datasize);
-
-    return result;
 }
 
 

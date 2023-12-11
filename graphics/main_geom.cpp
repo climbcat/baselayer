@@ -30,10 +30,10 @@ void RunProgram() {
     EntitySystem _entity_system = InitEntitySystem();
     EntitySystem *es = &_entity_system;
 
-    Entity *axes = InitAndActivateCoordAxes(es, loop->GetRenderer());
-    Entity *box = InitAndActivateAABox(es, { 0.3, 0, 0.7 }, 0.2, r);
-    Entity *box2 = InitAndActivateAABox(es, { 0.3, 0.0, -0.7 }, 0.2, r);
-    Entity *box3 = InitAndActivateAABox(es, { -0.7, 0, 0.0 }, 0.2, r);
+    Entity *axes = EntityCoordAxes(es, r);
+    Entity *box = EntityAABox(es, { 0.3f, 0.0f, 0.7f }, 0.2f, r);
+    Entity *box2 = EntityAABox(es, { 0.3f, 0.0f, -0.7f }, 0.2f, r);
+    Entity *box3 = EntityAABox(es, { -0.7f, 0.0f, 0.0f }, 0.2f, r);
 
     box->tpe = ET_LINES_ROT;
     box2->tpe = ET_LINES_ROT;
