@@ -65,14 +65,13 @@ int main (int argc, char **argv) {
 
     if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv)) {
         printf("--help:          display help (this text)\n");
-        exit(0);
     }
-    if (CLAContainsArg("--test", argc, argv) || force_testing) {
+    else if (CLAContainsArg("--test", argc, argv) || force_testing) {
         Test();
-        exit(0);
     }
-
-    RunProgram();
+    else {
+        RunProgram();
+    }
 
     return 0;
 }
