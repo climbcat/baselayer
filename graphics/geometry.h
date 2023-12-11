@@ -10,6 +10,17 @@
 //
 // Vector
 
+
+struct Vector2_u16 {
+    u16 x;
+    u16 y;
+};
+struct Vector2_s16 {
+    s16 x;
+    s16 y;
+};
+
+
 struct Matrix4f {
     float m[4][4];
 };
@@ -270,11 +281,10 @@ inline
 bool operator==(Matrix4f a, Matrix4f b) {
     return Matrix4f_Equals(&a, &b);
 }
-// TODO: operator[][]
 inline
 void MatrixNf_Transpose(float *dest, float *src, u32 dims) {
-    for (int row = 0; row < dims; ++row) {
-        for (int col = 0; col < dims; ++col) {
+    for (u32 row = 0; row < dims; ++row) {
+        for (u32 col = 0; col < dims; ++col) {
             dest[row*dims + col] = src[col*dims + row];
         }
     }
@@ -622,7 +632,7 @@ void PopulateMatrixRandomly(Matrix4f *m) {
     RandInit();
     for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {
-            m->m[i][j] = RandMinMaxI(0, 9);
+            m->m[i][j] = RandMinMaxI_f32(0, 9);
         }
     }
 }

@@ -124,7 +124,7 @@ void TestRandomPCsRotatingBoxes() {
         RandInit();
         u32 npoints = 90;
 
-        pc_1 = InitAndActivateDataEntity(es, r, a, ST_VERTICES, npoints, 0, NULL);
+        pc_1 = InitAndActivateDataEntity(es, a, ST_VERTICES, npoints, 0, NULL);
         pc_1->color = { RGBA_BLUE };
 
         List<Vector3f> points { (Vector3f*) pc_1->entity_stream->GetData(), npoints };
@@ -147,7 +147,7 @@ void TestRandomPCsRotatingBoxes() {
         RandInit();
         u32 npoints = 300;
 
-        pc_2 = InitAndActivateDataEntity(es, r, a, ST_VERTICES, npoints, 1, pc_1->entity_stream);
+        pc_2 = InitAndActivateDataEntity(es, a, ST_VERTICES, npoints, 1, pc_1->entity_stream);
         pc_2->color = { RGBA_GREEN };
 
         List<Vector3f> points { (Vector3f*) pc_2->entity_stream->GetData(), npoints };
@@ -169,7 +169,7 @@ void TestRandomPCsRotatingBoxes() {
         RandInit();
         u32 npoints = 600;
 
-        pc_3 = InitAndActivateDataEntity(es, r, a, ST_VERTICES, npoints, 1, pc_2->entity_stream);
+        pc_3 = InitAndActivateDataEntity(es, a, ST_VERTICES, npoints, 1, pc_2->entity_stream);
         pc_3->color = { RGBA_RED };
 
         List<Vector3f> points { (Vector3f*) pc_3->entity_stream->GetData(), npoints };
@@ -382,7 +382,7 @@ void TestVGROcTree() {
 void Test() {
     //TestRandomImageOGL();
     //TestRDrawLines();
-    //TestRandomPCsRotatingBoxes();
+    TestRandomPCsRotatingBoxes();
     //TestVGROcTreeInitial();
-    TestVGROcTree();
+    //TestVGROcTree();
 }

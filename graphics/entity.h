@@ -43,7 +43,7 @@ enum EntityType {
 };
 enum EntityTypeFilter {
     EF_ANALYTIC,
-    EF_EXTERNAL,
+    EF_STREAM,
     EF_ANY,
 
     EF_CNT,
@@ -115,11 +115,11 @@ struct Entity {
     }
     List<Vector3f> GetVertices() {
 
-        if (!(data_tpe == EF_EXTERNAL && (tpe == ET_POINTCLOUD || tpe == ET_MESH))) {
+        if (!(data_tpe == EF_STREAM && (tpe == ET_POINTCLOUD || tpe == ET_MESH))) {
             printf("her\n");
         }
 
-        assert(data_tpe == EF_EXTERNAL && (tpe == ET_POINTCLOUD || tpe == ET_MESH) && "GetVertices: Only call with point cloud or mesh ext data");
+        assert(data_tpe == EF_STREAM && (tpe == ET_POINTCLOUD || tpe == ET_MESH) && "GetVertices: Only call with point cloud or mesh ext data");
         List<Vector3f> verts;
         if (entity_stream != NULL) {
             verts = entity_stream->GetDataVector3f();
@@ -138,7 +138,7 @@ struct Entity {
         return indices;
     }
     void SetVertexCount(u32 npoints) {
-        assert(data_tpe == EF_EXTERNAL && (tpe == ET_POINTCLOUD || tpe == ET_MESH));
+        assert(data_tpe == EF_STREAM && (tpe == ET_POINTCLOUD || tpe == ET_MESH));
         entity_stream->SetVertexCount(npoints);
     }
 
@@ -154,7 +154,7 @@ Entity InitEntity(EntityType tpe) {
     Entity e;
     e.tpe = tpe;
     if (tpe == ET_MESH || tpe == ET_POINTCLOUD) {
-        e.data_tpe = EF_EXTERNAL;
+        e.data_tpe = EF_STREAM;
     }
     else {
         e.data_tpe = EF_ANALYTIC;
@@ -253,6 +253,126 @@ void EntitySystemPrint(EntitySystem *es) {
         eidx++;
         next = es->IterNext();
     }
+}
+
+
+//
+// Coordinate axes
+
+
+Entity InitAndActivateCoordAxes(List<Vector3f> *vertex_buffer, List<Vector2_u16> *index_buffer) {
+    Entity ax = InitEntity(ET_AXES);
+    ax.color = { RGBA_BLUE };
+    ax.origo = { 0, 0, 0 };
+    ax.dims = { 1, 1, 1 };
+    Vector3f x { 1, 0, 0 };
+    Vector3f y { 0, 1, 0 };
+    Vector3f z { 0, 0, 1 };
+
+    Entity *axes = &ax;
+    axes->verts_low = vertex_buffer->len;
+    axes->lines_low = index_buffer->len;
+
+    u16 vertex_offset = vertex_buffer->len;
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset), (u16) (vertex_offset + 1) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset), (u16) (vertex_offset + 2) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset), (u16) (vertex_offset + 3) };
+    *(vertex_buffer->lst + vertex_buffer->len++) = (axes->origo);
+    *(vertex_buffer->lst + vertex_buffer->len++) = (axes->origo + x);
+    *(vertex_buffer->lst + vertex_buffer->len++) = (axes->origo + y);
+    *(vertex_buffer->lst + vertex_buffer->len++) = (axes->origo + z);
+
+    axes->verts_high = vertex_buffer->len - 1;
+    axes->lines_high = index_buffer->len - 1;
+
+    return ax;
+}
+
+
+//
+// Axis-aligned box
+
+
+Entity InitAndActivateAABox(Vector3f translate_coords, float radius, List<Vector3f> *vertex_buffer, List<Vector2_u16> *index_buffer) {
+    Entity aabox = InitEntity(ET_LINES);
+    aabox.transform = TransformBuild(y_hat, 0, translate_coords);
+    aabox.color = { RGBA_GREEN };
+    aabox.origo = Vector3f { 0, 0, 0 },
+    aabox.dims = Vector3f { radius, radius, radius };
+
+    Entity *box = &aabox;
+    box->verts_low = vertex_buffer->len;
+    box->lines_low = index_buffer->len;
+
+    u16 vertex_offset = vertex_buffer->len;
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 1) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 2) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 4) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 3), (u16) (vertex_offset + 1) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 3), (u16) (vertex_offset + 2) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 3), (u16) (vertex_offset + 7) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 5), (u16) (vertex_offset + 1) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 5), (u16) (vertex_offset + 4) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 5), (u16) (vertex_offset + 7) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 2) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 4) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 7) };
+
+    *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x - box->dims.x, box->origo.y - box->dims.y, box->origo.z - box->dims.z };
+    *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x - box->dims.x, box->origo.y - box->dims.y, box->origo.z + box->dims.z };
+    *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x - box->dims.x, box->origo.y + box->dims.y, box->origo.z - box->dims.z };
+    *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x - box->dims.x, box->origo.y + box->dims.y, box->origo.z + box->dims.z };
+    *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x + box->dims.x, box->origo.y - box->dims.y, box->origo.z - box->dims.z };
+    *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x + box->dims.x, box->origo.y - box->dims.y, box->origo.z + box->dims.z };
+    *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x + box->dims.x, box->origo.y + box->dims.y, box->origo.z - box->dims.z };
+    *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x + box->dims.x, box->origo.y + box->dims.y, box->origo.z + box->dims.z };
+
+    box->verts_high = vertex_buffer->len - 1;
+    box->lines_high = index_buffer->len - 1;
+
+    return aabox;
+}
+
+
+//
+// Point cloud-ish entities
+
+
+Entity *InitAndActivateDataEntity(EntitySystem *es, MArena *a, StreamType tpe, u32 npoints_max, u32 id, StreamHeader *prev) {
+    StreamHeader *hdr = InitStream(a, tpe, npoints_max, prev);
+    hdr->id = id;
+    Entity *pc = es->AllocEntity();
+    pc->data_tpe = EF_STREAM;
+    pc->tpe = ET_POINTCLOUD;
+    pc->entity_stream = hdr;
+    pc->color  = { RGBA_GREEN };
+    pc->transform = hdr->transform;
+    EntitySystemChain(es, pc);
+    return pc;
+}
+
+Entity *LoadAndActivateDataEntity(EntitySystem *es, StreamHeader *data, bool do_transpose) {
+    Entity *ent = es->AllocEntity();
+    ent->data_tpe = EF_STREAM;
+    if (data->tpe == ST_POINTS) {
+        ent->tpe = ET_POINTCLOUD;
+        ent->color  = { RGBA_GREEN };
+        if (do_transpose == true) {
+            ent->transform = Matrix4f_Transpose( data->transform );
+        }
+        else {
+            ent->transform = data->transform;
+        }
+    }
+    else if (data->tpe == ST_VERTICES || ST_NORMALS || ST_INDICES3) {
+        ent->tpe = ET_MESH;
+        ent->color  = { RGBA_BLUE };
+        ent->transform = data->transform;
+    }
+    ent->entity_stream = data;
+
+    EntitySystemChain(es, ent);
+    return ent;
 }
 
 

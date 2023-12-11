@@ -11,14 +11,6 @@
 // Screen coords
 
 
-struct Vector2_u16 {
-    u16 x;
-    u16 y;
-};
-struct Vector2_s16 {
-    s16 x;
-    s16 y;
-};
 struct ScreenAnchor {
     s16 x;
     s16 y;
@@ -260,7 +252,7 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
             // render lines
             LinesToScreenCoords(r->w, r->h, &r->screen_buffer, &r->index_buffer, &r->ndc_buffer, next->lines_low, next->lines_high, next->color);
         }
-        else if (next->active && (next->data_tpe == EF_EXTERNAL)) {
+        else if (next->active && (next->data_tpe == EF_STREAM)) {
             mvp = TransformBuildMVP(next->transform, *vp);
 
             // render pointcloud
@@ -288,143 +280,19 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
 }
 
 
-//
-// Axis-aligned box
-
-
-Entity InitAndActivateAABox(Vector3f translate_coords, float radius, SwRenderer *r) {
-    Entity aabox = InitEntity(ET_LINES);
-    aabox.transform = TransformBuild(y_hat, 0, translate_coords);
-    aabox.color = { RGBA_GREEN };
-    aabox.origo = Vector3f { 0, 0, 0 },
-    aabox.dims = Vector3f { radius, radius, radius };
-
-    // enter into the renderer
-    Entity *box = &aabox;
-    box->verts_low = r->vertex_buffer.len;
-    box->lines_low = r->index_buffer.len;
-
-    List<Vector3f> *verts_dest = &r->vertex_buffer;
-    List<Vector2_u16> *idxs_dest = &r->index_buffer;
-    u16 vertex_offset = verts_dest->len;
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 1) };
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 2) };
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 4) };
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 3), (u16) (vertex_offset + 1) };
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 3), (u16) (vertex_offset + 2) };
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 3), (u16) (vertex_offset + 7) };
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 5), (u16) (vertex_offset + 1) };
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 5), (u16) (vertex_offset + 4) };
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 5), (u16) (vertex_offset + 7) };
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 2) };
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 4) };
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 7) };
-
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->origo.x - box->dims.x, box->origo.y - box->dims.y, box->origo.z - box->dims.z };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->origo.x - box->dims.x, box->origo.y - box->dims.y, box->origo.z + box->dims.z };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->origo.x - box->dims.x, box->origo.y + box->dims.y, box->origo.z - box->dims.z };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->origo.x - box->dims.x, box->origo.y + box->dims.y, box->origo.z + box->dims.z };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->origo.x + box->dims.x, box->origo.y - box->dims.y, box->origo.z - box->dims.z };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->origo.x + box->dims.x, box->origo.y - box->dims.y, box->origo.z + box->dims.z };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->origo.x + box->dims.x, box->origo.y + box->dims.y, box->origo.z - box->dims.z };
-    *(verts_dest->lst + verts_dest->len++) = Vector3f { box->origo.x + box->dims.x, box->origo.y + box->dims.y, box->origo.z + box->dims.z };
-
-    box->verts_high = r->vertex_buffer.len - 1;
-    box->lines_high = r->index_buffer.len - 1;
-
-    return aabox;
-}
 Entity *InitAndActivateAABox(EntitySystem *es, Vector3f center_transf, float radius, SwRenderer *r) {
     Entity *box = es->AllocEntity();
-    *box = InitAndActivateAABox(center_transf, radius, r);
+    *box = InitAndActivateAABox(center_transf, radius, &r->vertex_buffer, &r->index_buffer);
     EntitySystemChain(es, box);
     return box;
 }
 
 
-//
-// Coordinate axes
-
-
-Entity InitAndActivateCoordAxes(SwRenderer *r) {
-    Entity ax = InitEntity(ET_AXES);
-    ax.color = { RGBA_BLUE };
-    ax.origo = { 0, 0, 0 };
-    ax.dims = { 1, 1, 1 };
-
-    // enter into the renderer
-    Entity *axes = &ax;
-    axes->verts_low = r->vertex_buffer.len;
-    axes->lines_low = r->index_buffer.len;
-
-    Vector3f x { 1, 0, 0 };
-    Vector3f y { 0, 1, 0 };
-    Vector3f z { 0, 0, 1 };
-
-    List<Vector3f> *verts_dest = &r->vertex_buffer;
-    List<Vector2_u16> *idxs_dest = &r->index_buffer;
-    u16 vertex_offset = verts_dest->len;
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset), (u16) (vertex_offset + 1) };
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset), (u16) (vertex_offset + 2) };
-    *(idxs_dest->lst + idxs_dest->len++) = Vector2_u16 { (u16) (vertex_offset), (u16) (vertex_offset + 3) };
-    
-    *(verts_dest->lst + verts_dest->len++) = (axes->origo);
-    *(verts_dest->lst + verts_dest->len++) = (axes->origo + x);
-    *(verts_dest->lst + verts_dest->len++) = (axes->origo + y);
-    *(verts_dest->lst + verts_dest->len++) = (axes->origo + z);
-
-    axes->verts_high = r->vertex_buffer.len - 1;
-    axes->lines_high = r->index_buffer.len - 1;
-
-    return ax;
-}
 Entity *InitAndActivateCoordAxes(EntitySystem *es, SwRenderer *r) {
     Entity *axes = es->AllocEntity();
-    *axes = InitAndActivateCoordAxes(r);
+    *axes = InitAndActivateCoordAxes(&r->vertex_buffer, &r->index_buffer);
     EntitySystemChain(es, axes);
     return axes;
-}
-
-
-//
-// Point cloud
-
-
-Entity *InitAndActivateDataEntity(EntitySystem *es, SwRenderer *r, MArena *a, StreamType tpe, u32 npoints_max, u32 id, StreamHeader *prev) {
-    StreamHeader *hdr = InitStream(a, tpe, npoints_max, prev);
-    hdr->id = id;
-    Entity *pc = es->AllocEntity();
-    pc->data_tpe = EF_EXTERNAL;
-    pc->tpe = ET_POINTCLOUD;
-    pc->entity_stream = hdr;
-    pc->color  = { RGBA_GREEN };
-    pc->transform = hdr->transform;
-    EntitySystemChain(es, pc);
-    return pc;
-}
-
-Entity *LoadAndActivateDataEntity(EntitySystem *es, SwRenderer *r, StreamHeader *data, bool do_transpose) {
-    Entity *ent = es->AllocEntity();
-    ent->data_tpe = EF_EXTERNAL;
-    if (data->tpe == ST_POINTS) {
-        ent->tpe = ET_POINTCLOUD;
-        ent->color  = { RGBA_GREEN };
-        if (do_transpose == true) {
-            ent->transform = Matrix4f_Transpose( data->transform );
-        }
-        else {
-            ent->transform = data->transform;
-        }
-    }
-    else if (data->tpe == ST_VERTICES || ST_NORMALS || ST_INDICES3) {
-        ent->tpe = ET_MESH;
-        ent->color  = { RGBA_BLUE };
-        ent->transform = data->transform;
-    }
-    ent->entity_stream = data;
-
-    EntitySystemChain(es, ent);
-    return ent;
 }
 
 
