@@ -2,6 +2,10 @@
 #define __UI_H__
 
 
+#include "../baselayer.h"
+#include "geometry.h"
+
+
 #define DEFAULT_WINDOW_WIDTH 1440
 #define DEFAULT_WINDOW_HEIGHT 800
 

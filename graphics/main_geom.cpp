@@ -3,6 +3,8 @@
 #include "octree.h"
 #include "shaders.h"
 #include "ui.h"
+#include "stream.h"
+#include "entity.h"
 #include "swrender.h"
 #include "gameloop.h"
 #include "test.cpp"

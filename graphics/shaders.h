@@ -3,6 +3,7 @@
 
 
 #include <GL/glew.h>
+#include "../baselayer.h"
 
 
 void CheckShaderCompilationErrors(GLuint shader, const char *header_info) {

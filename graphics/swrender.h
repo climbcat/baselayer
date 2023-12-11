@@ -2,25 +2,9 @@
 #define __SWRENDER_H__
 
 
-//
-// Colors
-
-
-#define RGBA_BLACK      0, 0, 0, 255
-#define RGBA_WHITE      255, 255, 255, 255
-#define RGBA_GRAY_50    128, 128, 128, 255
-#define RGBA_RED        255, 0, 0, 255
-#define RGBA_GREEN      0, 255, 0, 255
-#define RGBA_BLUE       0, 0, 255, 255
-struct Color {
-    u8 r;
-    u8 g;
-    u8 b;
-    u8 a;
-};
-void PrintColorInline(Color c) {
-    printf("%hhx %hhx %hhx %hhx", c.r, c.g, c.b, c.a);
-}
+#include "../baselayer.h"
+#include "geometry.h"
+#include "entity.h"
 
 
 //
@@ -202,456 +186,6 @@ void RenderMesh() {
     printf("RenderMesh: not implemented\n");
 }
 
- 
-//
-// Entity System
-
-
-// TODO: could be renamed into "data stream"
-
-
-enum EntityDataType {
-    EDT_ANALYTIC,
-    EDT_EXTERNAL,
-    EDT_ANY,
-
-    END_CNT,
-};
-enum EntityType {
-    ET_AXES,
-    ET_LINES,
-    ET_LINES_ROT,
-    ET_POINTCLOUD,
-    ET_MESH,
-
-    ET_CNT,
-};
-enum EntityStreamDataType {
-    DT_POINTS,
-    DT_VERTICES,
-    DT_NORMALS,
-    DT_INDICES2,
-    DT_INDICES3,
-    DT_RGBA, // bitmap (4B stride)
-    DT_F32, // depth image (4B stride)
-    DT_TEXCOORDS, // [0;1]^2 image, (8B stride)
-
-    DT_CNT,
-};
-struct Vector3i {
-    u32 i1;
-    u32 i2;
-    u32 i3;
-};
-struct Vector2i {
-    u32 i1;
-    u32 i2;
-};
-struct Vector2f {
-    f32 x;
-    f32 y;
-};
-
-struct ImageF32 { // e.g. a depth image
-    u32 width;
-    u32 height;
-    f32 *data;
-};
-struct ImageU32 { // e.g. a bit map
-    u32 width;
-    u32 height;
-    f32 *data;
-};
-struct EntityStream {
-    u32 next; // purpose: byte offset for iterating the chunk, zero indicates the final entry. (!Can in principle be != sizeof(EntityStream) + datasize)
-    EntityStreamDataType tpe; // purpose: allows interpretation of data payload
-    u32 id; // purpose: for associating different EntityStream entries with the same object within the chunk (e.g. depth + colour)
-    u32 time; // purpose: real-time data header info for sorting & filtering by post- or external process
-    u32 datasize; // payload size
-    u32 linesize; // line size for 2d data
-    Matrix4f transform; // purpose: storage of this ever-present header info
-
-    //
-    // utility functions
-
-    EntityStream *GetNext(bool load_nonext = false) {
-        EntityStream *result = NULL;
-        if (load_nonext && next == 0 && datasize > 0) {
-            u32 calcnext = sizeof(EntityStream) + datasize;
-            result = (EntityStream *) ((u8*) this + calcnext);
-        }
-        else if (next) {
-            result = (EntityStream *) ((u8*) this + next);
-        }
-        return result;
-    }
-    EntityStream *GetNextId(bool load_nonext = false) {
-        EntityStream *result = GetNext(load_nonext);
-        while (result && result->id == this->id) {
-            result = result->GetNext(load_nonext);
-        }
-        return result;
-    }
-    u8 *GetData() {
-        // returns a pointer to where the data is supposed to start (right after this struct's location in memory)
-        return (u8*) this + sizeof(EntityStream);
-    }
-    u32 GetDatumCount() {
-        // returns data count in iteration-ready units of 4B / 8B
-        // TODO: switch by type
-        return datasize / sizeof(Vector3f);
-    }
-    List<Vector3f> GetDataVector3f() {
-        List<Vector3f> data;
-        data.lst = (Vector3f*) GetData();
-        data.len = GetDatumCount();
-        return data;
-    }
-    void SetVertexCount(u32 npoints) {
-        datasize = npoints * sizeof(Vector3f);
-    }
-    List<Vector3i> GetDataVector3i() {
-        List<Vector3i> data;
-        data.lst = (Vector3i*) GetData();
-        data.len = GetDatumCount();
-        return data;
-    }
-    u32 Get2DWidth() {
-        // returns data width (line width) in iteration-ready units of 4B / 8B
-        // TODO: switch by type
-        return linesize / sizeof(Vector3f);
-    }
-    u32 GetDatumSize() {
-        // TODO: switch by type
-        return sizeof(Vector3f);
-    }
-    ImageU32 GetDataRGBA();
-    ImageF32 GetDataF32();
-    List<Vector2f> GetDataTexCoords();
-
-    // TODO: Q. How will EntityStream get ported to OGL? Using one VBO with DrawIndices, one VBO pr. stream, or something else?
-    //      Sbould data structure or EntityStream be redone to accomodate easy uploading of its data?
-    // NOTE: Entity is intended to become a mem-pooled scene graph node type, EntityStream an external, serializable
-    //      data storage system. Entity should be serializable as well, maybe as an EntityStream data type, but
-    //      first is must be pooled and id-based for its references, u16s that do next, parent, children
-};
-Vector3f PointCloudAverage(Vector3f *data, u32 npoints, bool nonzero_only) {
-    Vector3f result = Vector3f_Zero();
-    Vector3f v;
-    Vector3f zero = Vector3f_Zero();
-    u32 cnt = 0;
-    for (u32 i = 0; i < npoints; ++i) {
-        v = data[i];
-        if (nonzero_only && (v == zero)) {
-            continue;
-        }
-        ++cnt;
-        result = result + v;
-    }
-    f32 factor = 0;
-    if (cnt > 0) {
-        factor = 1.0f / cnt;
-    }
-    result.x *= factor;
-    result.y *= factor;
-    result.z *= factor;
-    return result;
-}
-void EntityStreamPrint(EntityStream *et, char *tag) {
-    printf("data: %s \n", tag);
-    u32 didx = 0;
-    while (et) {
-        printf("%u: data type: %d carries %d bytes", didx, et->tpe, et->datasize);
-        Vector3f av = PointCloudAverage((Vector3f*) et->GetData(), et->GetDatumCount(), true);
-        printf(" av. %f %f %f\n", av.x, av.y, av.z);
-        et = et->GetNext();
-        ++didx;
-    }
-}
-EntityStream *InitEntityStream(MArena *a, EntityStreamDataType tpe, u32 npoints_max, EntityStream *prev, u32 id = 0) {
-    // NOTE: next is safely set on prev here
-    EntityStream *es = (EntityStream*) ArenaAlloc(a, sizeof(EntityStream), true);
-    es->next = 0;
-    es->id = id;
-    es->time = 0;
-    es->SetVertexCount(npoints_max);
-    es->linesize = 0;
-    es->transform = Matrix4f_Identity();
-    es->tpe = tpe;
-
-    // linked list pointer is assigned on prevíous element
-    if (prev != NULL) {
-        assert(es > prev && "InitEntityStream data contiguity");
-        prev->next = (u8*) es - (u8*) prev;
-        assert((u8*) prev + prev->next == (u8*) es && "InitEntityStream data contiguity");
-    }
-
-    // TODO: switch by data type to determine allocation size
-
-    // allocate / reserve npoints worth of memory
-    List<Vector3f> points = InitList<Vector3f>(a, npoints_max);
-    assert( (Vector3f*) points.lst == (Vector3f*) es->GetData() && "InitEntityStream" );
-
-    return es;
-}
-u32 PointerDiff(void *from, void *to) {
-    assert(from < to && "PointerDiff");
-    u32 result = (u8*) to - (u8*) from;
-    return result;
-}
-u8 *PointerOffsetByDist(void *ptr, int offset_dist) {
-    assert(ptr != NULL && "PointerOffsetByDist");
-    u8 *result = (u8*) ptr + offset_dist;
-    return result;
-}
-void EntityStreamFinalize(MArena *a, u32 npoints_actual, EntityStream *hdr) {
-    // Use with InitEntityStream after knowning that npoints_actual < npoints_max
-    // NOTE: next is set on "prev_hdr" during Init
-    u32 bytes_actual = npoints_actual * hdr->GetDatumSize();
-    u32 bytes_reserved = hdr->datasize;
-
-    assert(bytes_actual <= bytes_reserved && "EntityStreamFinalize: bytes_actual <= bytes_reserved");
-    assert(a->mem <= (u8*) hdr && "EntityStreamFinalize: header >= arena base pointer");
-    assert(a->mem + a->used == (u8*) hdr->GetData() + bytes_reserved && "EntityStreamFinalize: reserved bytes == current arena pointer");
-
-    a->used = a->used - (bytes_reserved - bytes_actual);
-    hdr->datasize = bytes_actual;
-}
-EntityStream *EntityStreamCopy(MArena *a, Matrix4f transform, List<Vector3f> src, u32 id) {
-    // allocate and copy header + payload
-    EntityStream stream;
-    stream.next = 0;
-    stream.tpe = DT_POINTS;
-    stream.id = id;
-    stream.transform = transform;
-    stream.SetVertexCount(src.len);
-
-    EntityStream *result = (EntityStream*) ArenaPush(a, &stream, sizeof(stream));
-    ArenaPush(a, src.lst, stream.datasize);
-
-    return result;
-}
-EntityStream *EntityStreamReserve(MArena *a, Matrix4f transform, List<Vector3f> src, u32 id) {
-    // allocate and copy header, allocate payload (no copy)
-    EntityStream stream;
-    stream.next = 0;
-    stream.tpe = DT_POINTS;
-    stream.id = id;
-    stream.transform = transform;
-    stream.SetVertexCount(src.len);
-
-    EntityStream *result = (EntityStream*) ArenaPush(a, &stream, sizeof(stream));
-    ArenaAlloc(a, stream.datasize);
-
-    return result;
-}
-
-
-//
-// Entity
-
-
-struct Entity {
-    // header
-    u16 up = 0;
-    u16 down = 0;
-    u16 prev = 0;
-    u16 next = 0;
-    EntityDataType data_tpe;
-    EntityType tpe;
-    Matrix4f transform; // TODO: make this into a transform_id and store externally
-    Color color { RGBA_WHITE };
-
-    // analytic entity indices (kept in a single "vbo" within the renderer)
-    u16 verts_low = 0;
-    u16 verts_high = 0;
-    u16 lines_low = 0;
-    u16 lines_high = 0;
-
-    // utility fields
-    Vector3f origo;
-    Vector3f dims;
-
-    // external data
-    EntityStream *entity_stream;
-
-    // scene graph switch
-    bool active = true;
-
-    // transforms
-    inline Matrix4f GetLocal2World() {
-        return transform;
-    }
-    inline Matrix4f GetWorld2Local() {
-        return TransformGetInverse(&transform);
-    }
-
-    // analytic entity parameters (AABox, CoordAxes)
-    inline float XMin() { return origo.x - dims.x; }
-    inline float XMax() { return origo.x + dims.x; }
-    inline float YMin() { return origo.y - dims.y; }
-    inline float YMax() { return origo.y + dims.y; }
-    inline float ZMin() { return origo.z - dims.z; }
-    inline float ZMax() { return origo.z + dims.z; }
-    inline bool FitsWithinBox(Vector3f v) {
-        bool result =
-            XMin() <= v.x && XMax() >= v.x &&
-            YMin() <= v.y && YMax() >= v.y &&
-            ZMin() <= v.z && ZMax() >= v.z;
-        return result;
-    }
-
-    // data entity parameters (pointcloud, ...)
-    List<u8> GetData() {
-        List<u8> data;
-        if (entity_stream != NULL) {
-            data.lst = entity_stream->GetData();
-            data.len = entity_stream->datasize;
-        }
-        return data;
-    }
-    List<Vector3f> GetVertices() {
-
-        if (!(data_tpe == EDT_EXTERNAL && (tpe == ET_POINTCLOUD || tpe == ET_MESH))) {
-            printf("her\n");
-        }
-
-        assert(data_tpe == EDT_EXTERNAL && (tpe == ET_POINTCLOUD || tpe == ET_MESH) && "GetVertices: Only call with point cloud or mesh ext data");
-        List<Vector3f> verts;
-        if (entity_stream != NULL) {
-            verts = entity_stream->GetDataVector3f();
-        }
-        return verts;
-    }
-    List<Vector3i> GetIndices() {
-        List<Vector3i> indices;
-        EntityStream *nxt = this->entity_stream;
-        if (entity_stream != NULL) {
-            while (nxt->tpe != DT_INDICES3) {
-                nxt = nxt->GetNext();
-            }
-            indices = entity_stream->GetDataVector3i();
-        }
-        return indices;
-    }
-    void SetVertexCount(u32 npoints) {
-        assert(data_tpe == EDT_EXTERNAL && (tpe == ET_POINTCLOUD || tpe == ET_MESH));
-        entity_stream->SetVertexCount(npoints);
-    }
-
-    // scene graph behavior
-    void Activate() {
-        active = true;
-    }
-    void DeActivate() {
-        active = false;
-    }
-};
-Entity InitEntity(EntityType tpe) {
-    Entity e;
-    e.tpe = tpe;
-    if (tpe == ET_MESH || tpe == ET_POINTCLOUD) {
-        e.data_tpe = EDT_EXTERNAL;
-    }
-    else {
-        e.data_tpe = EDT_ANALYTIC;
-    }
-    e.transform = Matrix4f_Identity();
-    e.active = true;
-    return e;
-}
-
-
-//
-// Organization of entities
-
-
-#define ENTITY_MAX_COUNT 200
-struct EntitySystem {
-    MPool pool;
-    u16 first = 0;
-    u16 iter_next = 0;
-    u16 last = 0;
-
-    Entity *GetEntityByIdx(u16 idx) {
-        Entity *result = (Entity*) PoolIdx2Ptr(&pool, idx);
-        return result;
-    }
-    void IterReset() {
-        iter_next = first;
-    }
-    Entity *IterNext(EntityDataType data_tpe = EDT_ANY) {
-        Entity *result = GetEntityByIdx(iter_next);
-        if (result == NULL) {
-            iter_next = 0;
-            return NULL;
-        }
-        iter_next = result->next;
-        if (data_tpe == EDT_ANY || result->data_tpe == data_tpe) {
-            return result;
-        }
-        else {
-            return IterNext(data_tpe);
-        }
-    }
-    Entity *IterNext(Entity *prev, EntityDataType data_tpe = EDT_ANY) {
-        if (prev == NULL) {
-            prev = GetEntityByIdx(first);
-        }
-        Entity *result = GetEntityByIdx(prev->next);
-        if (result == NULL) {
-            return NULL;
-        }
-        if (data_tpe == EDT_ANY || result->data_tpe == data_tpe) {
-            return result;
-        }
-        else {
-            return IterNext(result, data_tpe);
-        }
-    }
-    Entity *AllocEntity() {
-        Entity default_val;
-        Entity *result = (Entity*) PoolAlloc(&pool);
-        *result = default_val;
-        return result;
-    }
-};
-EntitySystem InitEntitySystem() {
-    EntitySystem es;
-    es.pool = PoolCreate(sizeof(Entity), ENTITY_MAX_COUNT);
-    void *zero = PoolAlloc(&es.pool);
-    return es;
-}
-void EntitySystemChain(EntitySystem *es, Entity *next) {
-    u16 next_idx = PoolPtr2Idx(&es->pool, next);
-    if (es->first == 0) {
-        es->first = next_idx;
-        es->last = next_idx;
-        es->IterReset();
-    }
-    else {
-        Entity * es_last = es->GetEntityByIdx(es->last);
-        es_last->next = next_idx;
-        es->last = next_idx;
-    }
-}
-void EntitySystemPrint(EntitySystem *es) {
-    u32 eidx = 0;
-    printf("entities: \n");
-    es->IterReset();
-    Entity *next = es->IterNext();
-    while (next != NULL) {
-        if (next->data_tpe == EDT_ANALYTIC) {
-            printf("%u: analytic, vertices %u -> %u lines %u -> %u\n", eidx, next->verts_low, next->verts_high, next->lines_low, next->lines_high);
-        }
-        else {
-            printf("%u: data#%d, %u bytes\n", eidx, next->entity_stream->tpe, next->entity_stream->datasize);
-        }
-        eidx++;
-        next = es->IterNext();
-    }
-}
-
 
 //
 // Rendering functions wrapper
@@ -709,7 +243,7 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
     es->IterReset();
     Entity *next = es->IterNext();
     while (next != NULL) {
-        if (next->active && (next ->data_tpe == EDT_ANALYTIC)) {
+        if (next->active && (next ->data_tpe == EF_ANALYTIC)) {
             if (next->tpe == ET_LINES_ROT) {
                 model = next->transform * TransformBuildRotateY(0.03f * frameno);
             }
@@ -726,7 +260,7 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
             // render lines
             LinesToScreenCoords(r->w, r->h, &r->screen_buffer, &r->index_buffer, &r->ndc_buffer, next->lines_low, next->lines_high, next->color);
         }
-        else if (next->active && (next->data_tpe == EDT_EXTERNAL)) {
+        else if (next->active && (next->data_tpe == EF_EXTERNAL)) {
             mvp = TransformBuildMVP(next->transform, *vp);
 
             // render pointcloud
@@ -856,11 +390,11 @@ Entity *InitAndActivateCoordAxes(EntitySystem *es, SwRenderer *r) {
 // Point cloud
 
 
-Entity *InitAndActivateDataEntity(EntitySystem *es, SwRenderer *r, MArena *a, EntityStreamDataType tpe, u32 npoints_max, u32 id, EntityStream *prev) {
-    EntityStream *hdr = InitEntityStream(a, tpe, npoints_max, prev);
+Entity *InitAndActivateDataEntity(EntitySystem *es, SwRenderer *r, MArena *a, StreamType tpe, u32 npoints_max, u32 id, StreamHeader *prev) {
+    StreamHeader *hdr = InitStream(a, tpe, npoints_max, prev);
     hdr->id = id;
     Entity *pc = es->AllocEntity();
-    pc->data_tpe = EDT_EXTERNAL;
+    pc->data_tpe = EF_EXTERNAL;
     pc->tpe = ET_POINTCLOUD;
     pc->entity_stream = hdr;
     pc->color  = { RGBA_GREEN };
@@ -869,10 +403,10 @@ Entity *InitAndActivateDataEntity(EntitySystem *es, SwRenderer *r, MArena *a, En
     return pc;
 }
 
-Entity *LoadAndActivateDataEntity(EntitySystem *es, SwRenderer *r, EntityStream *data, bool do_transpose) {
+Entity *LoadAndActivateDataEntity(EntitySystem *es, SwRenderer *r, StreamHeader *data, bool do_transpose) {
     Entity *ent = es->AllocEntity();
-    ent->data_tpe = EDT_EXTERNAL;
-    if (data->tpe == DT_POINTS) {
+    ent->data_tpe = EF_EXTERNAL;
+    if (data->tpe == ST_POINTS) {
         ent->tpe = ET_POINTCLOUD;
         ent->color  = { RGBA_GREEN };
         if (do_transpose == true) {
@@ -882,7 +416,7 @@ Entity *LoadAndActivateDataEntity(EntitySystem *es, SwRenderer *r, EntityStream 
             ent->transform = data->transform;
         }
     }
-    else if (data->tpe == DT_VERTICES || DT_NORMALS || DT_INDICES3) {
+    else if (data->tpe == ST_VERTICES || ST_NORMALS || ST_INDICES3) {
         ent->tpe = ET_MESH;
         ent->color  = { RGBA_BLUE };
         ent->transform = data->transform;

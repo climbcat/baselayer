@@ -5,6 +5,10 @@
 #include <GLFW/glfw3.h>
 #include <signal.h>
 #include <assert.h>
+#include "geometry.h"
+#include "ui.h"
+#include "swrender.h"
+
 
 // gameloop.h: Platform code exclusively goes here, e.g. SDL / glfw / linux / win code and other APIs, but not glew / OpenGL
 
