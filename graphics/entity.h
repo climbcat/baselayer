@@ -209,7 +209,7 @@ void EntitySystemPrint(EntitySystem *es) {
             printf("%u: stream#%d, %u bytes\n", eidx, next->entity_stream->tpe, next->entity_stream->datasize);
         }
         else if (next->data_tpe == EF_EXTERNAL) {
-            printf("%u: extdata#%d, %u bytes\n", eidx, next->ext_points.len * sizeof(Vector3f));
+            printf("%u: extdata#%u, %lu bytes\n", eidx, next->entity_stream->tpe, next->ext_points.len * sizeof(Vector3f));
         }
         eidx++;
         next = es->IterNext(next);
