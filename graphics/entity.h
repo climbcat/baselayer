@@ -173,21 +173,6 @@ struct EntitySystem {
         iter_next = first;
     }
     // TODO: apply EntityType tpe = ET_ANY
-    Entity *IterNext(EntityTypeFilter data_tpe = EF_ANY) {
-        Entity *result = GetEntityByIdx(iter_next);
-        if (result == NULL) {
-            iter_next = 0;
-            return NULL;
-        }
-        iter_next = result->next;
-        if (data_tpe == EF_ANY || result->data_tpe == data_tpe) {
-            return result;
-        }
-        else {
-            return IterNext(data_tpe);
-        }
-    }
-    // TODO: eliminate, not thread safe, use the version above
     Entity *IterNext(Entity *prev, EntityTypeFilter data_tpe = EF_ANY) {
         if (prev == NULL) {
             prev = GetEntityByIdx(first);
@@ -209,14 +194,40 @@ struct EntitySystem {
         *result = default_val;
         return result;
     }
+    
 };
-EntitySystem InitEntitySystem() {
-    EntitySystem es;
-    es.pool = PoolCreate(sizeof(Entity), ENTITY_MAX_COUNT);
-    void *zero = PoolAlloc(&es.pool);
-    return es;
+void EntitySystemPrint(EntitySystem *es) {
+    u32 eidx = 0;
+    printf("entities: \n");
+    es->IterReset();
+    Entity *next = es->IterNext(NULL);
+    while (next != NULL) {
+        if (next->data_tpe == EF_ANALYTIC) {
+            printf("%u: analytic, vertices %u -> %u lines %u -> %u\n", eidx, next->verts_low, next->verts_high, next->lines_low, next->lines_high);
+        }
+        else if (next->data_tpe == EF_STREAM) {
+            printf("%u: stream#%d, %u bytes\n", eidx, next->entity_stream->tpe, next->entity_stream->datasize);
+        }
+        else if (next->data_tpe == EF_EXTERNAL) {
+            printf("%u: extdata#%d, %u bytes\n", eidx, next->ext_points.len * sizeof(Vector3f));
+        }
+        eidx++;
+        next = es->IterNext(next);
+    }
 }
-// TODO: will we _ever_ allocate an entity, but not chain it here?
+
+static EntitySystem _g_entity_system;
+static EntitySystem *g_entity_system;
+EntitySystem *InitEntitySystem() {
+    assert(g_entity_system == NULL && "singleton assert");
+    g_entity_system = &_g_entity_system;
+
+    g_entity_system->pool = PoolCreate(sizeof(Entity), ENTITY_MAX_COUNT);
+    void *zero = PoolAlloc(&g_entity_system->pool);
+    return g_entity_system;
+}
+
+// TODO: will we _ever_ allocate an entity, but not chain it??
 void EntitySystemChain(EntitySystem *es, Entity *next) {
     u16 next_idx = PoolPtr2Idx(&es->pool, next);
     if (es->first == 0) {
@@ -230,32 +241,12 @@ void EntitySystemChain(EntitySystem *es, Entity *next) {
         es->last = next_idx;
     }
 }
-void EntitySystemPrint(EntitySystem *es) {
-    u32 eidx = 0;
-    printf("entities: \n");
-    es->IterReset();
-    Entity *next = es->IterNext();
-    while (next != NULL) {
-        if (next->data_tpe == EF_ANALYTIC) {
-            printf("%u: analytic, vertices %u -> %u lines %u -> %u\n", eidx, next->verts_low, next->verts_high, next->lines_low, next->lines_high);
-        }
-        else if (next->data_tpe == EF_STREAM) {
-            printf("%u: stream#%d, %u bytes\n", eidx, next->entity_stream->tpe, next->entity_stream->datasize);
-        }
-        else if (next->data_tpe == EF_EXTERNAL) {
-            printf("%u: extdata#%d, %u bytes\n", eidx, next->ext_points.len * sizeof(Vector3f));
-        }
-        eidx++;
-        next = es->IterNext();
-    }
-}
 
 
 //
 // Coordinate axes
 
 
-// TODO: rename
 Entity CoordAxes(List<Vector3f> *vertex_buffer, List<Vector2_u16> *index_buffer) {
     Entity ax = InitEntity(ET_AXES);
     ax.color = { RGBA_BLUE };
@@ -289,7 +280,6 @@ Entity CoordAxes(List<Vector3f> *vertex_buffer, List<Vector2_u16> *index_buffer)
 // Axis-aligned box
 
 
-// TODO: rename
 Entity AABox(Vector3f translate_coords, float radius, List<Vector3f> *vertex_buffer, List<Vector2_u16> *index_buffer) {
     Entity aabox = InitEntity(ET_LINES);
     aabox.transform = TransformBuild(y_hat, 0, translate_coords);

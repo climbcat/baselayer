@@ -234,7 +234,7 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
     Matrix4f model, mvp;
     u32 eidx = 0;
     es->IterReset();
-    Entity *next = es->IterNext();
+    Entity *next = es->IterNext(NULL);
     while (next != NULL) {
         if (next->active && (next->data_tpe == EF_ANALYTIC)) {
             if (next->tpe == ET_LINES_ROT) {
@@ -270,7 +270,7 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
             }
         }
         eidx++;
-        next = es->IterNext();
+        next = es->IterNext(next);
     }
     r->ndc_buffer.len = r->vertex_buffer.len;
     for (u32 i = 0; i < r->screen_buffer.len / 2; ++i) {

@@ -27,23 +27,9 @@ List<Vector3f> CreateRandomPointCloud(MArena *a, u32 npoints, Vector3f center, V
 void TestRandomPCsRotatingBoxes() {
     printf("TestRandomPCsRotatingBoxes\n");
 
-    MArena _b = ArenaCreate();
-    MArena *b = &_b;
-    u32 width = 1280;
-    u32 height = 800;
-    GameLoopOne *loop = InitGameLoopOne(b, width, height);
-
-    // data memory pool
-    MArena _pointcloud_arena = ArenaCreate();
-    MArena *a = &_pointcloud_arena;
-
-
-    //
-    // just set up entities, the rest is automated
-
+    GameLoopOne *loop = InitGameLoopOne();
     SwRenderer *r = loop->GetRenderer();
-    EntitySystem _entity_system = InitEntitySystem();
-    EntitySystem *es = &_entity_system;
+    EntitySystem *es = InitEntitySystem();
 
     Entity *axes = EntityCoordAxes(es, r);
     Entity *box = EntityAABox(es, { 0.3f, 0.0f, 0.7f }, 0.2f, r);
@@ -54,34 +40,24 @@ void TestRandomPCsRotatingBoxes() {
     box2->tpe = ET_LINES_ROT;
     box3->tpe = ET_LINES_ROT;
 
+
     // point clouds 
-    List<Vector3f> points_1 = CreateRandomPointCloud(a, 90, { 0.0f, 0.0f, 0.0f }, { 4.0f, 4.0f, 4.0f });
+    MArena _a_pointclouds = ArenaCreate();
+    MArena *a_pcs = &_a_pointclouds;
+    List<Vector3f> points_1 = CreateRandomPointCloud(a_pcs, 90, { 0.0f, 0.0f, 0.0f }, { 4.0f, 4.0f, 4.0f });
     Entity *pc_1 = EntityPoints(es, points_1);
     pc_1->color = { RGBA_GREEN };
-    List<Vector3f> points_2 = CreateRandomPointCloud(a, 300, { 0.0f, 0.0f, -1.f }, { 4.0f, 4.0f, 2.0f });
+    List<Vector3f> points_2 = CreateRandomPointCloud(a_pcs, 300, { 0.0f, 0.0f, -1.f }, { 4.0f, 4.0f, 2.0f });
     Entity *pc_2 = EntityPoints(es, points_2);
     pc_2->color = { RGBA_BLUE };
-    List<Vector3f> points_3 = CreateRandomPointCloud(a, 300, { -1.0f, -1.0f, -1.f }, { 2.0f, 2.0f, 2.0f });
+    List<Vector3f> points_3 = CreateRandomPointCloud(a_pcs, 300, { -1.0f, -1.0f, -1.f }, { 2.0f, 2.0f, 2.0f });
     Entity *pc_3 = EntityPoints(es, points_3);
     pc_3->color = { RGBA_RED };
 
     EntitySystemPrint(es);
     StreamPrint(pc_1->entity_stream, (char*) "random point clouds");
 
-
-    //
-    //
-
-
-    // frame loop
-    while (loop->GameLoopRunning()) {
-        // E.g.: update entity transforms
-        // E.g.: update debug UI
-        // E.g.: run simulations
-        // E.g.: pull worker thread statuses
-
-        loop->CycleFrame(es);
-    }
+    loop->JustRun(es);
 }
 
 

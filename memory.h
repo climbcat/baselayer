@@ -90,7 +90,7 @@ void ArenaClose(MArena *a, u64 len) {
     assert(a->locked && "ArenaClose: memory arena not open");
 
     a->locked = false;
-    ArenaAlloc(a, len);
+    ArenaAlloc(a, len, false);
 }
 void ArenaPrint(MArena *a) {
     printf("Arena mapped/committed/used: %lu %lu %lu\n", a->mapped, a->committed, a->used);
@@ -241,10 +241,10 @@ List<T> InitList(MArena *a, u32 count) {
     return _lst;
 }
 template<class T>
-List<T> InitListOpen(MArena *a, u32 max_len) {
+List<T> InitListOpen(MArena *a, u32 max_cnt) {
     List<T> _lst;
     _lst.len = 0;
-    _lst.lst = (T*) ArenaOpen(a, max_len);
+    _lst.lst = (T*) ArenaOpen(a, sizeof(T) * max_cnt);
     return _lst;
 }
 template<class T>

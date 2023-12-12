@@ -107,18 +107,12 @@ struct GameLoopOne {
     MouseTrap mouse;
     OrbitCamera cam;
 
-    bool debug_info = false;
-
-    // as pointer
-    inline
     SwRenderer *GetRenderer() {
         return &renderer;
     }
-    inline
     MouseTrap *GetMouseTrap()  {
         return &mouse;
     }
-    inline
     OrbitCamera *GetOrbitCam() {
         return &cam;
     }
@@ -130,9 +124,6 @@ struct GameLoopOne {
 
         // call key / mouse / scrool event handlers
         glfwPollEvents();
-        if (debug_info) {
-            mouse.PrintState();
-        }
 
         // exit condition
         bool exit_click = glfwWindowShouldClose(window) != 0;
@@ -150,33 +141,41 @@ struct GameLoopOne {
         XSleep(10);
         mouse.ResetKeyAndScrollFlags();
     }
+    void JustRun(EntitySystem *es) {
+        while (GameLoopRunning()) {
+            CycleFrame(es);
+        }
+        Terminate();
+    }
     void Terminate() {
         glfwTerminate();
     }
 };
 
-GameLoopOne *InitGameLoopOne(MArena *a, u32 width, u32 height) {
-    GameLoopOne gl;
-    gl.frameno = 0;
-    gl.window = InitGLFW(width, height, false);
-    gl.renderer = InitRenderer(width, height);
-    gl.cam = InitOrbitCamera(gl.renderer.aspect);
+static GameLoopOne _g_loop;
+static GameLoopOne *g_loop;
+GameLoopOne *InitGameLoopOne(MArena *a = NULL, u32 width = 1280, u32 height = 800) {
+    assert(g_loop == NULL && "singleton assert");
+    g_loop = &_g_loop;
+
+    g_loop->frameno = 0;
+    g_loop->window = InitGLFW(width, height, false);
+    g_loop->renderer = InitRenderer(width, height);
+    g_loop->cam = InitOrbitCamera(g_loop->renderer.aspect);
 
     double xpos, ypos;
-    glfwGetCursorPos(gl.window, &xpos, &ypos);
+    glfwGetCursorPos(g_loop->window, &xpos, &ypos);
     s32 x = (s32) xpos;
     s32 y = (s32) ypos;
-    gl.mouse = InitMouseTrap(x, y);
+    g_loop->mouse = InitMouseTrap(x, y);
 
-    glfwSetKeyCallback(gl.window, KeyCallBack);
-    glfwSetCursorPosCallback(gl.window, MouseCursorPositionCallBack);
-    glfwSetMouseButtonCallback(gl.window, MouseButtonCallBack);
-    glfwSetScrollCallback(gl.window, MouseScrollCallBack);
+    glfwSetKeyCallback(g_loop->window, KeyCallBack);
+    glfwSetCursorPosCallback(g_loop->window, MouseCursorPositionCallBack);
+    glfwSetMouseButtonCallback(g_loop->window, MouseButtonCallBack);
+    glfwSetScrollCallback(g_loop->window, MouseScrollCallBack);
+    glfwSetWindowUserPointer(g_loop->window, &g_loop->mouse);
 
-    GameLoopOne *result = (GameLoopOne*) ArenaPush(a, &gl, sizeof(GameLoopOne));
-    glfwSetWindowUserPointer(result->window, &result->mouse);
-
-    return result;
+    return g_loop;
 }
 
 
