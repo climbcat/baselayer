@@ -45,13 +45,13 @@ void TestRandomPCsRotatingBoxes() {
     MArena _a_pointclouds = ArenaCreate();
     MArena *a_pcs = &_a_pointclouds;
     List<Vector3f> points_1 = CreateRandomPointCloud(a_pcs, 90, { 0.0f, 0.0f, 0.0f }, { 4.0f, 4.0f, 4.0f });
-    Entity *pc_1 = EntityPoints(es, points_1);
+    Entity *pc_1 = EntityPoints(es, &points_1);
     pc_1->color = { RGBA_GREEN };
     List<Vector3f> points_2 = CreateRandomPointCloud(a_pcs, 300, { 0.0f, 0.0f, -1.f }, { 4.0f, 4.0f, 2.0f });
-    Entity *pc_2 = EntityPoints(es, points_2);
+    Entity *pc_2 = EntityPoints(es, &points_2);
     pc_2->color = { RGBA_BLUE };
     List<Vector3f> points_3 = CreateRandomPointCloud(a_pcs, 300, { -1.0f, -1.0f, -1.f }, { 2.0f, 2.0f, 2.0f });
-    Entity *pc_3 = EntityPoints(es, points_3);
+    Entity *pc_3 = EntityPoints(es, &points_3);
     pc_3->color = { RGBA_RED };
 
     EntitySystemPrint(es);

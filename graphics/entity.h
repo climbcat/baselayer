@@ -81,7 +81,7 @@ struct Entity {
     StreamHeader *entity_stream;
 
     // external data
-    List<Vector3f> ext_points;
+    List<Vector3f> *ext_points;
 
     // scene graph switch
     bool active = true;
@@ -122,7 +122,7 @@ struct Entity {
             }
         }
         else if (data_tpe == EF_EXTERNAL) {
-            verts = ext_points;
+            verts = *ext_points;
         }
         return verts;
     }
@@ -209,7 +209,7 @@ void EntitySystemPrint(EntitySystem *es) {
             printf("%u: stream#%d, %u bytes\n", eidx, next->entity_stream->tpe, next->entity_stream->datasize);
         }
         else if (next->data_tpe == EF_EXTERNAL) {
-            printf("%u: extdata#%u, %lu bytes\n", eidx, next->entity_stream->tpe, next->ext_points.len * sizeof(Vector3f));
+            printf("%u: points, %lu bytes\n", eidx, next->ext_points->len * sizeof(Vector3f));
         }
         eidx++;
         next = es->IterNext(next);
@@ -325,7 +325,7 @@ Entity AABox(Vector3f translate_coords, float radius, List<Vector3f> *vertex_buf
 // Point cloud-ish entities
 
 
-Entity *EntityPoints(EntitySystem *es, Matrix4f transform, List<Vector3f> points) {
+Entity *EntityPoints(EntitySystem *es, Matrix4f transform, List<Vector3f> *points) {
     Entity *pc = es->AllocEntity();
     pc->data_tpe = EF_EXTERNAL;
     pc->tpe = ET_POINTCLOUD;
@@ -337,10 +337,9 @@ Entity *EntityPoints(EntitySystem *es, Matrix4f transform, List<Vector3f> points
     EntitySystemChain(es, pc);
     return pc;
 }
-Entity *EntityPoints(EntitySystem *es, List<Vector3f> points) {
+Entity *EntityPoints(EntitySystem *es, List<Vector3f> *points) {
     return EntityPoints(es, Matrix4f_Identity(), points);
 }
-
 
 Entity *EntityStream(EntitySystem *es, MArena *a_stream_bld, u32 npoints_max, u32 id, StreamHeader *prev) {
     StreamHeader *hdr = StreamReserveChain(a_stream_bld, npoints_max, Matrix4f_Identity(), prev);
