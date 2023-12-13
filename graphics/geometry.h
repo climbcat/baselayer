@@ -78,6 +78,10 @@ struct Vector3f {
     Vector3f Cross(Vector3f v) {
         return Vector3f { y*v.z - z*v.y, z*v.x - x*v.z, x*v.y - y*v.x };
     }
+    inline bool IsZero() {
+        bool result = x == 0.0f && y == 0.0f && z == 0.0f;
+        return result;
+    }
 
     // static versions
     inline
