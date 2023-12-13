@@ -90,8 +90,22 @@ void KeyCallBack(GLFWwindow* window, int key, int scancode, int action, int mods
     else if (key == GLFW_KEY_SPACE) {
         mouse->key_space = true;
     }
+
     else if (key == GLFW_KEY_S) {
         mouse->key_s = true;
+    }
+
+    else if (key == GLFW_KEY_LEFT) {
+        mouse->key_left = true;
+    }
+    else if (key == GLFW_KEY_RIGHT) {
+        mouse->key_right = true;
+    }
+    else if (key == GLFW_KEY_UP) {
+        mouse->key_up = true;
+    }
+    else if (key == GLFW_KEY_DOWN) {
+        mouse->key_down = true;
     }
 }
 

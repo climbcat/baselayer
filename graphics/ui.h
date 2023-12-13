@@ -24,6 +24,10 @@ struct MouseTrap {
     bool key_space;
     bool key_s;
     bool key_esc;
+    bool key_left;
+    bool key_right;
+    bool key_up;
+    bool key_down;
 
     void UpdatePosition(s32 xpos, s32 ypos) {
         dx = xpos - x;
@@ -35,6 +39,10 @@ struct MouseTrap {
         key_space = false;
         key_s = false;
         key_esc = false;
+        key_left = false;
+        key_right = false;
+        key_up = false;
+        key_down = false;
         wup = false;
         wdown = false;
         wyoffset = 0;
