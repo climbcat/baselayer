@@ -40,7 +40,6 @@ void TestRandomPCsRotatingBoxes() {
     box2->tpe = ET_LINES_ROT;
     box3->tpe = ET_LINES_ROT;
 
-
     // point clouds 
     MArena _a_pointclouds = ArenaCreate();
     MArena *a_pcs = &_a_pointclouds;
@@ -56,6 +55,33 @@ void TestRandomPCsRotatingBoxes() {
 
     EntitySystemPrint(es);
     StreamPrint(pc_1->entity_stream, (char*) "random point clouds");
+
+    loop->JustRun(es);
+}
+
+
+void TestRandomPCWithNormals() {
+    printf("TestRandomPCWithNormals\n");
+
+    GameLoopOne *loop = InitGameLoopOne();
+    SwRenderer *r = loop->GetRenderer();
+    EntitySystem *es = InitEntitySystem();
+    Entity *axes = EntityCoordAxes(es, r);
+    
+    MArena _a_pointclouds = ArenaCreate();
+    MArena *a_pcs = &_a_pointclouds;
+
+    // point clouds 
+    List<Vector3f> points = CreateRandomPointCloud(a_pcs, 90, { 0.0f, 0.0f, 0.0f }, { 4.0f, 4.0f, 4.0f });
+    List<Vector3f> normals = CreateRandomPointCloud(a_pcs, 90, { 0.1f, 0.1f, 0.1f }, { 0.05f, 0.05f, 0.05f });
+
+    Entity *pc = EntityPoints(es, &points);
+    pc->ext_normals = &normals;
+    pc->tpe = ET_POINTCLOUD_W_NORMALS;
+    pc->color = Color { RGBA_GREEN };
+    pc->color_alt = Color { RGBA_BLUE };
+
+    EntitySystemPrint(es);
 
     loop->JustRun(es);
 }
@@ -105,7 +131,8 @@ void TestVGROcTree() {
 
 
 void Test() {
-    TestRandomPCsRotatingBoxes();
+    //TestRandomPCsRotatingBoxes();
+    TestRandomPCWithNormals();
     //TestVGROcTreeInitial();
     //TestVGROcTree();
 }

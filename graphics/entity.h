@@ -37,6 +37,7 @@ enum EntityType {
     ET_LINES,
     ET_LINES_ROT,
     ET_POINTCLOUD,
+    ET_POINTCLOUD_W_NORMALS,
     ET_MESH,
     ET_ANY,
 
@@ -66,6 +67,7 @@ struct Entity {
     EntityType tpe;
     Matrix4f transform; // TODO: make this into a transform_id and store externally
     Color color { RGBA_WHITE };
+    Color color_alt { RGBA_WHITE };
 
     // analytic entity indices (kept in a single "vbo" within the renderer)
     u16 verts_low = 0;
@@ -82,6 +84,7 @@ struct Entity {
 
     // external data
     List<Vector3f> *ext_points;
+    List<Vector3f> *ext_normals;
 
     // scene graph switch
     bool active = true;
@@ -112,7 +115,7 @@ struct Entity {
     List<Vector3f> GetVertices() {
         assert(
             (data_tpe == EF_STREAM || data_tpe == EF_EXTERNAL) &&
-            (tpe == ET_POINTCLOUD || tpe == ET_MESH) && "GetVertices: Only call with point cloud or mesh ext data"
+            (tpe == ET_POINTCLOUD || tpe == ET_POINTCLOUD_W_NORMALS) && "GetVertices: Only call with point cloud or mesh ext data"
         );
 
         List<Vector3f> verts;
@@ -125,6 +128,17 @@ struct Entity {
             verts = *ext_points;
         }
         return verts;
+    }
+    List<Vector3f> GetNormals() { 
+        assert(
+            (data_tpe == EF_EXTERNAL) &&
+            (tpe == ET_POINTCLOUD_W_NORMALS) && "GetVertices: Only call with point cloud or mesh ext data"
+        );
+        List<Vector3f> normals { NULL, 0 };
+        if (ext_normals != NULL) {
+            normals = *ext_normals;
+        }
+        return normals;
     }
     void SetStreamVertexCount(u32 npoints) {
         assert(data_tpe == EF_STREAM && (tpe == ET_POINTCLOUD || tpe == ET_MESH));

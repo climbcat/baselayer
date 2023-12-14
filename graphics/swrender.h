@@ -175,6 +175,40 @@ void RenderPointCloud(u8* image_buffer, u16 w, u16 h, Matrix4f *mvp, List<Vector
         image_buffer[4 * pix_idx + 3] = color.a;
     }
 }
+void RenderPointCloudWithNormals(u8* image_buffer, u16 w, u16 h, Matrix4f *mvp, List<Vector3f> points, List<Vector3f> normals, Color color, Color color_normals) {
+    printf("rendering point cloud w normals...\n");
+
+    assert(points.len == normals.len);
+
+    Vector3f p, n2; // normal from [n1 == p] -> [n2]
+    Vector3f p_ndc, n2_ndc;
+    Vector2_s16 p_screen;
+    u32 pix_idx;
+    for (u32 i = 0; i < points.len; ++i) {
+
+        p = points.lst[i];
+        p_ndc = TransformPerspective( *mvp, p );
+        p_screen = NDC2Screen(w, h, p_ndc);
+        if (CullScreenCoords(p_screen.x, p_screen.y, w, h) ) {
+            continue;
+        }
+
+        n2 = p + normals.lst[i];
+        n2_ndc = TransformPerspective( *mvp, n2 );
+        Vector2_s16 p_screen = NDC2Screen(w, h, p_ndc);
+        Vector2_s16 n2_screen = NDC2Screen(w, h, n2_ndc);
+
+        // render point
+        RenderLineRGBA(image_buffer, w, h, p_screen.x, p_screen.y, n2_screen.x, n2_screen.y, color_normals);
+
+        // render point on top of normal
+        pix_idx = ScreenCoordsPosition2Idx(p_screen.x, p_screen.y, w);
+        image_buffer[4 * pix_idx + 0] = color.r;
+        image_buffer[4 * pix_idx + 1] = color.g;
+        image_buffer[4 * pix_idx + 2] = color.b;
+        image_buffer[4 * pix_idx + 3] = color.a;
+    }
+}
 void RenderMesh() {
     printf("RenderMesh: not implemented\n");
 }
@@ -259,9 +293,12 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
             if (next->tpe == ET_POINTCLOUD) {
                 RenderPointCloud(r->image_buffer, r->w, r->h, &mvp, next->GetVertices(), next->color);
             }
+            else if (next->tpe == ET_POINTCLOUD_W_NORMALS) {
+                RenderPointCloudWithNormals(r->image_buffer, r->w, r->h, &mvp, next->GetVertices(), next->GetNormals(), next->color, next->color_alt);
+            }
             else if (next->tpe == ET_MESH) {
                 RenderMesh();
-                // fallback, just render the vertices as a point cloud:
+                // as a fallback, just render the vertices as a point cloud:
                 RenderPointCloud(r->image_buffer, r->w, r->h, &mvp, next->GetVertices(), next->color);
             }
             else {
