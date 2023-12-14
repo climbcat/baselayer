@@ -233,7 +233,6 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
     // entity loop (POC): vertices -> NDC
     Matrix4f model, mvp;
     u32 eidx = 0;
-    es->IterReset();
     Entity *next = es->IterNext(NULL);
     while (next != NULL) {
         if (next->active && (next->data_tpe == EF_ANALYTIC)) {

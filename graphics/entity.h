@@ -162,22 +162,21 @@ Entity InitEntity(EntityType tpe) {
 struct EntitySystem {
     MPool pool;
     u16 first = 0;
-    u16 iter_next = 0;
     u16 last = 0;
 
     Entity *GetEntityByIdx(u16 idx) {
         Entity *result = (Entity*) PoolIdx2Ptr(&pool, idx);
         return result;
     }
-    void IterReset() {
-        iter_next = first;
-    }
     // TODO: apply EntityType tpe = ET_ANY
     Entity *IterNext(Entity *prev, EntityTypeFilter data_tpe = EF_ANY) {
+        Entity *result;
         if (prev == NULL) {
-            prev = GetEntityByIdx(first);
+            result = GetEntityByIdx(first);
         }
-        Entity *result = GetEntityByIdx(prev->next);
+        else {
+            result = GetEntityByIdx(prev->next);
+        }
         if (result == NULL) {
             return NULL;
         }
@@ -199,7 +198,6 @@ struct EntitySystem {
 void EntitySystemPrint(EntitySystem *es) {
     u32 eidx = 0;
     printf("entities: \n");
-    es->IterReset();
     Entity *next = es->IterNext(NULL);
     while (next != NULL) {
         if (next->data_tpe == EF_ANALYTIC) {
@@ -233,7 +231,6 @@ void EntitySystemChain(EntitySystem *es, Entity *next) {
     if (es->first == 0) {
         es->first = next_idx;
         es->last = next_idx;
-        es->IterReset();
     }
     else {
         Entity * es_last = es->GetEntityByIdx(es->last);
