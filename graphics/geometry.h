@@ -82,6 +82,10 @@ struct Vector3f {
         bool result = x == 0.0f && y == 0.0f && z == 0.0f;
         return result;
     }
+    inline bool IsNonZero() {
+        bool result = x != 0.0f || y != 0.0f || z != 0.0f;
+        return result;
+    }
 
     // static versions
     inline
