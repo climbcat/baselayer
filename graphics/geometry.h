@@ -78,13 +78,17 @@ struct Vector3f {
     Vector3f Cross(Vector3f v) {
         return Vector3f { y*v.z - z*v.y, z*v.x - x*v.z, x*v.y - y*v.x };
     }
-    inline bool IsZero() {
-        bool result = x == 0.0f && y == 0.0f && z == 0.0f;
+    inline bool IsNonZero() {
+        // TODO: how should epsilon be done in general?
+        float epsilon = 0.0000000001f;
+        bool x_nzero = abs(x) - epsilon >= 0;
+        bool y_nzero = abs(y) - epsilon >= 0;
+        bool z_nzero = abs(z) - epsilon >= 0;
+        bool result = x_nzero || y_nzero || z_nzero;
         return result;
     }
-    inline bool IsNonZero() {
-        bool result = x != 0.0f || y != 0.0f || z != 0.0f;
-        return result;
+    inline bool IsZero() {
+        return ! IsNonZero();
     }
 
     // static versions
