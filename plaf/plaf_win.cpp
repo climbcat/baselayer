@@ -10,7 +10,7 @@
 
 
 //
-// memory.c
+// memory.h
 
 
 u64 MemoryProtect(void *from, u64 amount) {
@@ -25,13 +25,25 @@ void *MemoryReserve(u64 amount) {
 
 
 //
-// profile.c
+// profile.h
 
 
 u64 ReadSystemTimerMySec() {
-    LARGE_INTEGER val;
-    QueryPerformanceCounter(&val);
-    return val.QuadPart;
+    // systime (via S.O. 10905892)
+
+    static const uint64_t EPOCH = ((uint64_t) 116444736000000000ULL);
+    SYSTEMTIME  system_time;
+    FILETIME    file_time;
+    uint64_t    time;
+    GetSystemTime( &system_time );
+    SystemTimeToFileTime( &system_time, &file_time );
+    time =  ((uint64_t)file_time.dwLowDateTime )      ;
+    time += ((uint64_t)file_time.dwHighDateTime) << 32;
+
+    long tv_sec  = (long) ((time - EPOCH) / 10000000L);
+    long tv_usec = (long) (system_time.wMilliseconds * 1000);
+    u64 systime = (u32) tv_sec*1000000 + tv_usec; // microsecs 
+    return systime;
 }
 u64 ReadCPUTimer() {
     u64 rd = __rdtsc();
@@ -40,7 +52,7 @@ u64 ReadCPUTimer() {
 
 
 //
-// utils.c
+// utils.h
 
 
 void XSleep(u32 ms) {
