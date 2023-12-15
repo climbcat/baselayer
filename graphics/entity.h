@@ -333,6 +333,44 @@ Entity AABox(Vector3f translate_coords, float radius, List<Vector3f> *vertex_buf
 
 
 //
+// Camera wireframe
+
+
+Entity CameraWireframe(float radius_xy, float length_z, List<Vector3f> *vertex_buffer, List<Vector2_u16> *index_buffer) {
+    Entity cam = InitEntity(ET_LINES);
+    cam.color = { RGBA_WHITE };
+    cam.origo = Vector3f { 0, 0, 0 },
+    cam.dims = Vector3f { 0, 0, 0 };
+
+    // add vertices & indices to the renderer's default / small object "vbo"
+    Entity *box = &cam;
+    box->verts_low = vertex_buffer->len;
+    box->lines_low = index_buffer->len;
+
+    u16 vertex_offset = vertex_buffer->len;
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 1) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 2) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 3) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 4) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 1), (u16) (vertex_offset + 2) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 2), (u16) (vertex_offset + 4) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 4), (u16) (vertex_offset + 3) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 3), (u16) (vertex_offset + 1) };
+
+    *(vertex_buffer->lst + vertex_buffer->len++) = cam.origo;
+    *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x - radius_xy, box->origo.y - radius_xy, box->origo.z + length_z };
+    *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x - radius_xy, box->origo.y + radius_xy, box->origo.z + length_z };
+    *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x + radius_xy, box->origo.y - radius_xy, box->origo.z + length_z };
+    *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x + radius_xy, box->origo.y + radius_xy, box->origo.z + length_z };
+
+    box->verts_high = vertex_buffer->len - 1;
+    box->lines_high = index_buffer->len - 1;
+
+    return cam;
+}
+
+
+//
 // Point cloud-ish entities
 
 

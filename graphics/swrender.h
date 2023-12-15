@@ -317,7 +317,6 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
 }
 
 
-// TODO: rename
 Entity *EntityAABox(EntitySystem *es, Vector3f center_transf, float radius, SwRenderer *r) {
     Entity *box = es->AllocEntity();
     *box = AABox(center_transf, radius, &r->vertex_buffer, &r->index_buffer);
@@ -326,12 +325,22 @@ Entity *EntityAABox(EntitySystem *es, Vector3f center_transf, float radius, SwRe
 }
 
 
-// TODO: rename
 Entity *EntityCoordAxes(EntitySystem *es, SwRenderer *r) {
     Entity *axes = es->AllocEntity();
     *axes = CoordAxes(&r->vertex_buffer, &r->index_buffer);
     EntitySystemChain(es, axes);
     return axes;
+}
+
+
+Entity *EntityCameraWireframe(EntitySystem *es, float size = 0.05f, SwRenderer *r = NULL) {
+    assert(r != NULL);
+    Entity *cam = es->AllocEntity();
+    float radius_xy = 0.5 * size;
+    float length_z = 1.5 * size;
+    *cam = CameraWireframe(radius_xy, length_z, &r->vertex_buffer, &r->index_buffer);
+    EntitySystemChain(es, cam);
+    return cam;
 }
 
 

@@ -45,6 +45,12 @@ bool SaveFile(char *filepath, u8 *data, u32 len);
 bool SaveFile(const char *filepath, u8 *data, u32 len) {
     return SaveFile((char *)filepath, data, len);
 }
+bool ArenaSave(MArena *a, char *filename) {
+    return SaveFile(filename, a->mem, (u32) a->used);
+}
+bool ArenaSave(MArena *a, const char *filename) {
+    return ArenaSave(a, (char *) filename);
+}
 
 
 //

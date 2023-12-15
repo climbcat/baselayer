@@ -625,14 +625,14 @@ Ray TransformRay(Matrix4f *a, Ray *r) {
 // Utility
 
 
-void PrintMatrix4d(Matrix4f *m) {
+void PrintTransform(Matrix4f m) {
     printf("[");
     for (int i = 0; i < 4; ++i) {
         if (i > 0) {
             printf(" ");
         }
         for (int j = 0; j < 4; ++j) {
-            printf(" %f", m->m[i][j]);
+            printf(" %f", m.m[i][j]);
         }
         if (i < 3) {
             printf("\n");
