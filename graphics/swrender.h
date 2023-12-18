@@ -176,8 +176,6 @@ void RenderPointCloud(u8* image_buffer, u16 w, u16 h, Matrix4f *mvp, List<Vector
     }
 }
 void RenderPointCloudWithNormals(u8* image_buffer, u16 w, u16 h, Matrix4f *mvp, List<Vector3f> points, List<Vector3f> normals, Color color, Color color_normals) {
-    printf("rendering point cloud w normals...\n");
-
     assert(points.len == normals.len);
 
     Vector3f p, n2; // normal from [n1 == p] -> [n2]
