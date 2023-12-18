@@ -92,7 +92,8 @@ void TestVGROcTree() {
 
     // filtering box / octree location
     float rootcube_radius = 0.2;
-    float leaf_size_max = rootcube_radius / (2 * 2 * 2 * 2 * 2 * 1.9);
+    //float leaf_size_max = rootcube_radius / (2 * 2 * 2 * 2 * 2 * 1.9);
+    float leaf_size_max = rootcube_radius / (2 * 2 * 2 * 1.9);
 
     // src/dst storage
     MArena _a_tmp = ArenaCreate(); // vertices & branch list location
@@ -101,38 +102,59 @@ void TestVGROcTree() {
     MArena *a_dest = &_a_dest;
 
     // source random point cloud
-    u32 nvertices = 190000;
+    u32 nvertices_src = 190000;
+    List<Vector3f> src = InitList<Vector3f>(a_tmp, nvertices_src);
     Vector3f rootcube_center { 0, 0, 0 };
     float pc_radius = 0.2;
-    List<Vector3f> vertices = InitList<Vector3f>(a_tmp, nvertices);
     RandInit();
-    for (u32 i = 0; i < nvertices; ++i) {
+    for (u32 i = 0; i < nvertices_src; ++i) {
         Vector3f v {
             rootcube_center.x - pc_radius + 2*pc_radius*Rand01_f32(),
             rootcube_center.y - pc_radius + 2*pc_radius*Rand01_f32(),
             rootcube_center.y - pc_radius + 2*pc_radius*Rand01_f32(),
         };
-        vertices.Add(&v);
+        src.Add(&v);
     }
 
     // dest list
-    List<Vector3f> dest = InitList<Vector3f>(a_dest, nvertices);
+    List<Vector3f> dest = InitList<Vector3f>(a_dest, nvertices_src);
 
     // transforms
-    Matrix4f box_transform = TransformBuildRotateX(15*deg2rad);
-    Matrix4f src_transform = TransformBuildRotateY(45*deg2rad);
+    //Matrix4f box_transform = TransformBuildRotateX(15*deg2rad);
+    //Matrix4f src_transform = TransformBuildRotateY(45*deg2rad);
+    Matrix4f box_transform = Matrix4f_Identity();
+    Matrix4f src_transform = Matrix4f_Identity();
 
+    // run vgr
     VGRTreeStats stats;
-    dest = VoxelGridReduce(vertices, a_tmp, rootcube_radius, leaf_size_max, box_transform, src_transform, dest.lst, false, &stats);
+    dest = VoxelGridReduce(src, a_tmp, rootcube_radius, leaf_size_max, box_transform, src_transform, dest.lst, false, &stats);
 
     stats.Print();
     printf("\n");
+
+
+    // visualize
+    GameLoopOne *loop = InitGameLoopOne();
+    SwRenderer *r = loop->GetRenderer();
+    EntitySystem *es = InitEntitySystem();
+    Entity *axes = EntityCoordAxes(es, r);
+
+    Entity *src_pc = EntityPoints(es, &src);
+    src_pc->transform = src_transform;
+    src_pc->tpe = ET_POINTCLOUD;
+    src_pc->color = Color { RGBA_BLUE };
+
+    Entity *dest_pc = EntityPoints(es, &dest);
+    src_pc->transform = src_transform;
+    dest_pc->tpe = ET_POINTCLOUD;
+    dest_pc->color = Color { RGBA_GREEN };
+
+    loop->JustRun(es);
 }
 
 
 void Test() {
     //TestRandomPCsRotatingBoxes();
-    TestRandomPCWithNormals();
-    //TestVGROcTreeInitial();
-    //TestVGROcTree();
+    //TestRandomPCWithNormals();
+    TestVGROcTree();
 }
