@@ -87,24 +87,27 @@ void KeyCallBack(GLFWwindow* window, int key, int scancode, int action, int mods
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
         mouse->key_esc = true;
     }
-    else if (key == GLFW_KEY_SPACE) {
+    else if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
         mouse->key_space = true;
     }
 
-    else if (key == GLFW_KEY_S) {
+    else if (key == GLFW_KEY_S && action == GLFW_PRESS) {
         mouse->key_s = true;
     }
+    else if (key == GLFW_KEY_N && action == GLFW_PRESS) {
+        mouse->key_n = true;
+    }
 
-    else if (key == GLFW_KEY_LEFT) {
+    else if (key == GLFW_KEY_LEFT && action == GLFW_PRESS) {
         mouse->key_left = true;
     }
-    else if (key == GLFW_KEY_RIGHT) {
+    else if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS) {
         mouse->key_right = true;
     }
-    else if (key == GLFW_KEY_UP) {
+    else if (key == GLFW_KEY_UP && action == GLFW_PRESS) {
         mouse->key_up = true;
     }
-    else if (key == GLFW_KEY_DOWN) {
+    else if (key == GLFW_KEY_DOWN && action == GLFW_PRESS) {
         mouse->key_down = true;
     }
 }

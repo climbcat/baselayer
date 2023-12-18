@@ -23,6 +23,7 @@ struct MouseTrap {
 
     bool key_space;
     bool key_s;
+    bool key_n;
     bool key_esc;
     bool key_left;
     bool key_right;
@@ -38,6 +39,7 @@ struct MouseTrap {
     void ResetKeyAndScrollFlags() {
         key_space = false;
         key_s = false;
+        key_n = false;
         key_esc = false;
         key_left = false;
         key_right = false;
