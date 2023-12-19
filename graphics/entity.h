@@ -132,11 +132,6 @@ struct Entity {
         return verts;
     }
     List<Vector3f> GetNormals() { 
-        assert(
-            (data_tpe == EF_EXTERNAL || data_tpe == EF_STREAM) &&
-            (tpe == ET_POINTCLOUD_W_NORMALS) && 
-            "GetVertices: Only call with point cloud or mesh ext data"
-        );
         List<Vector3f> normals { NULL, 0 };
         if (ext_normals != NULL) {
             normals = *ext_normals;
@@ -416,7 +411,8 @@ Entity *EntityStreamLoad(EntitySystem *es, StreamHeader *data, bool do_transpose
 
         // check if point cloud with normals:
         StreamHeader *data_nxt = data->GetNext(true);
-        if (data_nxt != NULL && data_nxt->id == data->id && data_nxt->tpe == ST_NORMALS) {
+        //if (data_nxt != NULL && data_nxt->id == data->id && data_nxt->tpe == ST_NORMALS) {
+        if (data_nxt != NULL && data_nxt->id == data->id && data_nxt->tpe == ST_POINTS) {
             ent->tpe = ET_POINTCLOUD_W_NORMALS;
 
             // assign ext data ptrs

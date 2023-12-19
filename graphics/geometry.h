@@ -400,7 +400,6 @@ Matrix4f TransformGetInverse(Matrix4f *a) {
     result.m[1][3] = - t_inv.y;
     result.m[2][3] = - t_inv.z;
 
-    // TODO: scale
     return result;
 }
 Matrix4f TransformGetInverse(Matrix4f a) {
@@ -415,7 +414,6 @@ Vector3f TransformPoint(Matrix4f *a, Vector3f *v) {
     result.y = a->m[1][0]*v->x + a->m[1][1]*v->y + a->m[1][2]*v->z + a->m[1][3];
     result.z = a->m[2][0]*v->x + a->m[2][1]*v->y + a->m[2][2]*v->z + a->m[2][3];
 
-    // TODO: apply scale
     return result;
 }
 inline
@@ -427,7 +425,6 @@ Vector3f TransformPoint(Matrix4f a, Vector3f v) {
     result.y = a.m[1][0]*v.x + a.m[1][1]*v.y + a.m[1][2]*v.z + a.m[1][3];
     result.z = a.m[2][0]*v.x + a.m[2][1]*v.y + a.m[2][2]*v.z + a.m[2][3];
 
-    // TODO: apply scale
     return result;
 }
 // TODO: how do I build a vector that does this ?
@@ -446,7 +443,6 @@ Vector3f TransformInversePoint(Matrix4f *a, Vector3f *v) {
     r.y = a->m[0][1]*tmp.x + a->m[1][1]*tmp.y + a->m[2][1]*tmp.z;
     r.z = a->m[0][2]*tmp.x + a->m[1][2]*tmp.y + a->m[2][2]*tmp.z;
 
-    // TODO: scale back
     return r;
 }
 inline
@@ -458,7 +454,17 @@ Vector3f TransformDirection(Matrix4f *a, Vector3f *d) {
     result.y = a->m[1][0]*d->x + a->m[1][1]*d->y + a->m[1][2]*d->z;
     result.z = a->m[2][0]*d->x + a->m[2][1]*d->y + a->m[2][2]*d->z;
 
-    // TODO: scale
+    return result;
+}
+inline
+Vector3f TransformDirection(Matrix4f a, Vector3f d) {
+    Vector3f result;
+
+    // just rotate
+    result.x = a.m[0][0]*d.x + a.m[0][1]*d.y + a.m[0][2]*d.z;
+    result.y = a.m[1][0]*d.x + a.m[1][1]*d.y + a.m[1][2]*d.z;
+    result.z = a.m[2][0]*d.x + a.m[2][1]*d.y + a.m[2][2]*d.z;
+
     return result;
 }
 inline
