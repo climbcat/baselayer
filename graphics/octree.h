@@ -13,7 +13,7 @@
 //
 // Voxel Grid Reduce using an octree binning strategy
 
-#define VGR_DEBUG
+#define VGR_DEBUG 0
 
 struct OcBranch {
     u16 indices[8];
@@ -22,7 +22,7 @@ struct OcLeaf {
     Vector3f sum[8];
     u32 cnt[8];
 
-    #ifdef VGR_DEBUG
+    #if VGR_DEBUG
     Vector3f center[8];
     float radius[8];
     u8 cube_idx[8];
@@ -75,15 +75,6 @@ struct VGRTreeStats {
     }
 };
 
-inline
-bool FitsWithinBoxRadius(Vector3f point, float radius) {
-    bool result =
-        (abs(point.x) <= radius) &&
-        (abs( point.y) <= radius) && 
-        (abs( point.z) <= radius);
-    return result;
-}
-
 
 u32 LeafSize2Depth(float leaf_size, float box_diameter, float *leaf_size_out = NULL) {
     assert(leaf_size_out != NULL);
@@ -110,6 +101,14 @@ float Depth2LeafSize(u32 depth, float box_radius) {
 }
 
 
+inline
+bool FitsWithinBoxRadius(Vector3f point, float radius) {
+    bool result =
+        (abs(point.x) <= radius) &&
+        (abs( point.y) <= radius) && 
+        (abs( point.z) <= radius);
+    return result;
+}
 inline
 u8 SubcubeDescend(Vector3f target, Vector3f *center, float *radius) {
     Vector3f relative = target - *center;
@@ -175,6 +174,7 @@ List<Vector3f> VoxelGridReduce(
         // TODO: try and run the alg with max memory, assuming that max occupancy very rarely happens
         //assert(stats.max_leaves / 8 <= 65535 && "block index address space max exceeded");
     }
+
 
     // reserve branch memory
     List<OcBranch> branches = InitList<OcBranch>(tmp, stats.max_branches / 8);
@@ -242,7 +242,7 @@ List<Vector3f> VoxelGridReduce(
 
         // d == d_max
         sidx = SubcubeDescend(p, &c, &r);
-        #ifdef VGR_DEBUG
+        #if VGR_DEBUG
         leaf->center[sidx] = c;
         leaf->radius[sidx] = r;
         #endif
@@ -280,12 +280,15 @@ List<Vector3f> VoxelGridReduce(
         }
     }
 
+
     // record stats
     stats.nvertices_out = points.len;
     stats.avg_verts_pr_leaf = cnt_sum / stats.nvertices_out;
     if (stats_out != NULL) {
         *stats_out = stats;
     }
+
+
     // assign output (debug) vars
     if (leaves_out) *leaves_out = leaves;
     if (branches_out) *branches_out = branches;

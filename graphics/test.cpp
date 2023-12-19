@@ -150,10 +150,10 @@ void TestVGROcTree() {
     for (u32 i = 0; i < leaf_blocks_out.len; ++i) {
         OcLeaf leaf = leaf_blocks_out.lst[i];
 
-        #ifdef VGR_DEBUG
         for (u32 j = 0; j < 8; ++j) {
             printf("%u ", leaf.cnt[j]);
         }
+        #if VGR_DEBUG
         for (u32 j = 0; j < 8; ++j) {
             if (leaf.cnt[j] > 0) {
                 printf("c: %f %f %f, r: %f\n", leaf.center[j].x, leaf.center[j].y, leaf.center[j].z, leaf.radius[j]);
