@@ -85,23 +85,20 @@ bool FitsWithinBoxRadius(Vector3f point, float radius) {
 }
 
 
-u32 MaxLeafSize2Depth(float leaf_size_max, float box_radius, float *leaf_size_out = NULL) {
-    u32 depth = 0;
-    u32 power_of_two = 1;
-    if (leaf_size_max > box_radius / power_of_two) {
-        return depth;
+u32 LeafSize2Depth(float leaf_size, float box_diameter, float *leaf_size_out = NULL) {
+    assert(leaf_size_out != NULL);
+    if (leaf_size > box_diameter) {
+        return 0;
     }
 
-    depth = 1;
-    power_of_two = 2;
-    while (leaf_size_max < box_radius / power_of_two) {
+    u32 depth = 1;
+    u32 power_of_two = 2;
+    while (leaf_size < box_diameter / power_of_two) {
         power_of_two *= 2;
         ++depth;
     }
 
-    if (leaf_size_out != NULL) {
-        *leaf_size_out = box_radius / power_of_two;
-    }
+    *leaf_size_out = box_diameter / power_of_two;
     return depth;
 }
 float Depth2LeafSize(u32 depth, float box_radius) {
@@ -161,7 +158,7 @@ List<Vector3f> VoxelGridReduce(
     {
         // determine depth
         float actual_leaf_size;
-        u32 depth = MaxLeafSize2Depth(leaf_size_max, box_radius, &actual_leaf_size);
+        u32 depth = LeafSize2Depth(leaf_size_max, 2 * box_radius, &actual_leaf_size);
         assert(depth <= 9 && "recommended max depth is 9");
         assert(depth >= 2 && "min depth is 2");
 
@@ -201,9 +198,11 @@ List<Vector3f> VoxelGridReduce(
         sign_y = -1.0f;
     }
     Matrix4f p2box = TransformGetInverse(box_transform) * src_transform;
+    u8 sidx;
+    u16 *bidx;
+    u16 *lidx;
     for (u32 i = 0; i < vertices.len; ++i) {
-        // get vertex, transform, flip and box filter.
-        // NOTE: Everything happens in box coords until the resulting VGR vertex is transformed back to world and added to the box
+        // filter
         p = vertices.lst[i];
         p.y *= sign_y;
         p =  TransformPoint(p2box, p);
@@ -215,45 +214,42 @@ List<Vector3f> VoxelGridReduce(
         // init
         branch = branches.lst;
         r = stats.box_radius;
+        c = Vector3f_Zero();
 
-        // descend
+        // d < d_max-1
         for (u32 d = 1; d < stats.depth_max - 1; ++d) {
-            u8 sub_idx = SubcubeDescend(p, &c, &r);
-            u16 *block_idx = &branch->indices[sub_idx];
+            sidx = SubcubeDescend(p, &c, &r);
+            bidx = branch->indices + sidx;
 
-            if (*block_idx == 0) {
-                *block_idx = branches.len;
+            if (*bidx == 0) {
+                *bidx = branches.len;
                 branches.Add(&branch_zero);
             }
-            branch = branches.lst + *block_idx;
+            branch = branches.lst + *bidx;
         }
 
-        // almost there, d == d_max - 1
-        u8 subcube = SubcubeDescend(p, &c, &r);
-        u16 *leaf_block_idx = &branch->indices[subcube];
-        if (*leaf_block_idx == 0) {
+        // d == d_max-1
+        sidx = SubcubeDescend(p, &c, &r);
+        lidx = branch->indices + sidx;
+        if (*lidx == 0) {
             assert((u8*) (leaves.lst + leaves.len) == tmp->mem + tmp->used && "check memory contiguity");
 
-            *leaf_block_idx = leaves.len;
+            *lidx = leaves.len;
             ArenaAlloc(tmp, sizeof(OcLeaf));
             leaves.Add(&leaf_zero);
         }
-        leaf = leaves.lst + *leaf_block_idx;
+        leaf = leaves.lst + *lidx;
 
-        // d == depth_max: select leaf
+        // d == d_max
+        sidx = SubcubeDescend(p, &c, &r);
         #ifdef VGR_DEBUG
+        leaf->cube_idx = sidx;
         leaf->center = c;
         leaf->radius = r;
         #endif
-        subcube = SubcubeDescend(p, &c, &r);
-        #ifdef VGR_DEBUG
-        leaf->cube_idx = subcube;
-        #endif
 
-        Vector3f *sum = &leaf->sum[subcube];
-        *sum = *sum + p;
-        u32 *cnt = &leaf->cnt[subcube];
-        *cnt = *cnt + 1;
+        leaf->sum[sidx] = leaf->sum[sidx] + p;
+        leaf->cnt[sidx] = leaf->cnt[sidx] + 1;
     }
     stats.actual_branches = branches.len;
     stats.actual_leaves = leaves.len;

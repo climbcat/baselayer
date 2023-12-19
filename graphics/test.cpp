@@ -93,7 +93,7 @@ void TestVGROcTree() {
     // filtering box / octree location
     float rootcube_radius = 0.2;
     //float leaf_size_max = rootcube_radius / (2 * 2 * 2 * 2 * 2 * 1.9);
-    float leaf_size_max = rootcube_radius / (2 * 1.9);
+    float leaf_size = rootcube_radius / 2.0;
 
     // src/dst storage
     MArena _a_tmp = ArenaCreate(); // vertices & branch list location
@@ -102,11 +102,11 @@ void TestVGROcTree() {
     MArena *a_dest = &_a_dest;
 
     // source random point cloud
-    u32 nvertices_src = 100;
+    u32 nvertices_src = 5;
     List<Vector3f> src = InitList<Vector3f>(a_tmp, nvertices_src);
     Vector3f rootcube_center { 0, 0, 0 };
     float pc_radius = 0.2;
-    RandInit();
+    RandInit(913424423);
     for (u32 i = 0; i < nvertices_src; ++i) {
         Vector3f v {
             rootcube_center.x - pc_radius + 2*pc_radius*Rand01_f32(),
@@ -125,7 +125,7 @@ void TestVGROcTree() {
     VGRTreeStats stats;
     List<OcLeaf> leaf_blocks_out;
     List<OcBranch> branch_blocks_out;
-    dest = VoxelGridReduce(src, a_tmp, rootcube_radius, leaf_size_max, box_transform, src_transform, dest.lst, false, &stats, &leaf_blocks_out, &branch_blocks_out);
+    dest = VoxelGridReduce(src, a_tmp, rootcube_radius, leaf_size, box_transform, src_transform, dest.lst, false, &stats, &leaf_blocks_out, &branch_blocks_out);
     printf("\n");
     stats.Print();
 
