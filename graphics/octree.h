@@ -13,6 +13,7 @@
 //
 // Voxel Grid Reduce using an octree binning strategy
 
+#define VGR_DEBUG
 
 struct VGRBranchBlock {
     u16 subcube_block_indices[8];
@@ -21,6 +22,11 @@ struct VGRBranchBlock {
 struct VGRLeafBlock {
     Vector3f sum[8];
     u32 cnt[8];
+
+    #ifdef VGR_DEBUG
+    Vector3f center;
+    float radius;
+    #endif
 };
 
 u32 SubCubesTotal(u32 depth) {
@@ -81,11 +87,16 @@ struct VGRTreeStats {
     }
 
     void Print() {
-        printf("Voxel Grid Reduce to depth %u:\n", depth_max);
-        printf("Box radius: %f and leaf sz: %f, gives actual leaf sz: %f):\n", box_radius, max_leaf_size, actual_leaf_size);
-        printf("Built %u branch node blocks and %u leaf node blocks\n", actual_branches, actual_leaves);
-        printf("Inputs: %u, outputs: %u vertices (avg. %f verts pr. leaf cube)\n", nvertices_in, nvertices_out, avg_verts_pr_leaf);
-        printf("Reduced by: %.2f pct (from %u to %u)\n", 100 - PctReduced(), nvertices_in, nvertices_out);
+        printf("VGR depth: %u\n", depth_max);
+        printf("Box radius: %f\n", box_radius);
+        printf("Req. leaf size: %f\n", max_leaf_size);
+        printf("Act. leaf size: %f:\n", actual_leaf_size);
+        printf("Branch nodes: %u\n", actual_branches);
+        printf("Leaf nodes: %u\n", actual_leaves);
+        printf("Vertices in: %u\n", nvertices_in);
+        printf("Vertices out: %u\n", nvertices_out);
+        printf("Av. vertices pr. cube: %f\n", avg_verts_pr_leaf);
+        printf("Reduction pct.: %.2f (%u to %u)\n", 100 - PctReduced(), nvertices_in, nvertices_out);
     }
 };
 
@@ -143,7 +154,9 @@ List<Vector3f> VoxelGridReduce(
     Matrix4f src_transform,
     Vector3f *dest, // you have to reserve memory at this location
     bool flip_y = false,
-    VGRTreeStats *stats_out = NULL)
+    VGRTreeStats *stats_out = NULL,
+    List<VGRLeafBlock> *leaf_blocks_out = NULL,
+    List<VGRBranchBlock> *branch_blocks_out = NULL)
 {
     assert(dest != NULL);
     assert(box_radius > 0);
@@ -239,6 +252,11 @@ List<Vector3f> VoxelGridReduce(
         leaf_block = leaf_lst.lst + *leaf_block_idx;
 
         // finally at d == depth_max: select leaf in leaf_block
+        #ifdef VGR_DEBUG
+        // record leaf block center (e.g. the [d = d_max - 1] cube center)
+        leaf_block->center = c;
+        leaf_block->radius = r;
+        #endif
         sub_idx = SubcubeSelect(p, c, r, &c, &r);
 
         Vector3f *sum = &leaf_block->sum[sub_idx];
@@ -249,7 +267,7 @@ List<Vector3f> VoxelGridReduce(
     stats.actual_branches = branch_lst.len;
     stats.actual_leaves = leaf_lst.len;
 
-    // walk the tree
+    // go through the leaves
     List<Vector3f> result = { dest, 0 };
     Vector3f avg;
     Vector3f sum;
@@ -275,11 +293,15 @@ List<Vector3f> VoxelGridReduce(
         }
     }
 
+    // record stats
     stats.nvertices_out = result.len;
     stats.avg_verts_pr_leaf = cnt_sum / stats.nvertices_out;
     if (stats_out != NULL) {
         *stats_out = stats;
     }
+    // assign output (debug) vars
+    if (leaf_blocks_out) *leaf_blocks_out = leaf_lst;
+    if (branch_blocks_out) *branch_blocks_out = branch_lst;
 
     return result;
 }
