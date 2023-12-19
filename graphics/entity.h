@@ -407,12 +407,9 @@ Entity *EntityStreamLoad(EntitySystem *es, StreamHeader *data, bool do_transpose
     Entity *ent = es->AllocEntity();
     ent->data_tpe = EF_STREAM;
     if (data->tpe == ST_POINTS) {
-
-
         // check if point cloud with normals:
         StreamHeader *data_nxt = data->GetNext(true);
-        //if (data_nxt != NULL && data_nxt->id == data->id && data_nxt->tpe == ST_NORMALS) {
-        if (data_nxt != NULL && data_nxt->id == data->id && data_nxt->tpe == ST_POINTS) {
+        if (data_nxt != NULL && data_nxt->id == data->id && (data_nxt->tpe == ST_NORMALS || /*TODO: hax, remove:*/ data_nxt->tpe == ST_POINTS)) {
             ent->tpe = ET_POINTCLOUD_W_NORMALS;
 
             // assign ext data ptrs
