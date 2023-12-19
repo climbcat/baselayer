@@ -23,9 +23,9 @@ struct OcLeaf {
     u32 cnt[8];
 
     #ifdef VGR_DEBUG
-    Vector3f center;
-    float radius;
-    u8 cube_idx;
+    Vector3f center[8];
+    float radius[8];
+    u8 cube_idx[8];
     #endif
 };
 
@@ -223,7 +223,7 @@ List<Vector3f> VoxelGridReduce(
 
             if (*bidx == 0) {
                 *bidx = branches.len;
-                branches.Add(&branch_zero);
+                branches.Add(branch_zero);
             }
             branch = branches.lst + *bidx;
         }
@@ -236,16 +236,15 @@ List<Vector3f> VoxelGridReduce(
 
             *lidx = leaves.len;
             ArenaAlloc(tmp, sizeof(OcLeaf));
-            leaves.Add(&leaf_zero);
+            leaves.Add(leaf_zero);
         }
         leaf = leaves.lst + *lidx;
 
         // d == d_max
         sidx = SubcubeDescend(p, &c, &r);
         #ifdef VGR_DEBUG
-        leaf->cube_idx = sidx;
-        leaf->center = c;
-        leaf->radius = r;
+        leaf->center[sidx] = c;
+        leaf->radius[sidx] = r;
         #endif
 
         leaf->sum[sidx] = leaf->sum[sidx] + p;

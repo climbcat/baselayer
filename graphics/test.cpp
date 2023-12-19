@@ -90,10 +90,15 @@ void TestRandomPCWithNormals() {
 void TestVGROcTree() {
     printf("TestVGROcTree\n");
 
-    // filtering box / octree location
+
+    // test parameters
     float rootcube_radius = 0.2;
-    //float leaf_size_max = rootcube_radius / (2 * 2 * 2 * 2 * 2 * 1.9);
-    float leaf_size = rootcube_radius / 2.0;
+    float leaf_size = rootcube_radius / 2.0 / 2.0;
+    u32 nvertices_src = 10000;
+    bool display_boxes = false;
+    Color color_in { RGBA_BLUE };
+    Color color_out { RGBA_RED };
+
 
     // src/dst storage
     MArena _a_tmp = ArenaCreate(); // vertices & branch list location
@@ -101,8 +106,6 @@ void TestVGROcTree() {
     MArena _a_dest = ArenaCreate(); // dest storage
     MArena *a_dest = &_a_dest;
 
-    // source random point cloud
-    u32 nvertices_src = 5;
     List<Vector3f> src = InitList<Vector3f>(a_tmp, nvertices_src);
     Vector3f rootcube_center { 0, 0, 0 };
     float pc_radius = 0.2;
@@ -116,18 +119,15 @@ void TestVGROcTree() {
         src.Add(&v);
     }
 
-    // dest list
     List<Vector3f> dest = InitList<Vector3f>(a_dest, nvertices_src);
     Matrix4f box_transform = Matrix4f_Identity();
     Matrix4f src_transform = Matrix4f_Identity();
 
-    // run vgr
+    // run the vgr
     VGRTreeStats stats;
     List<OcLeaf> leaf_blocks_out;
     List<OcBranch> branch_blocks_out;
     dest = VoxelGridReduce(src, a_tmp, rootcube_radius, leaf_size, box_transform, src_transform, dest.lst, false, &stats, &leaf_blocks_out, &branch_blocks_out);
-    printf("\n");
-    stats.Print();
 
     // visualize
     GameLoopOne *loop = InitGameLoopOne();
@@ -138,13 +138,14 @@ void TestVGROcTree() {
     Entity *src_pc = EntityPoints(es, &src);
     src_pc->transform = src_transform;
     src_pc->tpe = ET_POINTCLOUD;
-    src_pc->color = Color { RGBA_RED };
+    src_pc->color = color_in;
 
     Entity *dest_pc = EntityPoints(es, &dest);
     src_pc->transform = src_transform;
     dest_pc->tpe = ET_POINTCLOUD;
-    dest_pc->color = Color { RGBA_GREEN };
+    dest_pc->color = color_out;
 
+    // print leaf boxes
     printf("\n");
     for (u32 i = 0; i < leaf_blocks_out.len; ++i) {
         OcLeaf leaf = leaf_blocks_out.lst[i];
@@ -153,11 +154,20 @@ void TestVGROcTree() {
         for (u32 j = 0; j < 8; ++j) {
             printf("%u ", leaf.cnt[j]);
         }
-        printf("c: %f %f %f, r: %f, cubd_idx: %u\n", leaf.center.x, leaf.center.y, leaf.center.z, leaf.radius, leaf.cube_idx);
-
-        Entity *cub = EntityAABox(es, leaf.center, leaf.radius, r);
+        for (u32 j = 0; j < 8; ++j) {
+            if (leaf.cnt[j] > 0) {
+                printf("c: %f %f %f, r: %f\n", leaf.center[j].x, leaf.center[j].y, leaf.center[j].z, leaf.radius[j]);
+                if (display_boxes) {
+                    Entity *cub = EntityAABox(es, leaf.center[j], leaf.radius[j], r);
+                }
+            }
+        }
         #endif
     }
+
+    // print vgr stats
+    printf("\n");
+    stats.Print();
 
     loop->JustRun(es);
 }
