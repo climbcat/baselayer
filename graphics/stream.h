@@ -152,11 +152,11 @@ void StreamPrint(StreamHeader *et, char *tag) {
         ++didx;
     }
 }
-StreamHeader *StreamCopy(MArena *a_stream_bld, Matrix4f transform, List<Vector3f> src, u32 id = 0) {
+StreamHeader *StreamCopy(MArena *a_stream_bld, Matrix4f transform, List<Vector3f> src, u32 id = 0, StreamType stpe = ST_POINTS) {
     // allocate and copy header + payload
     StreamHeader hdr;
     hdr.next = 0;
-    hdr.tpe = ST_POINTS;
+    hdr.tpe = stpe;
     hdr.id = id;
     hdr.transform = transform;
     hdr.SetVertexCount(src.len); // sets .datasize

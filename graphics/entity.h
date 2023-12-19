@@ -85,6 +85,8 @@ struct Entity {
     // external data
     List<Vector3f> *ext_points;
     List<Vector3f> *ext_normals;
+    List<Vector3f> ext_points_lst;
+    List<Vector3f> ext_normals_lst;
 
     // scene graph switch
     bool active = true;
@@ -131,8 +133,9 @@ struct Entity {
     }
     List<Vector3f> GetNormals() { 
         assert(
-            (data_tpe == EF_EXTERNAL) &&
-            (tpe == ET_POINTCLOUD_W_NORMALS) && "GetVertices: Only call with point cloud or mesh ext data"
+            (data_tpe == EF_EXTERNAL || data_tpe == EF_STREAM) &&
+            (tpe == ET_POINTCLOUD_W_NORMALS) && 
+            "GetVertices: Only call with point cloud or mesh ext data"
         );
         List<Vector3f> normals { NULL, 0 };
         if (ext_normals != NULL) {
@@ -409,7 +412,25 @@ Entity *EntityStreamLoad(EntitySystem *es, StreamHeader *data, bool do_transpose
     Entity *ent = es->AllocEntity();
     ent->data_tpe = EF_STREAM;
     if (data->tpe == ST_POINTS) {
-        ent->tpe = ET_POINTCLOUD;
+
+
+        // check if point cloud with normals:
+        StreamHeader *data_nxt = data->GetNext(true);
+        if (data_nxt != NULL && data_nxt->id == data->id && data_nxt->tpe == ST_NORMALS) {
+            ent->tpe = ET_POINTCLOUD_W_NORMALS;
+
+            // assign ext data ptrs
+            ent->ext_points_lst = data->GetDataVector3f();
+            ent->ext_normals_lst = data_nxt->GetDataVector3f();
+            ent->ext_points = &ent->ext_points_lst;
+            ent->ext_normals = &ent->ext_normals_lst;
+
+            assert(ent->ext_normals->len == ent->ext_points->len);
+        }
+        else {
+            ent->tpe = ET_POINTCLOUD;
+        }
+
         ent->color  = { RGBA_GREEN };
         if (do_transpose == true) {
             ent->transform = Matrix4f_Transpose( data->transform );
@@ -418,12 +439,13 @@ Entity *EntityStreamLoad(EntitySystem *es, StreamHeader *data, bool do_transpose
             ent->transform = data->transform;
         }
     }
-    else if (data->tpe == ST_VERTICES || ST_NORMALS || ST_INDICES3) {
-        ent->tpe = ET_MESH;
-        ent->color  = { RGBA_BLUE };
-        ent->transform = data->transform;
-    }
+    // NOTE: load mesh entity stream here, if needed
+
+    // assign stream ptr
     ent->entity_stream = data;
+    if (ent->tpe == ET_POINTCLOUD_W_NORMALS) {
+        assert((void*) ent->entity_stream->GetData() == (void*) ent->ext_points->lst && "extra consistence check for pc_w_normals");
+    }
 
     EntitySystemChain(es, ent);
     return ent;
