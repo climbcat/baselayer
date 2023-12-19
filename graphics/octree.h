@@ -15,19 +15,20 @@
 
 #define VGR_DEBUG
 
-struct VGRBranchBlock {
-    u16 subcube_block_indices[8];
+struct OcBranch {
+    u16 indices[8];
 };
-
-struct VGRLeafBlock {
+struct OcLeaf {
     Vector3f sum[8];
     u32 cnt[8];
 
     #ifdef VGR_DEBUG
     Vector3f center;
     float radius;
+    u8 cube_idx;
     #endif
 };
+
 
 u32 SubCubesTotal(u32 depth) {
     // NOTE: root cube is not counted
@@ -39,32 +40,6 @@ u32 SubCubesTotal(u32 depth) {
     }
     return ncubes;
 }
-
-u8 SubcubeSelect(Vector3f target, Vector3f cube_center, float cube_radius, Vector3f *subcube_center, float *subcube_radius) {
-    assert(subcube_center != NULL && subcube_radius != NULL && "non-NULL output variables");
-
-    Vector3f relative = target - cube_center;
-    bool neg_x = relative.x < 0;
-    bool neg_y = relative.y < 0;
-    bool neg_z = relative.z < 0;
-
-    // subcube index 0-7 octets: ---, --+, -+-, -++, +--, +-+, ++-, +++
-    u8 subcube_idx = 4*neg_x + 2*neg_y + neg_z;
-
-    // subcube center:
-    float pmhalf_x = (1 - neg_x * 2) * 0.5f * cube_radius;
-    float pmhalf_y = (1 - neg_y * 2) * 0.5f * cube_radius;
-    float pmhalf_z = (1 - neg_z * 2) * 0.5f * cube_radius;
-    *subcube_center = Vector3f {
-        cube_center.x + pmhalf_x,
-        cube_center.y + pmhalf_y,
-        cube_center.z + pmhalf_z
-    };
-    *subcube_radius = 0.5f * cube_radius;
-
-    return subcube_idx;
-}
-
 struct VGRTreeStats {
     u32 depth_max;
 
@@ -100,13 +75,6 @@ struct VGRTreeStats {
     }
 };
 
-inline
-bool FitsWithinBox(Vector3f point, Vector3f center, float radius) {
-    bool result = (abs( point.x - center.x ) <= radius) &&
-        (abs( point.y - center.y ) <= radius) && 
-        (abs( point.z - center.z ) <= radius);
-    return result;
-}
 inline
 bool FitsWithinBoxRadius(Vector3f point, float radius) {
     bool result =
@@ -145,6 +113,29 @@ float Depth2LeafSize(u32 depth, float box_radius) {
 }
 
 
+inline
+u8 SubcubeDescend(Vector3f target, Vector3f *center, float *radius) {
+    Vector3f relative = target - *center;
+    bool neg_x = relative.x < 0;
+    bool neg_y = relative.y < 0;
+    bool neg_z = relative.z < 0;
+
+    // subcube index 0-7 octets: ---, --+, -+-, -++, +--, +-+, ++-, +++
+    u8 subcube_idx = 4*neg_x + 2*neg_y + neg_z;
+
+    // subcube center:
+    *radius = 0.5f * (*radius);
+    float pm_x = (1 - neg_x * 2) * (*radius);
+    float pm_y = (1 - neg_y * 2) * (*radius);
+    float pm_z = (1 - neg_z * 2) * (*radius);
+    *center = Vector3f {
+        center->x + pm_x,
+        center->y + pm_y,
+        center->z + pm_z
+    };
+
+    return subcube_idx;
+}
 List<Vector3f> VoxelGridReduce(
     List<Vector3f> vertices,
     MArena *tmp,
@@ -155,15 +146,14 @@ List<Vector3f> VoxelGridReduce(
     Vector3f *dest, // you have to reserve memory at this location
     bool flip_y = false,
     VGRTreeStats *stats_out = NULL,
-    List<VGRLeafBlock> *leaf_blocks_out = NULL,
-    List<VGRBranchBlock> *branch_blocks_out = NULL)
+    List<OcLeaf> *leaves_out = NULL,
+    List<OcBranch> *branches_out = NULL)
 {
+    assert(tmp != NULL);
     assert(dest != NULL);
+    assert(vertices.lst != NULL);
     assert(box_radius > 0);
     assert(leaf_size_max > 0);
-    assert(tmp != NULL);
-    assert(vertices.lst != NULL);
-    assert(dest != NULL);
 
 
     // setup
@@ -189,16 +179,18 @@ List<Vector3f> VoxelGridReduce(
         //assert(stats.max_leaves / 8 <= 65535 && "block index address space max exceeded");
     }
 
-    // reserve branch memory, assign level 1 branches:
-    List<VGRBranchBlock> branch_lst = InitList<VGRBranchBlock>(tmp, stats.max_branches / 8);
-    static VGRBranchBlock branch_zero;
-    branch_lst.Add(&branch_zero);
-    VGRBranchBlock *branch_block = branch_lst.lst;
+    // reserve branch memory
+    List<OcBranch> branches = InitList<OcBranch>(tmp, stats.max_branches / 8);
+    static OcBranch branch_zero;
+
+    // assign level 1 branches:
+    branches.Add(branch_zero);
+    OcBranch *branch = branches.lst;
 
     // open-ended size for leaf blocks:
-    List<VGRLeafBlock> leaf_lst = InitList<VGRLeafBlock>(tmp, 0);
-    static VGRLeafBlock leaf_zero;
-    VGRLeafBlock *leaf_block;
+    List<OcLeaf> leaves = InitList<OcLeaf>(tmp, 0);
+    static OcLeaf leaf_zero;
+    OcLeaf *leaf;
 
     // build the tree
     Vector3f p;
@@ -210,9 +202,6 @@ List<Vector3f> VoxelGridReduce(
     }
     Matrix4f p2box = TransformGetInverse(box_transform) * src_transform;
     for (u32 i = 0; i < vertices.len; ++i) {
-        // Db print:
-        //printf("%u: ", i);
-
         // get vertex, transform, flip and box filter.
         // NOTE: Everything happens in box coords until the resulting VGR vertex is transformed back to world and added to the box
         p = vertices.lst[i];
@@ -224,69 +213,72 @@ List<Vector3f> VoxelGridReduce(
         }
 
         // init
-        branch_block = branch_lst.lst;
+        branch = branches.lst;
         r = stats.box_radius;
 
         // descend
         for (u32 d = 1; d < stats.depth_max - 1; ++d) {
-            u8 sub_idx = SubcubeSelect(p, c, r, &c, &r);
-            u16 *block_idx = &branch_block->subcube_block_indices[sub_idx];
+            u8 sub_idx = SubcubeDescend(p, &c, &r);
+            u16 *block_idx = &branch->indices[sub_idx];
 
             if (*block_idx == 0) {
-                *block_idx = branch_lst.len;
-                branch_lst.Add(&branch_zero);
+                *block_idx = branches.len;
+                branches.Add(&branch_zero);
             }
-            branch_block = branch_lst.lst + *block_idx;
+            branch = branches.lst + *block_idx;
         }
 
         // almost there, d == d_max - 1
-        u8 sub_idx = SubcubeSelect(p, c, r, &c, &r);
-        u16 *leaf_block_idx = &branch_block->subcube_block_indices[sub_idx];
+        u8 subcube = SubcubeDescend(p, &c, &r);
+        u16 *leaf_block_idx = &branch->indices[subcube];
         if (*leaf_block_idx == 0) {
-            assert((u8*) (leaf_lst.lst + leaf_lst.len) == tmp->mem + tmp->used && "check memory contiguity");
+            assert((u8*) (leaves.lst + leaves.len) == tmp->mem + tmp->used && "check memory contiguity");
 
-            *leaf_block_idx = leaf_lst.len;
-            ArenaAlloc(tmp, sizeof(VGRLeafBlock));
-            leaf_lst.Add(&leaf_zero);
+            *leaf_block_idx = leaves.len;
+            ArenaAlloc(tmp, sizeof(OcLeaf));
+            leaves.Add(&leaf_zero);
         }
-        leaf_block = leaf_lst.lst + *leaf_block_idx;
+        leaf = leaves.lst + *leaf_block_idx;
 
-        // finally at d == depth_max: select leaf in leaf_block
+        // d == depth_max: select leaf
         #ifdef VGR_DEBUG
-        // record leaf block center (e.g. the [d = d_max - 1] cube center)
-        leaf_block->center = c;
-        leaf_block->radius = r;
+        leaf->center = c;
+        leaf->radius = r;
         #endif
-        sub_idx = SubcubeSelect(p, c, r, &c, &r);
+        subcube = SubcubeDescend(p, &c, &r);
+        #ifdef VGR_DEBUG
+        leaf->cube_idx = subcube;
+        #endif
 
-        Vector3f *sum = &leaf_block->sum[sub_idx];
+        Vector3f *sum = &leaf->sum[subcube];
         *sum = *sum + p;
-        u32 *cnt = &leaf_block->cnt[sub_idx];
+        u32 *cnt = &leaf->cnt[subcube];
         *cnt = *cnt + 1;
     }
-    stats.actual_branches = branch_lst.len;
-    stats.actual_leaves = leaf_lst.len;
+    stats.actual_branches = branches.len;
+    stats.actual_leaves = leaves.len;
 
-    // go through the leaves
-    List<Vector3f> result = { dest, 0 };
+
+    // leaf iteration, generate averages
+    List<Vector3f> points = { dest, 0 };
     Vector3f avg;
     Vector3f sum;
     Vector3f p_world;
     u32 cnt = 0;
     float cnt_inv;
     float cnt_sum = 0.0f;
-    for (u32 i = 0; i < leaf_lst.len; ++i) {
-        VGRLeafBlock lb = leaf_lst.lst[i];
+    for (u32 i = 0; i < leaves.len; ++i) {
+        OcLeaf leaf = leaves.lst[i];
         for (u32 j = 0; j < 8; ++j) {
-            cnt = lb.cnt[j];
+            cnt = leaf.cnt[j];
             if (cnt > 0) {
-                sum = lb.sum[j];
+                sum = leaf.sum[j];
                 cnt_inv = 1.0f / cnt;
                 avg = cnt_inv * sum;
 
                 // Here, we go back to world coords after having worked in box coords all along
                 p_world = TransformPoint(box_transform, avg);
-                result.Add(&p_world);
+                points.Add(&p_world);
 
                 cnt_sum += cnt;
             }
@@ -294,16 +286,16 @@ List<Vector3f> VoxelGridReduce(
     }
 
     // record stats
-    stats.nvertices_out = result.len;
+    stats.nvertices_out = points.len;
     stats.avg_verts_pr_leaf = cnt_sum / stats.nvertices_out;
     if (stats_out != NULL) {
         *stats_out = stats;
     }
     // assign output (debug) vars
-    if (leaf_blocks_out) *leaf_blocks_out = leaf_lst;
-    if (branch_blocks_out) *branch_blocks_out = branch_lst;
+    if (leaves_out) *leaves_out = leaves;
+    if (branches_out) *branches_out = branches;
 
-    return result;
+    return points;
 }
 
 

@@ -123,8 +123,8 @@ void TestVGROcTree() {
 
     // run vgr
     VGRTreeStats stats;
-    List<VGRLeafBlock> leaf_blocks_out;
-    List<VGRBranchBlock> branch_blocks_out;
+    List<OcLeaf> leaf_blocks_out;
+    List<OcBranch> branch_blocks_out;
     dest = VoxelGridReduce(src, a_tmp, rootcube_radius, leaf_size_max, box_transform, src_transform, dest.lst, false, &stats, &leaf_blocks_out, &branch_blocks_out);
     printf("\n");
     stats.Print();
@@ -138,7 +138,7 @@ void TestVGROcTree() {
     Entity *src_pc = EntityPoints(es, &src);
     src_pc->transform = src_transform;
     src_pc->tpe = ET_POINTCLOUD;
-    src_pc->color = Color { RGBA_BLUE };
+    src_pc->color = Color { RGBA_RED };
 
     Entity *dest_pc = EntityPoints(es, &dest);
     src_pc->transform = src_transform;
@@ -147,13 +147,13 @@ void TestVGROcTree() {
 
     printf("\n");
     for (u32 i = 0; i < leaf_blocks_out.len; ++i) {
-        VGRLeafBlock leaf = leaf_blocks_out.lst[i];
+        OcLeaf leaf = leaf_blocks_out.lst[i];
 
         #ifdef VGR_DEBUG
         for (u32 j = 0; j < 8; ++j) {
             printf("%u ", leaf.cnt[j]);
         }
-        printf("c: %f %f %f, r: %f\n", leaf.center.x, leaf.center.y, leaf.center.z, leaf.radius);
+        printf("c: %f %f %f, r: %f, cubd_idx: %u\n", leaf.center.x, leaf.center.y, leaf.center.z, leaf.radius, leaf.cube_idx);
 
         Entity *cub = EntityAABox(es, leaf.center, leaf.radius, r);
         #endif

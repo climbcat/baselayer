@@ -228,8 +228,13 @@ struct List {
     T *lst = NULL;
     u32 len = 0;
 
+    inline
     void Add(T *element) {
         lst[len++] = *element;
+    }
+    inline
+    void Add(T element) {
+        lst[len++] = element;
     }
 };
 
