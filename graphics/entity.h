@@ -399,6 +399,7 @@ Entity *EntityPoints(EntitySystem *es, Matrix4f transform, List<Vector3f> *point
     pc->tpe = ET_POINTCLOUD;
     pc->entity_stream = NULL;
     pc->ext_points = points;
+    pc->ext_points_lst = *points;
     pc->color  = { RGBA_GREEN };
     pc->transform = transform;
 
