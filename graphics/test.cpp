@@ -124,7 +124,7 @@ void TestVGROcTree() {
     Matrix4f src_transform = Matrix4f_Identity();
 
     // run the vgr
-    VGRTreeStats stats;
+    OcTreeStats stats;
     List<OcLeaf> leaf_blocks_out;
     List<OcBranch> branch_blocks_out;
     dest = VoxelGridReduce(src, a_tmp, rootcube_radius, leaf_size, box_transform, src_transform, dest.lst, false, &stats, &leaf_blocks_out, &branch_blocks_out);

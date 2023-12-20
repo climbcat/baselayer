@@ -7,40 +7,10 @@
 
 
 //
-// Octree related things
+// Octree Stats / runtime and debug info
 
 
-//
-// Voxel Grid Reduce using an octree binning strategy
-
-#define VGR_DEBUG 0
-
-struct OcBranch {
-    u16 indices[8];
-};
-struct OcLeaf {
-    Vector3f sum[8];
-    u32 cnt[8];
-
-    #if VGR_DEBUG
-    Vector3f center[8];
-    float radius[8];
-    u8 cube_idx[8];
-    #endif
-};
-
-
-u32 SubCubesTotal(u32 depth) {
-    // NOTE: root cube is not counted
-    u32 ncubes = 0;
-    u32 power_of_eight = 1;
-    for (u32 i = 1; i <= depth; ++i) {
-        power_of_eight *= 8;
-        ncubes += power_of_eight;
-    }
-    return ncubes;
-}
-struct VGRTreeStats {
+struct OcTreeStats {
     u32 depth_max;
 
     u32 max_branches;
@@ -65,7 +35,7 @@ struct VGRTreeStats {
         printf("VGR depth: %u\n", depth_max);
         printf("Box radius: %f\n", box_radius);
         printf("Req. leaf size: %f\n", max_leaf_size);
-        printf("Act. leaf size: %f:\n", actual_leaf_size);
+        printf("Act. leaf size: %f\n", actual_leaf_size);
         printf("Branch nodes: %u\n", actual_branches);
         printf("Leaf nodes: %u\n", actual_leaves);
         printf("Vertices in: %u\n", nvertices_in);
@@ -74,9 +44,16 @@ struct VGRTreeStats {
         printf("Reduction pct.: %.2f (%u to %u)\n", 100 - PctReduced(), nvertices_in, nvertices_out);
     }
 };
-
-
-u32 LeafSize2Depth(float leaf_size, float box_diameter, float *leaf_size_out = NULL) {
+u32 OcTreeStatsSubCubesTotal(u32 depth) {
+    u32 ncubes = 0;
+    u32 power_of_eight = 1;
+    for (u32 i = 1; i <= depth; ++i) {
+        power_of_eight *= 8;
+        ncubes += power_of_eight;
+    }
+    return ncubes;
+}
+u32 OcTreeStatsLeafSize2Depth(float leaf_size, float box_diameter, float *leaf_size_out = NULL) {
     assert(leaf_size_out != NULL);
     if (leaf_size > box_diameter) {
         return 0;
@@ -92,13 +69,26 @@ u32 LeafSize2Depth(float leaf_size, float box_diameter, float *leaf_size_out = N
     *leaf_size_out = box_diameter / power_of_two;
     return depth;
 }
-float Depth2LeafSize(u32 depth, float box_radius) {
-    float leaf_sz = box_radius;
-    for (u32 i = 2; i <= depth; ++i) {
-        leaf_sz = leaf_sz / 2;
-    }
-    return leaf_sz;
+OcTreeStats OcTreeStatsInit(float box_radius, float leaf_size_max) {
+    OcTreeStats stats;
+    float actual_leaf_size;
+    u32 depth = OcTreeStatsLeafSize2Depth(leaf_size_max, 2 * box_radius, &actual_leaf_size);
+    assert(depth <= 9 && "recommended max depth is 9");
+    assert(depth >= 2 && "min depth is 2");
+
+    stats.depth_max = depth;
+    u32 max_cubes = OcTreeStatsSubCubesTotal(depth);
+    stats.max_branches = OcTreeStatsSubCubesTotal(depth - 1);
+    stats.max_leaves = max_cubes - stats.max_branches;
+    stats.box_radius = box_radius;
+    stats.max_leaf_size = leaf_size_max;
+    stats.actual_leaf_size = actual_leaf_size;
+    return stats;
 }
+
+
+//
+// Voxel Grid Reduce
 
 
 inline
@@ -132,6 +122,21 @@ u8 SubcubeDescend(Vector3f target, Vector3f *center, float *radius) {
 
     return subcube_idx;
 }
+#define VGR_DEBUG 0
+struct OcBranch {
+    u16 indices[8];
+};
+struct OcLeaf {
+    Vector3f sum[8];
+    u32 cnt[8];
+
+    #if VGR_DEBUG
+    Vector3f center[8];
+    float radius[8];
+    u8 cube_idx[8];
+    #endif
+};
+
 List<Vector3f> VoxelGridReduce(
     List<Vector3f> vertices,
     MArena *tmp,
@@ -141,7 +146,7 @@ List<Vector3f> VoxelGridReduce(
     Matrix4f src_transform,
     Vector3f *dest, // you have to reserve memory at this location
     bool flip_y = false,
-    VGRTreeStats *stats_out = NULL,
+    OcTreeStats *stats_out = NULL,
     List<OcLeaf> *leaves_out = NULL,
     List<OcBranch> *branches_out = NULL)
 {
@@ -151,30 +156,8 @@ List<Vector3f> VoxelGridReduce(
     assert(box_radius > 0);
     assert(leaf_size_max > 0);
 
-
-    // setup
-    VGRTreeStats stats;
-    {
-        // determine depth
-        float actual_leaf_size;
-        u32 depth = LeafSize2Depth(leaf_size_max, 2 * box_radius, &actual_leaf_size);
-        assert(depth <= 9 && "recommended max depth is 9");
-        assert(depth >= 2 && "min depth is 2");
-
-        // determine reserve sizes, record params
-        stats.depth_max = depth;
-        u32 max_cubes = SubCubesTotal(depth);
-        stats.max_branches = SubCubesTotal(depth - 1);
-        stats.max_leaves = max_cubes - stats.max_branches;
-        stats.box_radius = box_radius;
-        stats.max_leaf_size = leaf_size_max;
-        stats.actual_leaf_size = actual_leaf_size;
-        stats.nvertices_in = vertices.len;
-
-        // TODO: try and run the alg with max memory, assuming that max occupancy very rarely happens
-        //assert(stats.max_leaves / 8 <= 65535 && "block index address space max exceeded");
-    }
-
+    OcTreeStats stats = OcTreeStatsInit(box_radius, leaf_size_max);
+    stats.nvertices_in = vertices.len;
 
     // reserve branch memory
     List<OcBranch> branches = InitList<OcBranch>(tmp, stats.max_branches / 8);
