@@ -132,6 +132,8 @@ struct Entity {
         return verts;
     }
     List<Vector3f> GetNormals() { 
+        // TODO: handle the situation where normals are located in stream->nxt location
+    
         List<Vector3f> normals { NULL, 0 };
         if (ext_normals != NULL) {
             normals = *ext_normals;
@@ -139,8 +141,27 @@ struct Entity {
         return normals;
     }
     void SetStreamVertexCount(u32 npoints) {
-        assert(data_tpe == EF_STREAM && (tpe == ET_POINTCLOUD || tpe == ET_MESH));
-        entity_stream->SetVertexCount(npoints);
+        assert(data_tpe == EF_STREAM && (tpe == ET_POINTCLOUD || tpe == ET_POINTCLOUD_W_NORMALS || tpe == ET_MESH));
+        if (entity_stream->tpe == ST_POINTS) {
+            entity_stream->SetVertexCount(npoints);
+        }
+        else {
+            assert(1 == 0 && "warning, inconsistent use of SetStreamVertexCount");
+        }
+        ext_points_lst = entity_stream->GetDataVector3f();
+        ext_points = &ext_points_lst;
+    }
+    void SetStreamNormalsCount(u32 npoints) {
+        assert(data_tpe == EF_STREAM && (tpe == ET_POINTCLOUD_W_NORMALS || tpe == ET_MESH));
+        StreamHeader *nxt = entity_stream->GetNext(true);
+        if (nxt->tpe == ST_NORMALS) {
+            nxt->SetVertexCount(npoints);
+        }
+        else {
+            assert(1 == 0 && "warning, unrestricted use of SetStreamNormalsCount");
+        }
+        ext_normals_lst = nxt->GetDataVector3f();
+        ext_normals = &ext_normals_lst;
     }
 
     // scene graph behavior
@@ -388,13 +409,13 @@ Entity *EntityPoints(EntitySystem *es, List<Vector3f> *points) {
     return EntityPoints(es, Matrix4f_Identity(), points);
 }
 
-Entity *EntityStream(EntitySystem *es, MArena *a_stream_bld, u32 npoints_max, u32 id, StreamHeader *prev) {
-    StreamHeader *hdr = StreamReserveChain(a_stream_bld, npoints_max, Matrix4f_Identity(), prev);
+Entity *EntityStream(EntitySystem *es, MArena *a_stream_bld, u32 npoints_max, u32 id, StreamHeader *prev, EntityType tpe, StreamType stpe) {
+    StreamHeader *hdr = StreamReserveChain(a_stream_bld, npoints_max, Matrix4f_Identity(), prev, id, stpe);
     hdr->id = id;
 
     Entity *pc = es->AllocEntity();
     pc->data_tpe = EF_STREAM;
-    pc->tpe = ET_POINTCLOUD;
+    pc->tpe = tpe;
     pc->entity_stream = hdr;
     pc->color  = { RGBA_GREEN };
     pc->transform = hdr->transform;

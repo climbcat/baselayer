@@ -168,11 +168,11 @@ StreamHeader *StreamCopy(MArena *a_stream_bld, Matrix4f transform, List<Vector3f
 
     return result;
 }
-StreamHeader *StreamReserve(MArena *a_stream_bld, Matrix4f transform, u32 npoints, u32 id = 0) {
+StreamHeader *StreamReserve(MArena *a_stream_bld, Matrix4f transform, u32 npoints, u32 id = 0, StreamType stpe = ST_POINTS) {
     // allocate and copy header, allocate payload (no copy)
     StreamHeader hdr;
     hdr.next = 0;
-    hdr.tpe = ST_POINTS;
+    hdr.tpe = stpe;
     hdr.id = id;
     hdr.transform = transform;
     hdr.SetVertexCount(npoints); // sets .datasize
@@ -184,8 +184,8 @@ StreamHeader *StreamReserve(MArena *a_stream_bld, Matrix4f transform, u32 npoint
 
     return result;
 }
-StreamHeader *StreamReserveChain(MArena *a_stream_bld, u32 npoints, Matrix4f transform, StreamHeader *prev = NULL, u32 id = 0) {
-    StreamHeader *hdr = StreamReserve(a_stream_bld, transform, npoints, id);
+StreamHeader *StreamReserveChain(MArena *a_stream_bld, u32 npoints, Matrix4f transform, StreamHeader *prev = NULL, u32 id = 0, StreamType stpe = ST_POINTS) {
+    StreamHeader *hdr = StreamReserve(a_stream_bld, transform, npoints, id, stpe);
 
     // link here from prev
     if (prev != NULL) {
