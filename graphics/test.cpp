@@ -94,10 +94,15 @@ void TestVGROcTree() {
     // test parameters
     float rootcube_radius = 0.2;
     float leaf_size = rootcube_radius / 2.0 / 2.0;
-    u32 nvertices_src = 10000;
+    u32 nvertices_src = 100;
+    u32 nvertices_src_2 = 1000;
     bool display_boxes = false;
     Color color_in { RGBA_BLUE };
+    Color color_in_2 { RGBA_BLUE };
     Color color_out { RGBA_RED };
+    Matrix4f box_transform = Matrix4f_Identity();
+    Matrix4f src_transform = Matrix4f_Identity();
+    Matrix4f src_transform_2 = Matrix4f_Identity();
 
 
     // src/dst storage
@@ -118,16 +123,35 @@ void TestVGROcTree() {
         };
         src.Add(&v);
     }
-
+    List<Vector3f> src_2 = InitList<Vector3f>(a_tmp, nvertices_src_2);
+    Vector3f rootcube_center_2 { 0.1, 0.1, 0.1 };
+    float pc_radius_2 = 0.1;
+    RandInit(913424423);
+    for (u32 i = 0; i < nvertices_src_2; ++i) {
+        Vector3f v {
+            rootcube_center.x - pc_radius_2 + 2*pc_radius_2*Rand01_f32(),
+            rootcube_center.y - pc_radius_2 + 2*pc_radius_2*Rand01_f32(),
+            rootcube_center.y - pc_radius_2 + 2*pc_radius_2*Rand01_f32(),
+        };
+        src_2.Add(&v);
+    }
     List<Vector3f> dest = InitList<Vector3f>(a_dest, nvertices_src);
-    Matrix4f box_transform = Matrix4f_Identity();
-    Matrix4f src_transform = Matrix4f_Identity();
+
 
     // run the vgr
     OcTreeStats stats;
     List<OcLeaf> leaf_blocks_out;
     List<OcBranch> branch_blocks_out;
-    dest = VoxelGridReduce(src, a_tmp, rootcube_radius, leaf_size, box_transform, src_transform, dest.lst, false, &stats, &leaf_blocks_out, &branch_blocks_out);
+    //dest = VoxelGridReduceFunc(src, a_tmp, rootcube_radius, leaf_size, box_transform, src_transform, dest.lst, false, &stats, &leaf_blocks_out, &branch_blocks_out);
+
+    // run the *other* vgr
+    VoxelGridReduce vgr = VoxelGridReduceInit(leaf_size, rootcube_radius, box_transform);
+    vgr.AddPoints(src, src, src_transform);
+    vgr.AddPoints(src_2, src_2, src_transform_2);
+    dest = vgr.GetPoints(a_dest);
+    leaf_blocks_out = vgr.leaves;
+    branch_blocks_out = vgr.branches;
+
 
     // visualize
     GameLoopOne *loop = InitGameLoopOne();
@@ -139,6 +163,11 @@ void TestVGROcTree() {
     src_pc->transform = src_transform;
     src_pc->tpe = ET_POINTCLOUD;
     src_pc->color = color_in;
+
+    Entity *src_pc_2 = EntityPoints(es, &src_2);
+    src_pc_2->transform = src_transform_2;
+    src_pc_2->tpe = ET_POINTCLOUD;
+    src_pc_2->color = color_in_2;
 
     Entity *dest_pc = EntityPoints(es, &dest);
     src_pc->transform = src_transform;

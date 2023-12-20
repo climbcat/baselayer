@@ -137,7 +137,138 @@ struct OcLeaf {
     #endif
 };
 
-List<Vector3f> VoxelGridReduce(
+
+static OcBranch _branch_zero;
+static OcLeaf _leaf_zero;
+struct VoxelGridReduce {
+    MArena a;
+    OcTreeStats stats;
+    bool flip_y;
+    Matrix4f box_transform;
+
+    List<OcLeaf> leaves;
+    List<OcBranch> branches;
+
+    void AddPoints(List<Vector3f> vertices, List<Vector3f> normals, Matrix4f src_transform) {
+        OcLeaf *leaf;
+        OcBranch *branch;
+
+        // build the tree
+        Vector3f p;
+        Vector3f c = Vector3f_Zero();
+        float r;
+        float sign_y = 1.0f;
+        if (flip_y == true) {
+            sign_y = -1.0f;
+        }
+        Matrix4f p2box = TransformGetInverse(box_transform) * src_transform;
+        u8 sidx;
+        u16 *bidx;
+        u16 *lidx;
+        for (u32 i = 0; i < vertices.len; ++i) {
+            // filter
+            p = vertices.lst[i];
+            p.y *= sign_y;
+            p =  TransformPoint(p2box, p);
+            bool keep = FitsWithinBoxRadius(p, stats.box_radius);
+            if (keep == false) {
+                continue;
+            }
+
+            // init
+            branch = branches.lst;
+            r = stats.box_radius;
+            c = Vector3f_Zero();
+
+            // d < d_max-1
+            for (u32 d = 1; d < stats.depth_max - 1; ++d) {
+                sidx = SubcubeDescend(p, &c, &r);
+                bidx = branch->indices + sidx;
+
+                if (*bidx == 0) {
+                    *bidx = branches.len;
+                    branches.Add(_branch_zero);
+                }
+                branch = branches.lst + *bidx;
+            }
+
+            // d == d_max-1
+            sidx = SubcubeDescend(p, &c, &r);
+            lidx = branch->indices + sidx;
+            if (*lidx == 0) {
+                assert((u8*) (leaves.lst + leaves.len) == a.mem + a.used && "check memory contiguity");
+
+                *lidx = leaves.len;
+                ArenaAlloc(&a, sizeof(OcLeaf));
+                leaves.Add(_leaf_zero);
+            }
+            leaf = leaves.lst + *lidx;
+
+            // d == d_max
+            sidx = SubcubeDescend(p, &c, &r);
+            #if VGR_DEBUG
+            leaf->center[sidx] = c;
+            leaf->radius[sidx] = r;
+            #endif
+
+            leaf->sum[sidx] = leaf->sum[sidx] + p;
+            leaf->cnt[sidx] = leaf->cnt[sidx] + 1;
+        }
+        stats.actual_branches = branches.len;
+        stats.actual_leaves = leaves.len;
+    }
+    List<Vector3f> GetPoints(MArena *a_dest) {
+        // leaf iteration, generate averages
+        u32 npoints_max = leaves.len * 8;
+        List<Vector3f> points = InitListOpen<Vector3f>(a_dest, npoints_max);
+        Vector3f avg;
+        Vector3f sum;
+        Vector3f p_world;
+        u32 cnt = 0;
+        float cnt_inv;
+        float cnt_sum = 0.0f;
+        for (u32 i = 0; i < leaves.len; ++i) {
+            OcLeaf leaf = leaves.lst[i];
+            for (u32 j = 0; j < 8; ++j) {
+                cnt = leaf.cnt[j];
+                if (cnt > 0) {
+                    sum = leaf.sum[j];
+                    cnt_inv = 1.0f / cnt;
+                    avg = cnt_inv * sum;
+
+                    // Here, we go back to world coords after having worked in box coords all along
+                    p_world = TransformPoint(box_transform, avg);
+                    points.Add(&p_world);
+
+                    cnt_sum += cnt;
+                }
+            }
+        }
+        InitListClose<Vector3f>(a_dest, points.len);
+
+        // record stats
+        stats.nvertices_out = points.len;
+        stats.avg_verts_pr_leaf = cnt_sum / stats.nvertices_out;
+
+        return points;
+    }
+};
+VoxelGridReduce VoxelGridReduceInit(float leaf_size_max, float box_radius, Matrix4f box_transform, bool flip_y = false) {
+    VoxelGridReduce vgr;
+
+    vgr.a = ArenaCreate();
+    vgr.flip_y = flip_y;
+    vgr.box_transform = box_transform;
+    vgr.stats = OcTreeStatsInit(box_radius, leaf_size_max);
+    vgr.branches = InitList<OcBranch>(&vgr.a, vgr.stats.max_branches / 8);
+    vgr.branches.Add(_branch_zero);
+    vgr.leaves = InitList<OcLeaf>(&vgr.a, 0);
+
+    return vgr;
+}
+
+
+List<Vector3f> VoxelGridReduceFunc(
     List<Vector3f> vertices,
     MArena *tmp,
     float box_radius,
