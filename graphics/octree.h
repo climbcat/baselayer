@@ -127,7 +127,8 @@ struct OcBranch {
     u16 indices[8];
 };
 struct OcLeaf {
-    Vector3f sum[8];
+    Vector3f points_sum[8];
+    Vector3f normals_sum[8];
     u32 cnt[8];
 
     #if VGR_DEBUG
@@ -143,7 +144,6 @@ static OcLeaf _leaf_zero;
 struct VoxelGridReduce {
     MArena a;
     OcTreeStats stats;
-    bool flip_y;
     Matrix4f box_transform;
 
     List<OcLeaf> leaves;
@@ -155,12 +155,9 @@ struct VoxelGridReduce {
 
         // build the tree
         Vector3f p;
+        Vector3f n;
         Vector3f c = Vector3f_Zero();
         float r;
-        float sign_y = 1.0f;
-        if (flip_y == true) {
-            sign_y = -1.0f;
-        }
         Matrix4f p2box = TransformGetInverse(box_transform) * src_transform;
         u8 sidx;
         u16 *bidx;
@@ -168,12 +165,13 @@ struct VoxelGridReduce {
         for (u32 i = 0; i < vertices.len; ++i) {
             // filter
             p = vertices.lst[i];
-            p.y *= sign_y;
             p =  TransformPoint(p2box, p);
             bool keep = FitsWithinBoxRadius(p, stats.box_radius);
             if (keep == false) {
                 continue;
             }
+            n = normals.lst[i];
+            n = TransformDirection(p2box, n);
 
             // init
             branch = branches.lst;
@@ -211,19 +209,24 @@ struct VoxelGridReduce {
             leaf->radius[sidx] = r;
             #endif
 
-            leaf->sum[sidx] = leaf->sum[sidx] + p;
+            leaf->points_sum[sidx] = leaf->points_sum[sidx] + p;
+            leaf->normals_sum[sidx] = leaf->normals_sum[sidx] + n;
             leaf->cnt[sidx] = leaf->cnt[sidx] + 1;
         }
         stats.actual_branches = branches.len;
         stats.actual_leaves = leaves.len;
     }
-    List<Vector3f> GetPoints(MArena *a_dest) {
-        // leaf iteration, generate averages
+    void GetPoints(MArena *a_dest, List<Vector3f> *points_dest, List<Vector3f> *normals_dest) {
+        assert(points_dest != NULL);
+        assert(normals_dest != NULL);
+
+        // points
         u32 npoints_max = leaves.len * 8;
         List<Vector3f> points = InitListOpen<Vector3f>(a_dest, npoints_max);
         Vector3f avg;
         Vector3f sum;
         Vector3f p_world;
+        Vector3f n_world;
         u32 cnt = 0;
         float cnt_inv;
         float cnt_sum = 0.0f;
@@ -232,11 +235,10 @@ struct VoxelGridReduce {
             for (u32 j = 0; j < 8; ++j) {
                 cnt = leaf.cnt[j];
                 if (cnt > 0) {
-                    sum = leaf.sum[j];
                     cnt_inv = 1.0f / cnt;
-                    avg = cnt_inv * sum;
 
-                    // Here, we go back to world coords after having worked in box coords all along
+                    sum = leaf.points_sum[j];
+                    avg = cnt_inv * sum;
                     p_world = TransformPoint(box_transform, avg);
                     points.Add(&p_world);
 
@@ -245,19 +247,35 @@ struct VoxelGridReduce {
             }
         }
         InitListClose<Vector3f>(a_dest, points.len);
-
-        // record stats
+        *points_dest = points;
         stats.nvertices_out = points.len;
         stats.avg_verts_pr_leaf = cnt_sum / stats.nvertices_out;
 
-        return points;
+        // normals
+        List<Vector3f> normals = InitListOpen<Vector3f>(a_dest, npoints_max);
+        for (u32 i = 0; i < leaves.len; ++i) {
+            OcLeaf leaf = leaves.lst[i];
+            for (u32 j = 0; j < 8; ++j) {
+                cnt = leaf.cnt[j];
+                if (cnt > 0) {
+                    cnt_inv = 1.0f / cnt;
+
+                    sum = leaf.normals_sum[j];
+                    avg = cnt_inv * sum;
+                    n_world = TransformDirection(box_transform, avg);
+                    normals.Add(n_world);
+                }
+            }
+        }
+        InitListClose<Vector3f>(a_dest, normals.len);
+        *normals_dest = normals;
+
     }
 };
-VoxelGridReduce VoxelGridReduceInit(float leaf_size_max, float box_radius, Matrix4f box_transform, bool flip_y = false) {
+VoxelGridReduce VoxelGridReduceInit(float leaf_size_max, float box_radius, Matrix4f box_transform) {
     VoxelGridReduce vgr;
 
     vgr.a = ArenaCreate();
-    vgr.flip_y = flip_y;
     vgr.box_transform = box_transform;
     vgr.stats = OcTreeStatsInit(box_radius, leaf_size_max);
     vgr.branches = InitList<OcBranch>(&vgr.a, vgr.stats.max_branches / 8);
@@ -361,7 +379,7 @@ List<Vector3f> VoxelGridReduceFunc(
         leaf->radius[sidx] = r;
         #endif
 
-        leaf->sum[sidx] = leaf->sum[sidx] + p;
+        leaf->points_sum[sidx] = leaf->points_sum[sidx] + p;
         leaf->cnt[sidx] = leaf->cnt[sidx] + 1;
     }
     stats.actual_branches = branches.len;
@@ -381,7 +399,7 @@ List<Vector3f> VoxelGridReduceFunc(
         for (u32 j = 0; j < 8; ++j) {
             cnt = leaf.cnt[j];
             if (cnt > 0) {
-                sum = leaf.sum[j];
+                sum = leaf.points_sum[j];
                 cnt_inv = 1.0f / cnt;
                 avg = cnt_inv * sum;
 

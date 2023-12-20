@@ -135,10 +135,10 @@ void TestVGROcTree() {
         };
         src_2.Add(&v);
     }
-    List<Vector3f> dest = InitList<Vector3f>(a_dest, nvertices_src);
 
 
     // run the vgr
+    List<Vector3f> dest = InitList<Vector3f>(a_dest, nvertices_src);
     OcTreeStats stats;
     List<OcLeaf> leaf_blocks_out;
     List<OcBranch> branch_blocks_out;
@@ -148,7 +148,9 @@ void TestVGROcTree() {
     VoxelGridReduce vgr = VoxelGridReduceInit(leaf_size, rootcube_radius, box_transform);
     vgr.AddPoints(src, src, src_transform);
     vgr.AddPoints(src_2, src_2, src_transform_2);
-    dest = vgr.GetPoints(a_dest);
+    List<Vector3f> points_out;
+    List<Vector3f> normals_out;
+    vgr.GetPoints(a_dest, &points_out, &normals_out);
     leaf_blocks_out = vgr.leaves;
     branch_blocks_out = vgr.branches;
 
@@ -169,7 +171,7 @@ void TestVGROcTree() {
     src_pc_2->tpe = ET_POINTCLOUD;
     src_pc_2->color = color_in_2;
 
-    Entity *dest_pc = EntityPoints(es, &dest);
+    Entity *dest_pc = EntityPoints(es, &points_out);
     src_pc->transform = src_transform;
     dest_pc->tpe = ET_POINTCLOUD;
     dest_pc->color = color_out;
