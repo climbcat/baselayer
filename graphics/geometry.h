@@ -504,6 +504,95 @@ Matrix4f TransformBuildLookRotationYUp(Vector3f at, Vector3f from) {
 }
 
 
+//
+// Quaternions
+
+
+struct Quat {
+    float w;
+    float x;
+    float y;
+    float z;
+};
+
+
+Quat QuatAxisAngle(Vector3f axis, float angle) {
+    float c = cos(angle * 0.5f);
+    float s = sin(angle * 0.5f);
+    Quat q;
+    q.w = c;
+    q.x = axis.x * s;
+    q.y = axis.y * s;
+    q.z = axis.z * s;
+    return q;
+}
+inline
+Quat QuatFromVector(Vector3f v) {
+    Quat t { 0.0f, v.x, v.y, v.z };
+    return t;
+}
+inline
+Quat QuatInverse(Quat q) {
+    Quat t { q.w, -q.x, -q.y, -q.z };
+    return t;
+}
+Quat QuatMult(Quat q1, Quat q2) {
+    Quat t;
+    t.w = q1.w*q2.w - q1.x*q2.x - q1.y*q2.y - q1.z*q2.z;
+    t.x = q1.w*q2.x + q1.x*q2.w - q1.y*q2.z + q1.z*q2.y;
+    t.y = q1.w*q2.y + q1.x*q2.z + q1.y*q2.w - q1.z*q2.x;
+    t.z = q1.w*q2.z - q1.x*q2.y + q1.y*q2.x + q1.z*q2.w;
+    return t;
+}
+Vector3f QuatRotate(Quat q, Vector3f v) {
+    Quat q_inv = QuatInverse(q);
+    Quat q_v = QuatFromVector(v);
+    Quat q_v_rot = QuatMult(q_inv, QuatMult(q, q_v));
+
+    Vector3f v_rot { q_v_rot.x, q_v_rot.y, q_v_rot.z };
+    return v_rot;
+}
+Matrix4f TransformQuaternion(Quat q) {
+    Matrix4f m = Matrix4f_Identity();
+    m.m[0][0] = q.w*q.w + q.x*q.x - q.y*q.y - q.z*q.z;
+    m.m[0][1] = 2*q.x*q.y - 2*q.w*q.z;
+    m.m[0][2] = 2*q.x*q.z + 2*q.w*q.y;
+    m.m[1][0] = 2*q.x*q.y + 2*q.w*q.z;
+    m.m[1][1] = q.w*q.w - q.x*q.x + q.y*q.y - q.z*q.z;
+    m.m[1][2] = 2*q.y*q.z - 2*q.w*q.x;
+    m.m[2][0] = 2*q.x*q.z - 2*q.w*q.y;
+    m.m[2][1] = 2*q.y*q.z + 2*q.w*q.x;
+    m.m[2][2] = q.w*q.w - q.x*q.x - q.y*q.y + q.z*q.z;
+    m.m[3][3] = 1;
+    return m;
+}
+inline
+Quat QuatScalarMult(Quat q, float s) {
+    Quat t { s * q.w, s * q.x, s * q.y, s * q.z };
+    return t;
+}
+inline
+Quat QuatSum(Quat q1, Quat q2) {
+    Quat t { q1.w + q2.w, q1.x + q2.x, q1.y + q2.y, q1.z + q2.z };
+    return t;
+}
+inline
+float QuatInnerProduct(Quat q1, Quat q2) {
+    float dotprod = q1.w * q2.w + q1.x * q2.x + q1.y * q2.y + q1.z * q2.z;
+    return dotprod;
+}
+Quat Slerp(Quat q1, Quat q2, float t) {
+    assert(t >= 0.0f && t <= 1.0f);
+
+    float theta = acos( QuatInnerProduct(q1, q2) );
+    float f1 = sin((1 - t)*theta) / sin(theta);
+    float f2 = sin(t*theta) / sin(theta);
+
+    Quat q = QuatSum( QuatScalarMult(q1, f1), QuatScalarMult(q2, f2) );
+    return q;
+}
+
+
 
 //
 // Projections
