@@ -142,7 +142,6 @@ void TestVGROcTree() {
     OcTreeStats stats;
     List<OcLeaf> leaf_blocks_out;
     List<OcBranch> branch_blocks_out;
-    //dest = VoxelGridReduceFunc(src, a_tmp, rootcube_radius, leaf_size, box_transform, src_transform, dest.lst, false, &stats, &leaf_blocks_out, &branch_blocks_out);
 
     // run the *other* vgr
     VoxelGridReduce vgr = VoxelGridReduceInit(leaf_size, rootcube_radius, box_transform);
