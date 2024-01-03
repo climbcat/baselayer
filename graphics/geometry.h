@@ -515,7 +515,10 @@ struct Quat {
     float z;
 };
 
-
+Quat Quat_Identity() {
+    Quat i { 1, 0, 0, 0 };
+    return i;
+}
 Quat QuatAxisAngle(Vector3f axis, float angle) {
     float c = cos(angle * 0.5f);
     float s = sin(angle * 0.5f);
