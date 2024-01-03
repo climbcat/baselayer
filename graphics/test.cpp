@@ -227,14 +227,14 @@ void TestQuaternionRotMult() {
 }
 
 
-void TestSlerp() {
-    printf("TestSlerp\n");
+void TestSlerpAndMat2Quat() {
+    printf("TestSlerpAndMat2Quat\n");
 
     GameLoopOne *loop = InitGameLoopOne();
     SwRenderer *r = loop->GetRenderer();
     EntitySystem *es = InitEntitySystem();
 
-    //Entity *axes = EntityCoordAxes(es, r);
+    Entity *axes = EntityCoordAxes(es, r);
 
     Entity *box0 = EntityAABox(es, { 0.0f, 0.0f, 0.f }, 0.2f, r);
     box0->color = Color { RGBA_RED };
@@ -247,12 +247,15 @@ void TestSlerp() {
     r1.Normalize();
     float angle0 = 5.0f * deg2rad;
     float angle1 = 65.0f * deg2rad;
-    Quat q0 = QuatAxisAngle(r1, angle0);
-    Quat q1 = QuatAxisAngle(r1, angle1);
-    Quat q = QuatAxisAngle(r1, angle1);
-    box0->transform = TransformQuaternion( q0 );
-    box1->transform = TransformQuaternion( q1 );
-    box->transform = TransformQuaternion( q );
+
+
+    box0->transform = TransformBuild(r1, angle0);
+    box1->transform = TransformBuild(r1, angle1);
+    box->transform = TransformBuild(r1, angle0);
+
+    Quat q0 = QuatFromTransform(box0->transform);
+    Quat q1 = QuatFromTransform(box1->transform);
+    Quat q = q0;
 
     float t = 0;
     float dt = 0.03;
@@ -277,5 +280,5 @@ void Test() {
     //TestRandomPCWithNormals();
     //TestVGROcTree();
     //TestQuaternionRotMult();
-    TestSlerp();
+    TestSlerpAndMat2Quat();
 }

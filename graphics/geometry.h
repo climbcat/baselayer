@@ -567,6 +567,21 @@ Matrix4f TransformQuaternion(Quat q) {
     return m;
 }
 inline
+float Matrix4f_Trace(Matrix4f m) {
+    float trace = m.m[0][0] + m.m[1][1] + m.m[2][2] + 1;
+    return trace;
+}
+Quat QuatFromTransform(Matrix4f m) {
+    assert(Matrix4f_Trace(m) > 0.0f);
+
+    Quat q;
+    q.w = sqrt( Matrix4f_Trace(m) ) * 0.5f;
+    q.x = (m.m[2][1] - m.m[1][2]) / (4 * q.w);
+    q.y = (m.m[0][2] - m.m[2][0]) / (4 * q.w);
+    q.z = (m.m[1][0] - m.m[0][1]) / (4 * q.w);
+    return q;
+}
+inline
 Quat QuatScalarMult(Quat q, float s) {
     Quat t { s * q.w, s * q.x, s * q.y, s * q.z };
     return t;
