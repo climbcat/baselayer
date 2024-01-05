@@ -393,20 +393,20 @@ Entity CameraWireframe(float radius_xy, float length_z, List<Vector3f> *vertex_b
 // Point cloud-ish entities
 
 
-Entity *EntityPoints(EntitySystem *es, Matrix4f transform, List<Vector3f> *points) {
+Entity *EntityPoints(EntitySystem *es, Matrix4f transform, List<Vector3f> points) {
     Entity *pc = es->AllocEntity();
     pc->data_tpe = EF_EXTERNAL;
     pc->tpe = ET_POINTCLOUD;
     pc->entity_stream = NULL;
-    pc->ext_points = points;
-    pc->ext_points_lst = *points;
+    pc->ext_points_lst = points;
+    pc->ext_points = &pc->ext_points_lst;
     pc->color  = { RGBA_GREEN };
     pc->transform = transform;
 
     EntitySystemChain(es, pc);
     return pc;
 }
-Entity *EntityPoints(EntitySystem *es, List<Vector3f> *points) {
+Entity *EntityPoints(EntitySystem *es, List<Vector3f> points) {
     return EntityPoints(es, Matrix4f_Identity(), points);
 }
 
