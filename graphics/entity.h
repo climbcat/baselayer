@@ -318,7 +318,6 @@ struct EntitySystem {
 
     // TODO: improve this "cursed" code by applying zero-is-initialization
     void CursorMove(Entity *ent) {
-        printf("move\n");
         if (!ent) {
             return;
         }
