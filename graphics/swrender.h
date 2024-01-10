@@ -321,26 +321,29 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
 
 
 Entity *EntityAABox(EntitySystem *es, Vector3f center_transf, float radius, SwRenderer *r) {
-    Entity *box = es->AllocEntityChain();
-    *box = AABox(center_transf, radius, &r->vertex_buffer, &r->index_buffer);
-    return box;
+    Entity *dest = es->AllocEntityChain();
+    Entity box = AABox(center_transf, radius, &r->vertex_buffer, &r->index_buffer);
+    EntityCopyBodyOnly(dest, box);
+    return dest;
 }
 
 
 Entity *EntityCoordAxes(EntitySystem *es, SwRenderer *r) {
-    Entity *axes = es->AllocEntityChain();
-    *axes = CoordAxes(&r->vertex_buffer, &r->index_buffer);
-    return axes;
+    Entity *dest = es->AllocEntityChain();
+    Entity axes = CoordAxes(&r->vertex_buffer, &r->index_buffer);
+    EntityCopyBodyOnly(dest, axes);
+    return dest;
 }
 
 
 Entity *EntityCameraWireframe(EntitySystem *es, float size = 0.05f, SwRenderer *r = NULL) {
     assert(r != NULL);
-    Entity *cam = es->AllocEntityChain();
+    Entity *dest = es->AllocEntityChain();
     float radius_xy = 0.5 * size;
     float length_z = 1.5 * size;
-    *cam = CameraWireframe(radius_xy, length_z, &r->vertex_buffer, &r->index_buffer);
-    return cam;
+    Entity cam = CameraWireframe(radius_xy, length_z, &r->vertex_buffer, &r->index_buffer);
+    EntityCopyBodyOnly(dest, cam);
+    return dest;
 }
 
 

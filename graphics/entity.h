@@ -172,6 +172,7 @@ struct Entity {
         active = false;
     }
 };
+static Entity entity_zero;
 Entity InitEntity(EntityType tpe) {
     Entity e;
     e.tpe = tpe;
@@ -184,6 +185,14 @@ Entity InitEntity(EntityType tpe) {
     e.transform = Matrix4f_Identity();
     e.active = true;
     return e;
+}
+void EntityCopyBodyOnly(Entity *dest, Entity body) {
+    Entity hdr = *dest;
+    *dest = body;
+    dest->up = hdr.up;
+    dest->down = hdr.down;
+    dest->prev = hdr.prev;
+    dest->next = hdr.next;
 }
 void EntityYank(Entity *ent) {
     if (ent->next) {
@@ -232,8 +241,8 @@ void EntityInsertBefore(Entity *ent_new, Entity *ent) {
 }
 void EntityInsertAfter(Entity *ent_new, Entity *ent) {
     // inserts ent_new after ent
-    ent_new->prev = ent->prev;
-    ent_new->next = ent;
+    ent_new->prev = ent;
+    ent_new->next = ent->next;
     if (ent->next) {
         ent->next->prev = ent_new;
     }
@@ -247,9 +256,14 @@ void EntityInsertAfter(Entity *ent_new, Entity *ent) {
 
 #define ENTITY_MAX_COUNT 200
 struct EntitySystem {
+    Entity *leaf = NULL;
     MPool pool;
-    Entity *root;
-    Entity *leaf;
+    Entity *root = NULL;
+
+    Entity *cursor = NULL;
+    Color cursor_highlight_color;
+    Color cursor_color_swap;
+    bool cursor_active_swap;
 
     Entity *IterNext(Entity *prev, EntityTypeFilter data_tpe = EF_ANY) {
         Entity *result;
@@ -279,13 +293,12 @@ struct EntitySystem {
     Entity *AllocEntityChain() {
         Entity *next = AllocEntity();
         if (root == NULL) {
-            root = next;
-            leaf = next;
+            this->root = next;
+            this->leaf = next;
         }
         else {
-            leaf->next = next;
-            next->prev = leaf;
-            leaf = next;
+            EntityInsertAfter(next, this->leaf);
+            this->leaf = next;
         }
         return next;
     }
@@ -297,10 +310,60 @@ struct EntitySystem {
         if (prev->next) {
             stc->Push(prev->next);
         }
-        if (prev->down && (prev->down->active || !only_active_entities)) {
+        if (prev->down && (prev->active || !only_active_entities)) {
             return prev->down;
         }
         return stc->Pop();
+    }
+
+    // TODO: improve this "cursed" code by applying zero-is-initialization
+    void CursorMove(Entity *ent) {
+        printf("move\n");
+        if (!ent) {
+            return;
+        }
+        if (cursor != ent) {
+            cursor->color = cursor_color_swap;
+            cursor->active = cursor_active_swap;
+        }
+        cursor_color_swap = ent->color;
+        cursor_active_swap = ent->active;
+        ent->color = cursor_highlight_color;
+        ent->active = true;
+        cursor = ent;
+    }
+    inline
+    void CursorInit() {
+        if (!cursor) {
+            cursor = root;
+            cursor_color_swap = root->color;
+            cursor_active_swap = root->active;
+        }
+    }
+    void CursorDisable() {
+        cursor = NULL;
+    }
+    void CursorToggleEntityActive() {
+        CursorInit();
+        cursor_active_swap = !cursor_active_swap;
+    }
+    void CursorPrev() {
+        CursorInit();
+        CursorMove(cursor->prev);
+    }
+    void CursorNext() {
+        CursorInit();
+        CursorMove(cursor->next);
+    }
+    void CursorUp() {
+        CursorInit();
+        CursorMove(cursor->up);
+    }
+    void CursorDown() {
+        CursorInit();
+        if (cursor_active_swap) {
+            CursorMove(cursor->down);
+        }
     }
 };
 
@@ -308,7 +371,6 @@ struct EntitySystem {
 // TODO: sort out static/re-usable memory
 static Entity * g_some_stack_mem[100];
 void EntitySystemPrint(EntitySystem *es) {
-
     u32 eidx = 0;
     printf("entities: \n");
     Stack stc = InitStackStatic<Entity*>(g_some_stack_mem, 100);
@@ -335,6 +397,7 @@ EntitySystem *InitEntitySystem() {
     g_entity_system = &_g_entity_system;
 
     g_entity_system->pool = PoolCreate(sizeof(Entity), ENTITY_MAX_COUNT);
+    g_entity_system->cursor_highlight_color = Color { RGBA_WHITE };
     void *zero = PoolAlloc(&g_entity_system->pool);
     return g_entity_system;
 }

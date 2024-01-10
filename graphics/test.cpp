@@ -279,11 +279,31 @@ void TestPointCloudsBoxesAndSceneGraph() {
     EntityInsertBelow(pc_2, pc_1);
     EntityInsertBelow(pc_3, pc_2);
 
-    // test render only active point clouds:
+    // test render only active entities
     pc_2->DeActivate();
 
     EntitySystemPrint(es);
-    loop->JustRun(es);
+    while (loop->GameLoopRunning()) {
+
+        if (loop->mouse.key_left) {
+            es->CursorPrev();
+        }
+        else if (loop->mouse.key_right) {
+            es->CursorNext();
+        }
+        else if (loop->mouse.key_up) {
+            es->CursorUp();
+        }
+        else if (loop->mouse.key_down) {
+            es->CursorDown();
+        }
+        else if (loop->mouse.key_space) {
+            es->CursorToggleEntityActive();
+        }
+
+        loop->CycleFrame(es);
+    }
+    loop->Terminate();
 }
 
 
