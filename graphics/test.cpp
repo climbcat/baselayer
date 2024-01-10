@@ -279,6 +279,9 @@ void TestPointCloudsBoxesAndSceneGraph() {
     EntityInsertBelow(pc_2, pc_1);
     EntityInsertBelow(pc_3, pc_2);
 
+    // test render only active point clouds:
+    pc_2->DeActivate();
+
     EntitySystemPrint(es);
     loop->JustRun(es);
 }

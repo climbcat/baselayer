@@ -289,14 +289,15 @@ struct EntitySystem {
         }
         return next;
     }
-    Entity *TreeIterNext(Entity *prev, Stack<Entity*> *stc) {
+    Entity *TreeIterNext(Entity *prev, Stack<Entity*> *stc, bool only_active_entities = true) {
+        // descent is halted if active == false
         if (prev == NULL) {
             return root;
         }
         if (prev->next) {
             stc->Push(prev->next);
         }
-        if (prev->down) {
+        if (prev->down && (prev->down->active || !only_active_entities)) {
             return prev->down;
         }
         return stc->Pop();
@@ -311,7 +312,7 @@ void EntitySystemPrint(EntitySystem *es) {
     u32 eidx = 0;
     printf("entities: \n");
     Stack stc = InitStackStatic<Entity*>(g_some_stack_mem, 100);
-    Entity *next = es->TreeIterNext(NULL, &stc);
+    Entity *next = es->TreeIterNext(NULL, &stc, false);
     while (next != NULL) {
         if (next->data_tpe == EF_ANALYTIC) {
             printf("%u: analytic,   vertices %u -> %u lines %u -> %u\n", eidx, next->verts_low, next->verts_high, next->lines_low, next->lines_high);
@@ -323,7 +324,7 @@ void EntitySystemPrint(EntitySystem *es) {
             printf("%u: pointcloud, %lu bytes\n", eidx, next->ext_points->len * sizeof(Vector3f));
         }
         eidx++;
-        next = es->TreeIterNext(next, &stc);
+        next = es->TreeIterNext(next, &stc, false);
     }
 }
 
