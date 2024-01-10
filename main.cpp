@@ -60,17 +60,20 @@ void RunTests() {
     }
     printf("\n");
 
+    //
     // StrLst & get files in folder
     printf("files in folder '.': \n");
     StrLst files = GetFilesInFolderPaths(a, (char*) ".");
     StrLstPrint(files);
 
+    //
     // templated list
     ListX<u32> lst_T;
     lst_T.Add(14);
     lst_T.Add(222);
     lst_T.At(1);
 
+    //
     // stretchy buffer
     printf("\nstretchy buffer:\n");
     s32 *elst = NULL;
@@ -82,6 +85,7 @@ void RunTests() {
     }
     lst_free(elst);
 
+    //
     // random numbers
     RandInit();
     for (int i = 0; i < 10; ++i)  {
@@ -90,6 +94,7 @@ void RunTests() {
     }
     printf("RandDice: %u\n\n", RandDice(20));
 
+    //
     // save binary data
     u32 num_chars = 1024*1024 + 1;
     char data[num_chars];
@@ -98,19 +103,22 @@ void RunTests() {
     SaveFile(filepath, (u8*) data, num_chars);
     printf("Saved binary hex chars to file hexdata.txt\n\n");
 
+    //
     // load using C fseek
     u8* dest = (u8*) malloc(num_chars);
     u32 nbytesloaded = LoadFileFSeek(filepath, dest);
     assert(num_chars == nbytesloaded);
     printf("Loaded %d bytes back in using fseek\n\n", nbytesloaded);
 
+    //
     // memory mapped load
     u64 num_chars_64 = (u64) num_chars;
     u8 *data_mmapped = LoadFileMMAP(filepath, &num_chars_64);
     printf("Memory mapped load %ld nbytes:\n", num_chars_64);
     printf("%.1000s\n\n", (char*) data_mmapped);
 
-    // testing the memory pool
+    //
+    // memory pool
     printf("testing mem pool:\n");
     u32 pool_size = 1001;
     u32 test_num_partial = 666;

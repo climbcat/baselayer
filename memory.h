@@ -105,6 +105,7 @@ void ArenaClear(MArena *a) {
 //
 
 // NOTE: Pool indices, if used, are counted from 1, and the value 0 is reserved as the NULL equivalent.
+// TODO: Write a proper, indexed pool that is typed
 
 struct MPool {
     u8 *mem;
@@ -173,6 +174,7 @@ u32 PoolAllocIdx(MPool *p) {
     assert(idx < p->nblocks && "block index must be positive and less and the number of blocks");
     return idx;
 }
+inline
 u32 PoolPtr2Idx(MPool *p, void *ptr) {
     PoolCheckAddress(p, ptr);
     if (ptr == NULL) {
@@ -181,6 +183,7 @@ u32 PoolPtr2Idx(MPool *p, void *ptr) {
     u32 idx = ((u8*) ptr - (u8*) p->mem) / p->block_size;
     return idx;
 }
+inline
 void *PoolIdx2Ptr(MPool *p, u32 idx) {
     assert(idx < p->block_size);
 
@@ -220,7 +223,7 @@ bool PoolFreeIdx(MPool *p, u32 idx) {
 
 
 //
-// Static Arrays
+// Static Arrays - List / Stack
 
 
 template<typename T>
@@ -236,8 +239,15 @@ struct List {
     void Add(T element) {
         lst[len++] = element;
     }
+    inline
+    void Push(T element) {
+        lst[len++] = element;
+    }
+    inline
+    T Pop() {
+        return lst[--len];
+    }
 };
-
 template<class T>
 List<T> InitList(MArena *a, u32 count) {
     List<T> _lst;
@@ -262,6 +272,38 @@ void ArenaShedTail(MArena *a, List<T> lst, u32 diff_T) {
     assert(a->mem + a->used == (u8*) (lst.lst + lst.len + diff_T));
 
     a->mem -= diff_T * sizeof(T);
+}
+
+
+template<typename T>
+struct Stack {
+    T *lst = NULL;
+    u32 len = 0;
+    u32 cap = 0;
+
+    inline
+    void Push(T element) {
+        lst[len++] = element;
+    }
+    inline
+    T Pop() {
+        if (len) {
+            return lst[--len];
+        }
+        else {
+            T defval;
+            _memzero(&defval, sizeof(T));
+            return defval;
+        }
+    }
+};
+template<class T>
+Stack<T> InitStackStatic(T *mem, u32 cap) {
+    Stack<T> stc;
+    stc.len = 0;
+    stc.cap = cap;
+    stc.lst = (T*) mem;
+    return stc;
 }
 
 

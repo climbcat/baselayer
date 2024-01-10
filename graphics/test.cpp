@@ -24,42 +24,6 @@ List<Vector3f> CreateRandomPointCloud(MArena *a, u32 npoints, Vector3f center, V
 }
 
 
-void TestRandomPCsRotatingBoxes() {
-    printf("TestRandomPCsRotatingBoxes\n");
-
-    GameLoopOne *loop = InitGameLoopOne();
-    SwRenderer *r = loop->GetRenderer();
-    EntitySystem *es = InitEntitySystem();
-
-    Entity *axes = EntityCoordAxes(es, r);
-    Entity *box = EntityAABox(es, { 0.3f, 0.0f, 0.7f }, 0.2f, r);
-    Entity *box2 = EntityAABox(es, { 0.3f, 0.0f, -0.7f }, 0.2f, r);
-    Entity *box3 = EntityAABox(es, { -0.7f, 0.0f, 0.0f }, 0.2f, r);
-
-    box->tpe = ET_LINES_ROT;
-    box2->tpe = ET_LINES_ROT;
-    box3->tpe = ET_LINES_ROT;
-
-    // point clouds 
-    MArena _a_pointclouds = ArenaCreate();
-    MArena *a_pcs = &_a_pointclouds;
-    List<Vector3f> points_1 = CreateRandomPointCloud(a_pcs, 90, { 0.0f, 0.0f, 0.0f }, { 4.0f, 4.0f, 4.0f });
-    Entity *pc_1 = EntityPoints(es, &points_1);
-    pc_1->color = { RGBA_GREEN };
-    List<Vector3f> points_2 = CreateRandomPointCloud(a_pcs, 300, { 0.0f, 0.0f, -1.f }, { 4.0f, 4.0f, 2.0f });
-    Entity *pc_2 = EntityPoints(es, &points_2);
-    pc_2->color = { RGBA_BLUE };
-    List<Vector3f> points_3 = CreateRandomPointCloud(a_pcs, 300, { -1.0f, -1.0f, -1.f }, { 2.0f, 2.0f, 2.0f });
-    Entity *pc_3 = EntityPoints(es, &points_3);
-    pc_3->color = { RGBA_RED };
-
-    EntitySystemPrint(es);
-    StreamPrint(pc_1->entity_stream, (char*) "random point clouds");
-
-    loop->JustRun(es);
-}
-
-
 void TestRandomPCWithNormals() {
     printf("TestRandomPCWithNormals\n");
 
@@ -75,7 +39,7 @@ void TestRandomPCWithNormals() {
     List<Vector3f> points = CreateRandomPointCloud(a_pcs, 90, { 0.0f, 0.0f, 0.0f }, { 4.0f, 4.0f, 4.0f });
     List<Vector3f> normals = CreateRandomPointCloud(a_pcs, 90, { 0.1f, 0.1f, 0.1f }, { 0.05f, 0.05f, 0.05f });
 
-    Entity *pc = EntityPoints(es, &points);
+    Entity *pc = EntityPoints(es, points);
     pc->ext_normals = &normals;
     pc->tpe = ET_POINTCLOUD_W_NORMALS;
     pc->color = Color { RGBA_GREEN };
@@ -160,17 +124,17 @@ void TestVGROcTree() {
     EntitySystem *es = InitEntitySystem();
     Entity *axes = EntityCoordAxes(es, r);
 
-    Entity *src_pc = EntityPoints(es, &src);
+    Entity *src_pc = EntityPoints(es, src);
     src_pc->transform = src_transform;
     src_pc->tpe = ET_POINTCLOUD;
     src_pc->color = color_in;
 
-    Entity *src_pc_2 = EntityPoints(es, &src_2);
+    Entity *src_pc_2 = EntityPoints(es, src_2);
     src_pc_2->transform = src_transform_2;
     src_pc_2->tpe = ET_POINTCLOUD;
     src_pc_2->color = color_in_2;
 
-    Entity *dest_pc = EntityPoints(es, &points_out);
+    Entity *dest_pc = EntityPoints(es, points_out);
     src_pc->transform = src_transform;
     dest_pc->tpe = ET_POINTCLOUD;
     dest_pc->color = color_out;
@@ -275,10 +239,55 @@ void TestSlerpAndMat2Quat() {
 }
 
 
+void TestPointCloudsBoxesAndSceneGraph() {
+    printf("TestPointCloudsBoxesAndSceneGraph\n");
+
+    // point clouds 
+    MArena _a_pointclouds = ArenaCreate();
+    MArena *a_pcs = &_a_pointclouds;
+    List<Vector3f> points_1 = CreateRandomPointCloud(a_pcs, 90, { 0.0f, 0.0f, 0.0f }, { 4.0f, 4.0f, 4.0f });
+    List<Vector3f> points_2 = CreateRandomPointCloud(a_pcs, 300, { 0.0f, 0.0f, -1.f }, { 4.0f, 4.0f, 2.0f });
+    List<Vector3f> points_3 = CreateRandomPointCloud(a_pcs, 300, { -1.0f, -1.0f, -1.f }, { 2.0f, 2.0f, 2.0f });
+
+    GameLoopOne *loop = InitGameLoopOne();
+    SwRenderer *r = loop->GetRenderer();
+    EntitySystem *es = InitEntitySystem();
+
+    // entities
+    Entity *axes = EntityCoordAxes(es, r);
+    Entity *box = EntityAABox(es, { 0.3f, 0.0f, 0.7f }, 0.2f, r);
+    Entity *box2 = EntityAABox(es, { 0.3f, 0.0f, -0.7f }, 0.2f, r);
+    Entity *box3 = EntityAABox(es, { -0.7f, 0.0f, 0.0f }, 0.2f, r);
+
+    box->tpe = ET_LINES_ROT;
+    box2->tpe = ET_LINES_ROT;
+    box3->tpe = ET_LINES_ROT;
+
+    Entity *pc_1 = EntityPoints(es, points_1);
+    Entity *pc_2 = EntityPoints(es, points_2);
+    Entity *pc_3 = EntityPoints(es, points_3);
+
+    pc_1->color = { RGBA_GREEN };
+    pc_2->color = { RGBA_BLUE };
+    pc_3->color = { RGBA_RED };
+
+    // how to move entities within the goddamn tree
+    EntityYank(pc_1);
+    EntityYank(pc_2);
+    EntityYank(pc_3);
+    EntityInsertBelow(pc_1, axes);
+    EntityInsertBelow(pc_2, pc_1);
+    EntityInsertBelow(pc_3, pc_2);
+
+    EntitySystemPrint(es);
+    loop->JustRun(es);
+}
+
+
 void Test() {
-    //TestRandomPCsRotatingBoxes();
     //TestRandomPCWithNormals();
     //TestVGROcTree();
     //TestQuaternionRotMult();
-    TestSlerpAndMat2Quat();
+    //TestSlerpAndMat2Quat();
+    TestPointCloudsBoxesAndSceneGraph();
 }

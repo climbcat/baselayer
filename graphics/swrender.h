@@ -256,6 +256,10 @@ SwRenderer InitRenderer(u32 width = 1280, u32 height = 800) {
 
     return rend;
 }
+
+
+// TODO: sort out static/re-usable memory
+static Entity *g_render_stack_mem[100];
 void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
     TimeFunction;
 
@@ -265,7 +269,8 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
     // entity loop (POC): vertices -> NDC
     Matrix4f model, mvp;
     u32 eidx = 0;
-    Entity *next = es->IterNext(NULL);
+    Stack stc = InitStackStatic<Entity*>(g_render_stack_mem, 100);
+    Entity *next = es->TreeIterNext(NULL, &stc);
     while (next != NULL) {
         if (next->active && (next->data_tpe == EF_ANALYTIC)) {
             if (next->tpe == ET_LINES_ROT) {
@@ -304,7 +309,7 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
             }
         }
         eidx++;
-        next = es->IterNext(next);
+        next = es->TreeIterNext(next, &stc);
     }
     r->ndc_buffer.len = r->vertex_buffer.len;
     for (u32 i = 0; i < r->screen_buffer.len / 2; ++i) {
@@ -316,28 +321,25 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
 
 
 Entity *EntityAABox(EntitySystem *es, Vector3f center_transf, float radius, SwRenderer *r) {
-    Entity *box = es->AllocEntity();
+    Entity *box = es->AllocEntityChain();
     *box = AABox(center_transf, radius, &r->vertex_buffer, &r->index_buffer);
-    EntitySystemChain(es, box);
     return box;
 }
 
 
 Entity *EntityCoordAxes(EntitySystem *es, SwRenderer *r) {
-    Entity *axes = es->AllocEntity();
+    Entity *axes = es->AllocEntityChain();
     *axes = CoordAxes(&r->vertex_buffer, &r->index_buffer);
-    EntitySystemChain(es, axes);
     return axes;
 }
 
 
 Entity *EntityCameraWireframe(EntitySystem *es, float size = 0.05f, SwRenderer *r = NULL) {
     assert(r != NULL);
-    Entity *cam = es->AllocEntity();
+    Entity *cam = es->AllocEntityChain();
     float radius_xy = 0.5 * size;
     float length_z = 1.5 * size;
     *cam = CameraWireframe(radius_xy, length_z, &r->vertex_buffer, &r->index_buffer);
-    EntitySystemChain(es, cam);
     return cam;
 }
 

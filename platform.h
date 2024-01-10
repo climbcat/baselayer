@@ -18,6 +18,7 @@
     #include "plaf/plaf_win.cpp"
 #endif
 
+
 #if LINUX
 #ifndef DLL_EXPORT
 #define DLL_EXPORT
@@ -33,6 +34,7 @@
 #define DLL_IMPORT __declspec(dllimport)
 #endif
 #endif
+
 
 #ifdef DLL_CLIENT
 #ifndef DLL_IMPORTEXPORT DLL_EXPORT

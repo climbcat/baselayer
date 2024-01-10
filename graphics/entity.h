@@ -58,11 +58,11 @@ enum EntityTypeFilter {
 
 
 struct Entity {
-    // header
-    u16 up = 0;
-    u16 down = 0;
-    u16 prev = 0;
-    u16 next = 0;
+    Entity *up = NULL;
+    Entity *down = NULL;
+    Entity *prev = NULL;
+    Entity *next = NULL;
+
     EntityTypeFilter data_tpe;
     EntityType tpe;
     Matrix4f transform; // TODO: make this into a transform_id and store externally
@@ -133,7 +133,7 @@ struct Entity {
     }
     List<Vector3f> GetNormals() { 
         // TODO: handle the situation where normals are located in stream->nxt location
-    
+
         List<Vector3f> normals { NULL, 0 };
         if (ext_normals != NULL) {
             normals = *ext_normals;
@@ -185,6 +185,60 @@ Entity InitEntity(EntityType tpe) {
     e.active = true;
     return e;
 }
+void EntityYank(Entity *ent) {
+    if (ent->next) {
+        ent->next->prev = ent->prev;
+    }
+    if (ent->prev) {
+        ent->prev->next = ent->next;
+    }
+    if (ent->up) {
+        ent->up->down = ent->down;
+    }
+    if (ent->down) {
+        ent->down->up = ent->up;
+    }
+    ent->up = NULL;
+    ent->down = NULL;
+    ent->prev = NULL;
+    ent->next = NULL;
+}
+void EntityInsertAbove(Entity *ent_new, Entity *ent) {
+    // inserts ent_new above ent
+    ent_new->up = ent->up;
+    ent_new->down = ent;
+    if (ent->up) {
+        ent->up->down = ent_new;
+    }
+    ent->up = ent_new;
+}
+void EntityInsertBelow(Entity *ent_new, Entity *ent) {
+    // inserts ent_new below ent
+    ent_new->up = ent;
+    ent_new->down = ent->down;
+    if (ent->down) {
+        ent->down->up = ent_new;
+    }
+    ent->down = ent_new;
+}
+void EntityInsertBefore(Entity *ent_new, Entity *ent) {
+    // inserts ent_new before ent
+    ent_new->prev = ent->prev;
+    ent_new->next = ent;
+    if (ent->prev) {
+        ent->prev->next = ent_new;
+    }
+    ent->prev = ent_new;
+}
+void EntityInsertAfter(Entity *ent_new, Entity *ent) {
+    // inserts ent_new after ent
+    ent_new->prev = ent->prev;
+    ent_new->next = ent;
+    if (ent->next) {
+        ent->next->prev = ent_new;
+    }
+    ent->next = ent_new;
+}
 
 
 //
@@ -194,21 +248,16 @@ Entity InitEntity(EntityType tpe) {
 #define ENTITY_MAX_COUNT 200
 struct EntitySystem {
     MPool pool;
-    u16 first = 0;
-    u16 last = 0;
+    Entity *root;
+    Entity *leaf;
 
-    Entity *GetEntityByIdx(u16 idx) {
-        Entity *result = (Entity*) PoolIdx2Ptr(&pool, idx);
-        return result;
-    }
-    // TODO: apply EntityType tpe = ET_ANY
     Entity *IterNext(Entity *prev, EntityTypeFilter data_tpe = EF_ANY) {
         Entity *result;
         if (prev == NULL) {
-            result = GetEntityByIdx(first);
+            result = root;
         }
         else {
-            result = GetEntityByIdx(prev->next);
+            result = prev->next;
         }
         if (result == NULL) {
             return NULL;
@@ -220,30 +269,61 @@ struct EntitySystem {
             return IterNext(result, data_tpe);
         }
     }
+
     Entity *AllocEntity() {
         Entity default_val;
-        Entity *result = (Entity*) PoolAlloc(&pool);
-        *result = default_val;
-        return result;
+        Entity *next = (Entity*) PoolAlloc(&pool);
+        *next = default_val;
+        return next;
     }
-    
+    Entity *AllocEntityChain() {
+        Entity *next = AllocEntity();
+        if (root == NULL) {
+            root = next;
+            leaf = next;
+        }
+        else {
+            leaf->next = next;
+            next->prev = leaf;
+            leaf = next;
+        }
+        return next;
+    }
+    Entity *TreeIterNext(Entity *prev, Stack<Entity*> *stc) {
+        if (prev == NULL) {
+            return root;
+        }
+        if (prev->next) {
+            stc->Push(prev->next);
+        }
+        if (prev->down) {
+            return prev->down;
+        }
+        return stc->Pop();
+    }
 };
+
+
+// TODO: sort out static/re-usable memory
+static Entity * g_some_stack_mem[100];
 void EntitySystemPrint(EntitySystem *es) {
+
     u32 eidx = 0;
     printf("entities: \n");
-    Entity *next = es->IterNext(NULL);
+    Stack stc = InitStackStatic<Entity*>(g_some_stack_mem, 100);
+    Entity *next = es->TreeIterNext(NULL, &stc);
     while (next != NULL) {
         if (next->data_tpe == EF_ANALYTIC) {
-            printf("%u: analytic, vertices %u -> %u lines %u -> %u\n", eidx, next->verts_low, next->verts_high, next->lines_low, next->lines_high);
+            printf("%u: analytic,   vertices %u -> %u lines %u -> %u\n", eidx, next->verts_low, next->verts_high, next->lines_low, next->lines_high);
         }
         else if (next->data_tpe == EF_STREAM) {
-            printf("%u: stream#%d, %u bytes\n", eidx, next->entity_stream->tpe, next->entity_stream->datasize);
+            printf("%u: stream#%d,  %u bytes\n", eidx, next->entity_stream->tpe, next->entity_stream->datasize);
         }
         else if (next->data_tpe == EF_EXTERNAL) {
-            printf("%u: points, %lu bytes\n", eidx, next->ext_points->len * sizeof(Vector3f));
+            printf("%u: pointcloud, %lu bytes\n", eidx, next->ext_points->len * sizeof(Vector3f));
         }
         eidx++;
-        next = es->IterNext(next);
+        next = es->TreeIterNext(next, &stc);
     }
 }
 
@@ -256,20 +336,6 @@ EntitySystem *InitEntitySystem() {
     g_entity_system->pool = PoolCreate(sizeof(Entity), ENTITY_MAX_COUNT);
     void *zero = PoolAlloc(&g_entity_system->pool);
     return g_entity_system;
-}
-
-// TODO: will we _ever_ allocate an entity, but not chain it??
-void EntitySystemChain(EntitySystem *es, Entity *next) {
-    u16 next_idx = PoolPtr2Idx(&es->pool, next);
-    if (es->first == 0) {
-        es->first = next_idx;
-        es->last = next_idx;
-    }
-    else {
-        Entity * es_last = es->GetEntityByIdx(es->last);
-        es_last->next = next_idx;
-        es->last = next_idx;
-    }
 }
 
 
@@ -394,7 +460,7 @@ Entity CameraWireframe(float radius_xy, float length_z, List<Vector3f> *vertex_b
 
 
 Entity *EntityPoints(EntitySystem *es, Matrix4f transform, List<Vector3f> points) {
-    Entity *pc = es->AllocEntity();
+    Entity *pc = es->AllocEntityChain();
     pc->data_tpe = EF_EXTERNAL;
     pc->tpe = ET_POINTCLOUD;
     pc->entity_stream = NULL;
@@ -403,7 +469,6 @@ Entity *EntityPoints(EntitySystem *es, Matrix4f transform, List<Vector3f> points
     pc->color  = { RGBA_GREEN };
     pc->transform = transform;
 
-    EntitySystemChain(es, pc);
     return pc;
 }
 Entity *EntityPoints(EntitySystem *es, List<Vector3f> points) {
@@ -414,19 +479,18 @@ Entity *EntityStream(EntitySystem *es, MArena *a_stream_bld, u32 npoints_max, u3
     StreamHeader *hdr = StreamReserveChain(a_stream_bld, npoints_max, Matrix4f_Identity(), prev, id, stpe);
     hdr->id = id;
 
-    Entity *pc = es->AllocEntity();
+    Entity *pc = es->AllocEntityChain();
     pc->data_tpe = EF_STREAM;
     pc->tpe = tpe;
     pc->entity_stream = hdr;
     pc->color  = { RGBA_GREEN };
     pc->transform = hdr->transform;
 
-    EntitySystemChain(es, pc);
     return pc;
 }
 
 Entity *EntityStreamLoad(EntitySystem *es, StreamHeader *data, bool do_transpose) {
-    Entity *ent = es->AllocEntity();
+    Entity *ent = es->AllocEntityChain();
     ent->data_tpe = EF_STREAM;
     if (data->tpe == ST_POINTS) {
         // check if point cloud with normals:
@@ -462,7 +526,6 @@ Entity *EntityStreamLoad(EntitySystem *es, StreamHeader *data, bool do_transpose
         assert((void*) ent->entity_stream->GetData() == (void*) ent->ext_points->lst && "extra consistence check for pc_w_normals");
     }
 
-    EntitySystemChain(es, ent);
     return ent;
 }
 
