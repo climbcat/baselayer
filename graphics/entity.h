@@ -537,6 +537,21 @@ Entity *EntityPoints(EntitySystem *es, Matrix4f transform, List<Vector3f> points
 Entity *EntityPoints(EntitySystem *es, List<Vector3f> points) {
     return EntityPoints(es, Matrix4f_Identity(), points);
 }
+Entity *EntityPointsNormals(EntitySystem *es) {
+    Entity *pc = es->AllocEntityChain();
+    pc->data_tpe = EF_EXTERNAL;
+    pc->tpe = ET_POINTCLOUD_W_NORMALS;
+    pc->entity_stream = NULL;
+    pc->ext_points_lst = { NULL, 0 };
+    pc->ext_points = &pc->ext_points_lst;
+    pc->ext_normals_lst = { NULL, 0 };
+    pc->ext_normals = &pc->ext_normals_lst;
+    pc->color  = { RGBA_GREEN };
+    pc->color_alt  = { RGBA_BLUE };
+    pc->transform = Matrix4f_Identity();
+
+    return pc;
+}
 
 Entity *EntityStream(EntitySystem *es, MArena *a_stream_bld, u32 npoints_max, u32 id, StreamHeader *prev, EntityType tpe, StreamType stpe) {
     StreamHeader *hdr = StreamReserveChain(a_stream_bld, npoints_max, Matrix4f_Identity(), prev, id, stpe);

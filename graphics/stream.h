@@ -134,7 +134,7 @@ void StreamPrint(StreamHeader *et, char *tag) {
         ++didx;
     }
 }
-StreamHeader *StreamCopy(MArena *a_stream_bld, Matrix4f transform, List<Vector3f> src, u32 id = 0, StreamType stpe = ST_POINTS) {
+StreamHeader *StreamCopy(MArena *a_stream_bld, Matrix4f transform, List<Vector3f> src, StreamType stpe, u32 id = 0, StreamHeader *prev = NULL) {
     // allocate and copy header + payload
     StreamHeader hdr;
     hdr.next = 0;
@@ -148,9 +148,15 @@ StreamHeader *StreamCopy(MArena *a_stream_bld, Matrix4f transform, List<Vector3f
     StreamHeader *result = (StreamHeader*) ArenaPush(a_stream_bld, &hdr, sizeof(StreamHeader));
     ArenaPush(a_stream_bld, src.lst, hdr.datasize);
 
+    // chain
+    if (prev != NULL && result > prev) {
+        prev->next = (u8*) result - (u8*) prev;
+        assert((u8*) result == (u8*) prev + prev->next && "Stream chain contiguity violation");
+    }
+
     return result;
 }
-StreamHeader *StreamReserve(MArena *a_stream_bld, Matrix4f transform, u32 npoints, u32 id = 0, StreamType stpe = ST_POINTS) {
+StreamHeader *StreamReserve(MArena *a_stream_bld, Matrix4f transform, u32 npoints, u32 id = 0, StreamType stpe = ST_POINTS, StreamHeader *prev = NULL) {
     // allocate and copy header, allocate payload (no copy)
     StreamHeader hdr;
     hdr.next = 0;
@@ -163,6 +169,13 @@ StreamHeader *StreamReserve(MArena *a_stream_bld, Matrix4f transform, u32 npoint
 
     StreamHeader *result = (StreamHeader*) ArenaPush(a_stream_bld, &hdr, sizeof(StreamHeader));
     ArenaAlloc(a_stream_bld, hdr.datasize);
+
+    // chain
+    if (prev != NULL) {
+        assert(result > prev && "Stream data contiguity");
+        prev->next = (u8*) result - (u8*) prev;
+        assert((u8*) result == (u8*) prev + prev->next && "InitEntityStream data contiguity");
+    }
 
     return result;
 }
