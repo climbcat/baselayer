@@ -269,7 +269,7 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
     // entity loop (POC): vertices -> NDC
     Matrix4f model, mvp;
     u32 eidx = 0;
-    Stack stc = InitStackStatic<Entity*>(g_render_stack_mem, 100);
+    Stack<Entity*> stc = InitStackStatic<Entity*>(g_render_stack_mem, 100);
     Entity *next = es->TreeIterNext(NULL, &stc);
     while (next != NULL) {
         if (next->active && (next->data_tpe == EF_ANALYTIC)) {

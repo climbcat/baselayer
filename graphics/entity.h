@@ -372,7 +372,7 @@ static Entity * g_some_stack_mem[100];
 void EntitySystemPrint(EntitySystem *es) {
     u32 eidx = 0;
     printf("entities: \n");
-    Stack stc = InitStackStatic<Entity*>(g_some_stack_mem, 100);
+    Stack<Entity*> stc = InitStackStatic<Entity*>(g_some_stack_mem, 100);
     Entity *next = es->TreeIterNext(NULL, &stc, false);
     while (next != NULL) {
         if (next->data_tpe == EF_ANALYTIC) {
