@@ -14,6 +14,7 @@
 #define RGBA_BLACK      0, 0, 0, 255
 #define RGBA_WHITE      255, 255, 255, 255
 #define RGBA_GRAY_50    128, 128, 128, 255
+#define RGBA_GRAY_25    64, 64, 64, 255
 #define RGBA_RED        255, 0, 0, 255
 #define RGBA_GREEN      0, 255, 0, 255
 #define RGBA_BLUE       0, 0, 255, 255
@@ -39,6 +40,7 @@ enum EntityType {
     ET_POINTCLOUD,
     ET_POINTCLOUD_W_NORMALS,
     ET_MESH,
+    ET_EMPTY_NODE,
     ET_ANY,
 
     ET_CNT,
@@ -322,21 +324,25 @@ struct EntitySystem {
         }
     }
     Entity *AllocEntity() {
-        printf("AllocEntity\n");
         Entity default_val;
         Entity *next = (Entity*) PoolAlloc(&pool);
         *next = default_val;
         return next;
     }
-    Entity *AllocEntityChain() {
-        printf("AllocEntityChain\n");
+    Entity *AllocEntityChain(Entity *at = NULL, bool below = false) {
         Entity *next = AllocEntity();
         if (root == NULL) {
             this->root = next;
             this->leaf = next;
         }
         else {
-            EntityInsertAfter(next, this->leaf);
+            Entity *after = at ? at : (this->leaf ? this->leaf : this->root); // assign at, leaf or root
+            if (below == false) {
+                EntityInsertAfter(next, after);
+            }
+            else {
+                EntityInsertBelow(next, after);
+            }
             this->leaf = next;
         }
         return next;

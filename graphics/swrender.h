@@ -304,8 +304,11 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
                 // as a fallback, just render the vertices as a point cloud:
                 RenderPointCloud(r->image_buffer, r->w, r->h, &mvp, next->GetVertices(), next->color);
             }
+            else if (next->tpe == ET_EMPTY_NODE) {
+                // just an iteration handle
+            }
             else {
-                printf("Unknown entity type: %d (external data type)\n", next->tpe);
+                printf("Unknown entity type: %d (stream/external)\n", next->tpe);
             }
         }
         eidx++;
