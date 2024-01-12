@@ -116,11 +116,11 @@ struct MPool {
 };
 
 #define MPOOL_MIN_BLOCK_SIZE 64
-
+static MPool pool_zero;
 MPool PoolCreate(u32 block_size_min, u32 nblocks) {
     assert(nblocks > 1);
 
-    MPool p;
+    MPool p = pool_zero;;
     p.block_size = MPOOL_MIN_BLOCK_SIZE * (block_size_min / MPOOL_MIN_BLOCK_SIZE + 1);
     p.nblocks = nblocks;
     u32 size = p.block_size * p.nblocks;
@@ -297,6 +297,14 @@ struct Stack {
         }
     }
 };
+template<class T>
+Stack<T> InitStack(MArena *a, u32 cap) {
+    Stack<T> stc;
+    stc.lst = (T*) ArenaAlloc(a, sizeof(T) * cap, true);
+    stc.len = 0;
+    stc.cap = cap;
+    return stc;
+}
 template<class T>
 Stack<T> InitStackStatic(T *mem, u32 cap) {
     Stack<T> stc;

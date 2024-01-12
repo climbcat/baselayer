@@ -110,6 +110,37 @@ void KeyCallBack(GLFWwindow* window, int key, int scancode, int action, int mods
     else if (key == GLFW_KEY_DOWN && action == GLFW_PRESS) {
         mouse->key_down = true;
     }
+
+    else if (key == GLFW_KEY_0 && action == GLFW_PRESS) { 
+        mouse->key_digit = 0;
+    }
+    else if (key == GLFW_KEY_1 && action == GLFW_PRESS) { 
+        mouse->key_digit = 1;
+    }
+    else if (key == GLFW_KEY_2 && action == GLFW_PRESS) { 
+        mouse->key_digit = 2;
+    }
+    else if (key == GLFW_KEY_3 && action == GLFW_PRESS) { 
+        mouse->key_digit = 3;
+    }
+    else if (key == GLFW_KEY_4 && action == GLFW_PRESS) { 
+        mouse->key_digit = 4;
+    }
+    else if (key == GLFW_KEY_5 && action == GLFW_PRESS) { 
+        mouse->key_digit = 5;
+    }
+    else if (key == GLFW_KEY_6 && action == GLFW_PRESS) { 
+        mouse->key_digit = 6;
+    }
+    else if (key == GLFW_KEY_7 && action == GLFW_PRESS) { 
+        mouse->key_digit = 7;
+    }
+    else if (key == GLFW_KEY_8 && action == GLFW_PRESS) { 
+        mouse->key_digit = 8;
+    }
+    else if (key == GLFW_KEY_9 && action == GLFW_PRESS) { 
+        mouse->key_digit = 9;
+    }
 }
 
 
@@ -168,6 +199,9 @@ struct GameLoopOne {
         glfwTerminate();
     }
 };
+void GameLoopJustRun(GameLoopOne *game, EntitySystem *es) {
+    game->JustRun(es);
+}
 
 static GameLoopOne _g_loop;
 static GameLoopOne *g_loop;

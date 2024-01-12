@@ -214,6 +214,7 @@ void EntityYank(Entity *ent) {
 }
 void EntityInsertAbove(Entity *ent_new, Entity *ent) {
     // inserts ent_new above ent
+    EntityYank(ent_new);
     ent_new->up = ent->up;
     ent_new->down = ent;
     if (ent->up) {
@@ -223,6 +224,7 @@ void EntityInsertAbove(Entity *ent_new, Entity *ent) {
 }
 void EntityInsertBelow(Entity *ent_new, Entity *ent) {
     // inserts ent_new below ent
+    EntityYank(ent_new);
     ent_new->up = ent;
     ent_new->down = ent->down;
     if (ent->down) {
@@ -232,6 +234,7 @@ void EntityInsertBelow(Entity *ent_new, Entity *ent) {
 }
 void EntityInsertBefore(Entity *ent_new, Entity *ent) {
     // inserts ent_new before ent
+    EntityYank(ent_new);
     ent_new->prev = ent->prev;
     ent_new->next = ent;
     if (ent->prev) {
@@ -241,6 +244,7 @@ void EntityInsertBefore(Entity *ent_new, Entity *ent) {
 }
 void EntityInsertAfter(Entity *ent_new, Entity *ent) {
     // inserts ent_new after ent
+    EntityYank(ent_new);
     ent_new->prev = ent;
     ent_new->next = ent->next;
     if (ent->next) {
@@ -254,11 +258,20 @@ void EntityInsertAfter(Entity *ent_new, Entity *ent) {
 // Organization of entities
 
 
+typedef Stack<Entity*> TreeIterState;
+TreeIterState InitTreeIter(MArena *a_tmp) {
+    TreeIterState stc = InitStack<Entity*>(a_tmp, 100);
+    return stc;
+}
+// TODO: sort out static/re-usable memory
+static Entity * g_some_stack_mem[100];
+
+
 #define ENTITY_MAX_COUNT 200
 struct EntitySystem {
-    Entity *leaf = NULL;
     MPool pool;
     Entity *root = NULL;
+    Entity *leaf = NULL;
 
     Entity *cursor = NULL;
     Color cursor_highlight_color;
@@ -283,14 +296,40 @@ struct EntitySystem {
             return IterNext(result, data_tpe);
         }
     }
-
+    bool FreeEntity(Entity *e) {
+        if (e == cursor) {
+            cursor = NULL;
+        }
+        if (e == root) {
+            root = NULL;
+        }
+        if (e == leaf) {
+            leaf = NULL;
+        }
+        EntityYank(e);
+        return PoolFree(&pool, e);
+    }
+    void FreeEntityBranch(Entity *branch_root) {
+        if (branch_root) {
+            Entity *ent = branch_root;
+            Entity *next;
+            Stack<Entity*> stc = InitStackStatic<Entity*>(g_some_stack_mem, 100);
+            while (ent) {
+                next = TreeIterNext(ent, &stc);
+                FreeEntity(ent);
+                ent = next;
+            }
+        }
+    }
     Entity *AllocEntity() {
+        printf("AllocEntity\n");
         Entity default_val;
         Entity *next = (Entity*) PoolAlloc(&pool);
         *next = default_val;
         return next;
     }
     Entity *AllocEntityChain() {
+        printf("AllocEntityChain\n");
         Entity *next = AllocEntity();
         if (root == NULL) {
             this->root = next;
@@ -302,7 +341,7 @@ struct EntitySystem {
         }
         return next;
     }
-    Entity *TreeIterNext(Entity *prev, Stack<Entity*> *stc, bool only_active_entities = true) {
+    Entity *TreeIterNext(Entity *prev, TreeIterState *stc, bool only_active_entities = true) {
         // descent is halted if active == false
         if (prev == NULL) {
             return root;
@@ -367,8 +406,6 @@ struct EntitySystem {
 };
 
 
-// TODO: sort out static/re-usable memory
-static Entity * g_some_stack_mem[100];
 void EntitySystemPrint(EntitySystem *es) {
     u32 eidx = 0;
     printf("entities: \n");
