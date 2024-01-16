@@ -260,16 +260,26 @@ void EntityInsertAfter(Entity *ent_new, Entity *ent) {
 // Organization of entities
 
 
-typedef Stack<Entity*> TreeIterState;
-TreeIterState InitTreeIter(MArena *a_tmp) {
-    TreeIterState stc = InitStack<Entity*>(a_tmp, 100);
-    return stc;
+#define TREE_ITER_STACK_CAPACITY 1000
+struct TreeIterState {
+    Entity* mem[TREE_ITER_STACK_CAPACITY];
+    Stack<Entity*> _stc;
+    inline
+    void Push(Entity* item) {
+        _stc.Push(item);
+    }
+    inline
+    Entity* Pop() {
+        return _stc.Pop();
+    }
+};
+void InitTreeIter(TreeIterState *iter) {
+    iter->_stc.lst = &iter->mem[0];
+    iter->_stc.cap = TREE_ITER_STACK_CAPACITY;
 }
-// TODO: sort out static/re-usable memory
-static Entity * g_some_stack_mem[100];
 
 
-#define ENTITY_MAX_COUNT 200
+#define ENTITY_MAX_CNT 2000
 struct EntitySystem {
     MPool pool;
     Entity *root = NULL;
@@ -280,23 +290,18 @@ struct EntitySystem {
     Color cursor_color_swap;
     bool cursor_active_swap;
 
-    Entity *IterNext(Entity *prev, EntityTypeFilter data_tpe = EF_ANY) {
-        Entity *result;
+    Entity *TreeIterNext(Entity *prev, TreeIterState *iter, bool only_active_entities = true) {
+        // descent is halted if active == false
         if (prev == NULL) {
-            result = root;
+            return root;
         }
-        else {
-            result = prev->next;
+        if (prev->next) {
+            iter->Push(prev->next);
         }
-        if (result == NULL) {
-            return NULL;
+        if (prev->down && (prev->active || !only_active_entities)) {
+            return prev->down;
         }
-        if (data_tpe == EF_ANY || result->data_tpe == data_tpe) {
-            return result;
-        }
-        else {
-            return IterNext(result, data_tpe);
-        }
+        return iter->Pop();
     }
     bool FreeEntity(Entity *e) {
         if (e == cursor) {
@@ -315,9 +320,10 @@ struct EntitySystem {
         if (branch_root) {
             Entity *ent = branch_root;
             Entity *next;
-            Stack<Entity*> stc = InitStackStatic<Entity*>(g_some_stack_mem, 100);
+            TreeIterState itr;
+            InitTreeIter(&itr);
             while (ent) {
-                next = TreeIterNext(ent, &stc);
+                next = TreeIterNext(ent, &itr);
                 FreeEntity(ent);
                 ent = next;
             }
@@ -326,6 +332,7 @@ struct EntitySystem {
     Entity *AllocEntity() {
         Entity default_val;
         Entity *next = (Entity*) PoolAlloc(&pool);
+        assert(next != NULL && "pool capacity exceeded");
         *next = default_val;
         return next;
     }
@@ -346,19 +353,6 @@ struct EntitySystem {
             this->leaf = next;
         }
         return next;
-    }
-    Entity *TreeIterNext(Entity *prev, TreeIterState *stc, bool only_active_entities = true) {
-        // descent is halted if active == false
-        if (prev == NULL) {
-            return root;
-        }
-        if (prev->next) {
-            stc->Push(prev->next);
-        }
-        if (prev->down && (prev->active || !only_active_entities)) {
-            return prev->down;
-        }
-        return stc->Pop();
     }
 
     // TODO: improve this "cursed" code by applying zero-is-initialization
@@ -415,8 +409,9 @@ struct EntitySystem {
 void EntitySystemPrint(EntitySystem *es) {
     u32 eidx = 0;
     printf("entities: \n");
-    Stack<Entity*> stc = InitStackStatic<Entity*>(g_some_stack_mem, 100);
-    Entity *next = es->TreeIterNext(NULL, &stc, false);
+    TreeIterState iter;
+    InitTreeIter(&iter);
+    Entity *next = es->TreeIterNext(NULL, &iter, false);
     while (next != NULL) {
         if (next->data_tpe == EF_ANALYTIC) {
             printf("%u: analytic,   vertices %u -> %u lines %u -> %u\n", eidx, next->verts_low, next->verts_high, next->lines_low, next->lines_high);
@@ -428,7 +423,7 @@ void EntitySystemPrint(EntitySystem *es) {
             printf("%u: pointcloud, %lu bytes\n", eidx, next->ext_points->len * sizeof(Vector3f));
         }
         eidx++;
-        next = es->TreeIterNext(next, &stc, false);
+        next = es->TreeIterNext(next, &iter, false);
     }
 }
 
@@ -438,7 +433,7 @@ EntitySystem *InitEntitySystem() {
     assert(g_entity_system == NULL && "singleton assert");
     g_entity_system = &_g_entity_system;
 
-    g_entity_system->pool = PoolCreate(sizeof(Entity), ENTITY_MAX_COUNT);
+    g_entity_system->pool = PoolCreate(sizeof(Entity), ENTITY_MAX_CNT);
     g_entity_system->cursor_highlight_color = Color { RGBA_WHITE };
     void *zero = PoolAlloc(&g_entity_system->pool);
     return g_entity_system;
@@ -595,7 +590,6 @@ Entity *EntityPointsNormals(EntitySystem *es) {
 
     return pc;
 }
-
 Entity *EntityStream(EntitySystem *es, MArena *a_stream_bld, u32 npoints_max, u32 id, StreamHeader *prev, EntityType tpe, StreamType stpe) {
     StreamHeader *hdr = StreamReserveChain(a_stream_bld, npoints_max, Matrix4f_Identity(), prev, id, stpe);
     hdr->id = id;
@@ -609,7 +603,6 @@ Entity *EntityStream(EntitySystem *es, MArena *a_stream_bld, u32 npoints_max, u3
 
     return pc;
 }
-
 Entity *EntityStreamLoad(EntitySystem *es, StreamHeader *data, bool do_transpose) {
     Entity *ent = es->AllocEntityChain();
     ent->data_tpe = EF_STREAM;

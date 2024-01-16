@@ -245,11 +245,12 @@ SwRenderer InitRenderer(u32 width = 1280, u32 height = 800) {
     rend.a = &rend._arena;
 
     // pipeline buffers
+    // TODO: These should be "chunked" lists - list chunks linked by a next*
     rend.image_buffer = (u8*) ArenaAlloc(rend.a, nchannels * rend.w * rend.h);
-    rend.vertex_buffer = InitList<Vector3f>(rend.a, 1000);
-    rend.index_buffer = InitList<Vector2_u16>(rend.a, 1000);
-    rend.ndc_buffer = InitList<Vector3f>(rend.a, 1000);
-    rend.screen_buffer = InitList<ScreenAnchor>(rend.a, 1000);
+    rend.vertex_buffer = InitList<Vector3f>(rend.a, 1024 * 8);
+    rend.index_buffer = InitList<Vector2_u16>(rend.a, 1024 * 8);
+    rend.ndc_buffer = InitList<Vector3f>(rend.a, 1024 * 8);
+    rend.screen_buffer = InitList<ScreenAnchor>(rend.a, 1024 * 8);
 
     // shader
     rend.screen.Init(rend.image_buffer, rend.w, rend.h);
@@ -259,7 +260,6 @@ SwRenderer InitRenderer(u32 width = 1280, u32 height = 800) {
 
 
 // TODO: sort out static/re-usable memory
-static Entity *g_render_stack_mem[100];
 void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
     TimeFunction;
 
@@ -269,9 +269,10 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
     // entity loop (POC): vertices -> NDC
     Matrix4f model, mvp;
     u32 eidx = 0;
-    Stack<Entity*> stc = InitStackStatic<Entity*>(g_render_stack_mem, 100);
-    Entity *next = es->TreeIterNext(NULL, &stc);
-    while (next != NULL) {
+    TreeIterState iter;
+    InitTreeIter(&iter);
+    Entity *next = NULL;
+    while ((next = es->TreeIterNext(next, &iter)) != NULL) {
         if (next->active && (next->data_tpe == EF_ANALYTIC)) {
             if (next->tpe == ET_LINES_ROT) {
                 model = next->transform * TransformBuildRotateY(0.03f * frameno);
@@ -312,7 +313,6 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
             }
         }
         eidx++;
-        next = es->TreeIterNext(next, &stc);
     }
     r->ndc_buffer.len = r->vertex_buffer.len;
     for (u32 i = 0; i < r->screen_buffer.len / 2; ++i) {
