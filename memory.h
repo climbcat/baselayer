@@ -249,10 +249,10 @@ struct List {
     }
 };
 template<class T>
-List<T> InitList(MArena *a, u32 count) {
+List<T> InitList(MArena *a, u32 count, bool zerod = true) {
     List<T> _lst;
     _lst.len = 0;
-    _lst.lst = (T*) ArenaAlloc(a, sizeof(T) * count);
+    _lst.lst = (T*) ArenaAlloc(a, sizeof(T) * count, zerod);
     return _lst;
 }
 template<class T>

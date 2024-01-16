@@ -598,6 +598,21 @@ Entity *EntityPointsNormals(EntitySystem *es) {
 
     return pc;
 }
+Entity *EntityMesh(EntitySystem *es) {
+    Entity *pc = es->AllocEntityChain();
+    pc->data_tpe = EF_EXTERNAL;
+    pc->tpe = ET_MESH;
+    pc->entity_stream = NULL;
+    pc->ext_points_lst = { NULL, 0 };
+    pc->ext_points = &pc->ext_points_lst;
+    pc->ext_normals_lst = { NULL, 0 };
+    pc->ext_normals = &pc->ext_normals_lst;
+    pc->color  = { RGBA_RED };
+    pc->color_alt  = { RGBA_GRAY_25 };
+    pc->transform = Matrix4f_Identity();
+
+    return pc;
+}
 Entity *EntityStream(EntitySystem *es, MArena *a_stream_bld, u32 npoints_max, u32 id, StreamHeader *prev, EntityType tpe, StreamType stpe) {
     StreamHeader *hdr = StreamReserveChain(a_stream_bld, npoints_max, Matrix4f_Identity(), prev, id, stpe);
     hdr->id = id;
