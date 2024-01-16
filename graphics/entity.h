@@ -116,6 +116,14 @@ struct Entity {
         return result;
     }
 
+    void SetVertexList(List<Vector3f> vertices) {
+        ext_points_lst = vertices;
+        ext_points = &ext_points_lst;
+    }
+    void SetNormalsList(List<Vector3f> normals) {
+        ext_normals_lst = normals;
+        ext_normals = &ext_normals_lst;
+    }
     List<Vector3f> GetVertices() {
         assert(
             (data_tpe == EF_STREAM || data_tpe == EF_EXTERNAL) &&
