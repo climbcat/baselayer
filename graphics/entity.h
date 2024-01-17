@@ -268,7 +268,7 @@ void EntityInsertAfter(Entity *ent_new, Entity *ent) {
 // Organization of entities
 
 
-#define TREE_ITER_STACK_CAPACITY 1000
+#define TREE_ITER_STACK_CAPACITY 200
 struct TreeIterState {
     Entity* mem[TREE_ITER_STACK_CAPACITY];
     Stack<Entity*> _stc;
@@ -438,7 +438,9 @@ void EntitySystemPrint(EntitySystem *es) {
 static EntitySystem _g_entity_system;
 static EntitySystem *g_entity_system;
 EntitySystem *InitEntitySystem() {
-    assert(g_entity_system == NULL && "singleton assert");
+    if (g_entity_system != NULL) {
+        return g_entity_system;
+    }
     g_entity_system = &_g_entity_system;
 
     g_entity_system->pool = PoolCreate(sizeof(Entity), ENTITY_MAX_CNT);
