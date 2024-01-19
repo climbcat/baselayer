@@ -24,6 +24,7 @@ struct MouseTrap {
     bool key_space;
     bool key_s;
     bool key_n;
+    bool key_h;
     bool key_esc;
     bool key_left;
     bool key_right;

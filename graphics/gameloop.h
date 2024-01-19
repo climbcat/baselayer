@@ -97,6 +97,9 @@ void KeyCallBack(GLFWwindow* window, int key, int scancode, int action, int mods
     else if (key == GLFW_KEY_N && action == GLFW_PRESS) {
         mouse->key_n = true;
     }
+    else if (key == GLFW_KEY_H && action == GLFW_PRESS) {
+        mouse->key_h = true;
+    }
 
     else if (key == GLFW_KEY_LEFT && action == GLFW_PRESS) {
         mouse->key_left = true;
