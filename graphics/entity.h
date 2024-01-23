@@ -262,6 +262,23 @@ void EntityInsertAfter(Entity *ent_new, Entity *ent) {
     }
     ent->next = ent_new;
 }
+void EntityAppendChild(Entity *ent_new, Entity *branch) {
+    // append an entity below-after a certain branch, meaning below of after a chain starting at branch.down
+    EntityYank(ent_new);
+    assert(branch != NULL);
+    if (branch->down == NULL) {
+        branch->down = ent_new;
+        ent_new->up = branch;
+    }
+    else {
+        Entity *nxt = branch->down;
+        while (nxt->next != NULL) {
+            nxt = nxt->next;
+        }
+        nxt->next = ent_new;
+        ent_new->prev = nxt;
+    }
+}
 
 
 //
@@ -337,31 +354,25 @@ struct EntitySystem {
             }
         }
     }
-    Entity *AllocEntity() {
+    Entity *AllocEntityChild(Entity *parent = NULL) {
         Entity default_val;
         Entity *next = (Entity*) PoolAlloc(&pool);
         assert(next != NULL && "pool capacity exceeded");
         *next = default_val;
-        return next;
-    }
-    Entity *AllocEntityChain(Entity *at = NULL, bool below = false) {
-        Entity *next = AllocEntity();
-        if (root == NULL) {
-            this->root = next;
-            this->leaf = next;
+
+        if (parent == NULL) {
+            EntityAppendChild(next, this->root);
         }
         else {
-            Entity *after = at ? at : (this->leaf ? this->leaf : this->root); // assign at, leaf or root
-            if (below == false) {
-                EntityInsertAfter(next, after);
-            }
-            else {
-                EntityInsertBelow(next, after);
-            }
-            this->leaf = next;
+            EntityAppendChild(next, parent);
         }
         return next;
     }
+
+
+    //
+    // Cursor
+
 
     // TODO: improve this "cursed" code by applying zero-is-initialization
     void CursorMove(Entity *ent) {
@@ -435,6 +446,7 @@ void EntitySystemPrint(EntitySystem *es) {
     }
 }
 
+
 static EntitySystem _g_entity_system;
 static EntitySystem *g_entity_system;
 EntitySystem *InitEntitySystem() {
@@ -445,7 +457,11 @@ EntitySystem *InitEntitySystem() {
 
     g_entity_system->pool = PoolCreate(sizeof(Entity), ENTITY_MAX_CNT);
     g_entity_system->cursor_highlight_color = Color { RGBA_WHITE };
+    // TODO: validate this great idea -->
     void *zero = PoolAlloc(&g_entity_system->pool);
+
+    g_entity_system->root = (Entity*) PoolAlloc(&g_entity_system->pool);
+    *g_entity_system->root = InitEntity(ET_EMPTY_NODE);
     return g_entity_system;
 }
 
@@ -570,8 +586,15 @@ Entity CameraWireframe(float radius_xy, float length_z, List<Vector3f> *vertex_b
 // Point cloud-ish entities
 
 
-Entity *EntityPoints(EntitySystem *es, Matrix4f transform, List<Vector3f> points) {
-    Entity *pc = es->AllocEntityChain();
+Entity *EntityBranchHandle(EntitySystem *es, Entity* branch) {
+    Entity *ent = es->AllocEntityChild(branch);
+    ent->tpe = ET_EMPTY_NODE;
+    ent->lines_low = 1;
+    ent->lines_high = 0;
+    return ent;
+}
+Entity *EntityPoints(EntitySystem *es, Entity* branch, Matrix4f transform, List<Vector3f> points) {
+    Entity *pc = es->AllocEntityChild(branch);
     pc->data_tpe = EF_EXTERNAL;
     pc->tpe = ET_POINTCLOUD;
     pc->entity_stream = NULL;
@@ -582,11 +605,11 @@ Entity *EntityPoints(EntitySystem *es, Matrix4f transform, List<Vector3f> points
 
     return pc;
 }
-Entity *EntityPoints(EntitySystem *es, List<Vector3f> points) {
-    return EntityPoints(es, Matrix4f_Identity(), points);
+Entity *EntityPoints(EntitySystem *es, Entity* branch, List<Vector3f> points) {
+    return EntityPoints(es, branch, Matrix4f_Identity(), points);
 }
-Entity *EntityPointsNormals(EntitySystem *es) {
-    Entity *pc = es->AllocEntityChain();
+Entity *EntityPointsNormals(EntitySystem *es, Entity* branch) {
+    Entity *pc = es->AllocEntityChild(branch);
     pc->data_tpe = EF_EXTERNAL;
     pc->tpe = ET_POINTCLOUD_W_NORMALS;
     pc->entity_stream = NULL;
@@ -600,8 +623,8 @@ Entity *EntityPointsNormals(EntitySystem *es) {
 
     return pc;
 }
-Entity *EntityMesh(EntitySystem *es) {
-    Entity *pc = es->AllocEntityChain();
+Entity *EntityMesh(EntitySystem *es, Entity* branch) {
+    Entity *pc = es->AllocEntityChild(branch);
     pc->data_tpe = EF_EXTERNAL;
     pc->tpe = ET_MESH;
     pc->entity_stream = NULL;
@@ -615,11 +638,11 @@ Entity *EntityMesh(EntitySystem *es) {
 
     return pc;
 }
-Entity *EntityStream(EntitySystem *es, MArena *a_stream_bld, u32 npoints_max, u32 id, StreamHeader *prev, EntityType tpe, StreamType stpe) {
+Entity *EntityStream(EntitySystem *es, Entity* branch, MArena *a_stream_bld, u32 npoints_max, u32 id, StreamHeader *prev, EntityType tpe, StreamType stpe) {
     StreamHeader *hdr = StreamReserveChain(a_stream_bld, npoints_max, Matrix4f_Identity(), prev, id, stpe);
     hdr->id = id;
 
-    Entity *pc = es->AllocEntityChain();
+    Entity *pc = es->AllocEntityChild(branch);
     pc->data_tpe = EF_STREAM;
     pc->tpe = tpe;
     pc->entity_stream = hdr;
@@ -628,8 +651,8 @@ Entity *EntityStream(EntitySystem *es, MArena *a_stream_bld, u32 npoints_max, u3
 
     return pc;
 }
-Entity *EntityStreamLoad(EntitySystem *es, StreamHeader *data, bool do_transpose) {
-    Entity *ent = es->AllocEntityChain();
+Entity *EntityStreamLoad(EntitySystem *es, Entity* branch, StreamHeader *data, bool do_transpose) {
+    Entity *ent = es->AllocEntityChild(branch);
     ent->data_tpe = EF_STREAM;
     if (data->tpe == ST_POINTS) {
         // check if point cloud with normals:

@@ -17,12 +17,12 @@ void RunProgram() {
     SwRenderer *r = loop->GetRenderer();
     EntitySystem *es = InitEntitySystem();
 
-    Entity *axes = EntityCoordAxes(es, r);
-    Entity *box = EntityAABox(es, { 0.3f, 0.0f, 0.7f }, 0.2f, r);
+    Entity *axes = EntityCoordAxes(es, NULL, r);
+    Entity *box = EntityAABox(es, NULL, { 0.3f, 0.0f, 0.7f }, 0.2f, r);
     box->tpe = ET_LINES_ROT;
-    Entity *box2 = EntityAABox(es, { 0.3f, 0.0f, -0.7f }, 0.2f, r);
+    Entity *box2 = EntityAABox(es, NULL, { 0.3f, 0.0f, -0.7f }, 0.2f, r);
     box2->tpe = ET_LINES_ROT;
-    Entity *box3 = EntityAABox(es, { -0.7f, 0.0f, 0.0f }, 0.2f, r);
+    Entity *box3 = EntityAABox(es, NULL, { -0.7f, 0.0f, 0.0f }, 0.2f, r);
     box3->tpe = ET_LINES_ROT;
     EntitySystemPrint(es);
 

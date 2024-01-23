@@ -30,7 +30,7 @@ void TestRandomPCWithNormals() {
     GameLoopOne *loop = InitGameLoopOne();
     SwRenderer *r = loop->GetRenderer();
     EntitySystem *es = InitEntitySystem();
-    Entity *axes = EntityCoordAxes(es, r);
+    Entity *axes = EntityCoordAxes(es, NULL, r);
     
     MArena _a_pointclouds = ArenaCreate();
     MArena *a_pcs = &_a_pointclouds;
@@ -39,7 +39,7 @@ void TestRandomPCWithNormals() {
     List<Vector3f> points = CreateRandomPointCloud(a_pcs, 90, { 0.0f, 0.0f, 0.0f }, { 4.0f, 4.0f, 4.0f });
     List<Vector3f> normals = CreateRandomPointCloud(a_pcs, 90, { 0.1f, 0.1f, 0.1f }, { 0.05f, 0.05f, 0.05f });
 
-    Entity *pc = EntityPoints(es, points);
+    Entity *pc = EntityPoints(es, NULL, points);
     pc->ext_normals = &normals;
     pc->tpe = ET_POINTCLOUD_W_NORMALS;
     pc->color = Color { RGBA_GREEN };
@@ -122,19 +122,19 @@ void TestVGROcTree() {
     GameLoopOne *loop = InitGameLoopOne();
     SwRenderer *r = loop->GetRenderer();
     EntitySystem *es = InitEntitySystem();
-    Entity *axes = EntityCoordAxes(es, r);
+    Entity *axes = EntityCoordAxes(es, NULL, r);
 
-    Entity *src_pc = EntityPoints(es, src);
+    Entity *src_pc = EntityPoints(es, NULL, src);
     src_pc->transform = src_transform;
     src_pc->tpe = ET_POINTCLOUD;
     src_pc->color = color_in;
 
-    Entity *src_pc_2 = EntityPoints(es, src_2);
+    Entity *src_pc_2 = EntityPoints(es, NULL, src_2);
     src_pc_2->transform = src_transform_2;
     src_pc_2->tpe = ET_POINTCLOUD;
     src_pc_2->color = color_in_2;
 
-    Entity *dest_pc = EntityPoints(es, points_out);
+    Entity *dest_pc = EntityPoints(es, NULL, points_out);
     src_pc->transform = src_transform;
     dest_pc->tpe = ET_POINTCLOUD;
     dest_pc->color = color_out;
@@ -174,10 +174,10 @@ void TestQuaternionRotMult() {
     SwRenderer *r = loop->GetRenderer();
     EntitySystem *es = InitEntitySystem();
 
-    Entity *axes = EntityCoordAxes(es, r);
-    Entity *box0 = EntityAABox(es, { 0.0f, 0.0f, 0.f }, 0.2f, r);
+    Entity *axes = EntityCoordAxes(es, NULL, r);
+    Entity *box0 = EntityAABox(es, NULL, { 0.0f, 0.0f, 0.f }, 0.2f, r);
     box0->color = Color { RGBA_RED };
-    Entity *box = EntityAABox(es, { 0.0f, 0.0f, 0.f }, 0.2f, r);
+    Entity *box = EntityAABox(es, NULL, { 0.0f, 0.0f, 0.f }, 0.2f, r);
 
     Vector3f r1 { 0.0f, 1.0f, 0.0f };
     r1.Normalize();
@@ -198,13 +198,13 @@ void TestSlerpAndMat2Quat() {
     SwRenderer *r = loop->GetRenderer();
     EntitySystem *es = InitEntitySystem();
 
-    Entity *axes = EntityCoordAxes(es, r);
+    Entity *axes = EntityCoordAxes(es, NULL, r);
 
-    Entity *box0 = EntityAABox(es, { 0.0f, 0.0f, 0.f }, 0.2f, r);
+    Entity *box0 = EntityAABox(es, NULL, { 0.0f, 0.0f, 0.f }, 0.2f, r);
     box0->color = Color { RGBA_RED };
-    Entity *box1 = EntityAABox(es, { 0.0f, 0.0f, 0.f }, 0.2f, r);
+    Entity *box1 = EntityAABox(es, NULL, { 0.0f, 0.0f, 0.f }, 0.2f, r);
     box1->color = Color { RGBA_BLUE };
-    Entity *box = EntityAABox(es, { 0.0f, 0.0f, 0.f }, 0.2f, r);
+    Entity *box = EntityAABox(es, NULL, { 0.0f, 0.0f, 0.f }, 0.2f, r);
     box->color = Color { RGBA_GREEN };
 
     Vector3f r1 { 0.1f, 1.0f, -0.4f };
@@ -254,18 +254,18 @@ void TestPointCloudsBoxesAndSceneGraph() {
     EntitySystem *es = InitEntitySystem();
 
     // entities
-    Entity *axes = EntityCoordAxes(es, r);
-    Entity *box = EntityAABox(es, { 0.3f, 0.0f, 0.7f }, 0.2f, r);
-    Entity *box2 = EntityAABox(es, { 0.3f, 0.0f, -0.7f }, 0.2f, r);
-    Entity *box3 = EntityAABox(es, { -0.7f, 0.0f, 0.0f }, 0.2f, r);
+    Entity *axes = EntityCoordAxes(es, NULL, r);
+    Entity *box = EntityAABox(es, NULL, { 0.3f, 0.0f, 0.7f }, 0.2f, r);
+    Entity *box2 = EntityAABox(es, NULL, { 0.3f, 0.0f, -0.7f }, 0.2f, r);
+    Entity *box3 = EntityAABox(es, NULL, { -0.7f, 0.0f, 0.0f }, 0.2f, r);
 
     box->tpe = ET_LINES_ROT;
     box2->tpe = ET_LINES_ROT;
     box3->tpe = ET_LINES_ROT;
 
-    Entity *pc_1 = EntityPoints(es, points_1);
-    Entity *pc_2 = EntityPoints(es, points_2);
-    Entity *pc_3 = EntityPoints(es, points_3);
+    Entity *pc_1 = EntityPoints(es, NULL, points_1);
+    Entity *pc_2 = EntityPoints(es, NULL, points_2);
+    Entity *pc_3 = EntityPoints(es, NULL, points_3);
 
     pc_1->color = { RGBA_GREEN };
     pc_2->color = { RGBA_BLUE };
