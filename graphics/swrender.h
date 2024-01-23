@@ -261,6 +261,9 @@ SwRenderer InitRenderer(u32 width = 1280, u32 height = 800) {
 
     return rend;
 }
+void FreeRenderer(SwRenderer *rend) {
+    // TODO: impl.
+}
 
 
 // TODO: sort out static/re-usable memory

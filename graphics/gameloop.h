@@ -184,6 +184,7 @@ struct GameLoopOne {
         // exit condition
         bool exit_click = glfwWindowShouldClose(window) != 0;
         bool exit_esc = mouse.key_esc;
+        printf("%d %d\n", exit_click, exit_esc);
         return !(exit_click || exit_esc);
     }
     void CycleFrame(EntitySystem *es) {
@@ -206,20 +207,22 @@ struct GameLoopOne {
     void Terminate() {
         glfwTerminate();
     }
+    void Close() {
+        glfwDestroyWindow(window);
+    }
 };
-void GameLoopJustRun(GameLoopOne *game, EntitySystem *es) {
-    game->JustRun(es);
+void GameLoopJustRun(GameLoopOne *loop, EntitySystem *es) {
+    loop->JustRun(es);
 }
 
 static GameLoopOne _g_loop;
 static GameLoopOne *g_loop;
-GameLoopOne *InitGameLoopOne(MArena *a = NULL, u32 width = 1280, u32 height = 800) {
-    if (g_loop != NULL) {
-        // return singleton instance
-        return g_loop;
+GameLoopOne *InitGameLoopOne(u32 width = 1280, u32 height = 800) {
+    if (g_loop == NULL) {
+        FreeRenderer(&g_loop->renderer);
     }
-    g_loop = &_g_loop;
 
+    g_loop = &_g_loop;
     g_loop->frameno = 0;
     g_loop->window = InitGLFW(width, height, false);
     g_loop->renderer = InitRenderer(width, height);
