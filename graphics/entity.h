@@ -264,8 +264,10 @@ void EntityInsertAfter(Entity *ent_new, Entity *ent) {
 }
 void EntityAppendChild(Entity *ent_new, Entity *branch) {
     // append an entity below-after a certain branch, meaning below of after a chain starting at branch.down
-    EntityYank(ent_new);
     assert(branch != NULL);
+
+    EntityYank(ent_new);
+    ent_new->up = branch;
     if (branch->down == NULL) {
         branch->down = ent_new;
         ent_new->up = branch;
@@ -589,8 +591,6 @@ Entity CameraWireframe(float radius_xy, float length_z, List<Vector3f> *vertex_b
 Entity *EntityBranchHandle(EntitySystem *es, Entity* branch) {
     Entity *ent = es->AllocEntityChild(branch);
     ent->tpe = ET_EMPTY_NODE;
-    ent->lines_low = 1;
-    ent->lines_high = 0;
     return ent;
 }
 Entity *EntityPoints(EntitySystem *es, Entity* branch, Matrix4f transform, List<Vector3f> points) {

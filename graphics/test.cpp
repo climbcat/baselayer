@@ -263,25 +263,16 @@ void TestPointCloudsBoxesAndSceneGraph() {
     box2->tpe = ET_LINES_ROT;
     box3->tpe = ET_LINES_ROT;
 
-    Entity *pc_1 = EntityPoints(es, NULL, points_1);
-    Entity *pc_2 = EntityPoints(es, NULL, points_2);
-    Entity *pc_3 = EntityPoints(es, NULL, points_3);
+    Entity *pc_1 = EntityPoints(es, axes, points_1);
+    Entity *pc_2 = EntityPoints(es, pc_1, points_2);
+    Entity *pc_3 = EntityPoints(es, pc_2, points_3);
 
     pc_1->color = { RGBA_GREEN };
     pc_2->color = { RGBA_BLUE };
     pc_3->color = { RGBA_RED };
 
-    // how to move entities within the goddamn tree
-    EntityYank(pc_1);
-    EntityYank(pc_2);
-    EntityYank(pc_3);
-    EntityInsertBelow(pc_1, axes);
-    EntityInsertBelow(pc_2, pc_1);
-    EntityInsertBelow(pc_3, pc_2);
-
     // test render only active entities
     pc_2->DeActivate();
-
     EntitySystemPrint(es);
     while (loop->GameLoopRunning()) {
 
