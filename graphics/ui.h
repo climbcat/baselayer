@@ -154,11 +154,11 @@ struct OrbitCamera {
     }
 };
 OrbitCamera InitOrbitCamera(float aspect) {
-    OrbitCamera cam { PerspectiveFrustum { 90, aspect, 0.01, 10 } };
+    OrbitCamera cam { PerspectiveFrustum { 90, aspect, 0.01f, 10 } };
     cam.center = Vector3f_Zero();
     cam.theta = 60;
     cam.phi = 35;
-    cam.radius = 8;
+    cam.radius = 4;
     cam.view = Matrix4f_Identity();
     cam.proj = PerspectiveMatrixOpenGL(cam.frustum, false, false, false);
     return cam;

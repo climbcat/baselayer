@@ -159,7 +159,12 @@ struct GameLoopOne {
     OrbitCamera cam;
 
     SwRenderer *GetRenderer() {
-        return &renderer;
+        if (renderer.initialized) {
+            return &renderer;
+        }
+        else {
+            return NULL;
+        }
     }
     MouseTrap *GetMouseTrap()  {
         return &mouse;
@@ -209,7 +214,10 @@ void GameLoopJustRun(GameLoopOne *game, EntitySystem *es) {
 static GameLoopOne _g_loop;
 static GameLoopOne *g_loop;
 GameLoopOne *InitGameLoopOne(MArena *a = NULL, u32 width = 1280, u32 height = 800) {
-    assert(g_loop == NULL && "singleton assert");
+    if (g_loop != NULL) {
+        // return singleton instance
+        return g_loop;
+    }
     g_loop = &_g_loop;
 
     g_loop->frameno = 0;

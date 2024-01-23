@@ -175,6 +175,7 @@ void RenderPointCloud(u8* image_buffer, u16 w, u16 h, Matrix4f *mvp, List<Vector
         image_buffer[4 * pix_idx + 3] = color.a;
     }
 }
+#define NORMALS_DOWNSCALE_FACTOR 0.01f
 void RenderPointCloudWithNormals(u8* image_buffer, u16 w, u16 h, Matrix4f *mvp, List<Vector3f> points, List<Vector3f> normals, Color color, Color color_normals) {
     assert(points.len == normals.len);
 
@@ -191,7 +192,7 @@ void RenderPointCloudWithNormals(u8* image_buffer, u16 w, u16 h, Matrix4f *mvp, 
             continue;
         }
 
-        n2 = p + normals.lst[i];
+        n2 = p + NORMALS_DOWNSCALE_FACTOR * normals.lst[i];
         n2_ndc = TransformPerspective( *mvp, n2 );
         Vector2_s16 p_screen = NDC2Screen(w, h, p_ndc);
         Vector2_s16 n2_screen = NDC2Screen(w, h, n2_ndc);
@@ -217,6 +218,8 @@ void RenderMesh() {
 
 
 struct SwRenderer {
+    bool initialized;
+
     // settings
     u32 w;
     u32 h;
@@ -254,6 +257,7 @@ SwRenderer InitRenderer(u32 width = 1280, u32 height = 800) {
 
     // shader
     rend.screen.Init(rend.image_buffer, rend.w, rend.h);
+    rend.initialized = true;
 
     return rend;
 }
