@@ -184,7 +184,6 @@ struct GameLoopOne {
         // exit condition
         bool exit_click = glfwWindowShouldClose(window) != 0;
         bool exit_esc = mouse.key_esc;
-        printf("%d %d\n", exit_click, exit_esc);
         return !(exit_click || exit_esc);
     }
     void CycleFrame(EntitySystem *es) {
@@ -215,32 +214,32 @@ void GameLoopJustRun(GameLoopOne *loop, EntitySystem *es) {
     loop->JustRun(es);
 }
 
-static GameLoopOne _g_loop;
-static GameLoopOne *g_loop;
+static GameLoopOne _g_gameloop;
+static GameLoopOne *g_gameloop;
 GameLoopOne *InitGameLoopOne(u32 width = 1280, u32 height = 800) {
-    if (g_loop == NULL) {
-        FreeRenderer(&g_loop->renderer);
+    if (g_gameloop != NULL) {
+        FreeRenderer(&g_gameloop->renderer);
     }
 
-    g_loop = &_g_loop;
-    g_loop->frameno = 0;
-    g_loop->window = InitGLFW(width, height, false);
-    g_loop->renderer = InitRenderer(width, height);
-    g_loop->cam = InitOrbitCamera(g_loop->renderer.aspect);
+    g_gameloop = &_g_gameloop;
+    g_gameloop->frameno = 0;
+    g_gameloop->window = InitGLFW(width, height, false);
+    g_gameloop->renderer = InitRenderer(width, height);
+    g_gameloop->cam = InitOrbitCamera(g_gameloop->renderer.aspect);
 
     double xpos, ypos;
-    glfwGetCursorPos(g_loop->window, &xpos, &ypos);
+    glfwGetCursorPos(g_gameloop->window, &xpos, &ypos);
     s32 x = (s32) xpos;
     s32 y = (s32) ypos;
-    g_loop->mouse = InitMouseTrap(x, y);
+    g_gameloop->mouse = InitMouseTrap(x, y);
 
-    glfwSetKeyCallback(g_loop->window, KeyCallBack);
-    glfwSetCursorPosCallback(g_loop->window, MouseCursorPositionCallBack);
-    glfwSetMouseButtonCallback(g_loop->window, MouseButtonCallBack);
-    glfwSetScrollCallback(g_loop->window, MouseScrollCallBack);
-    glfwSetWindowUserPointer(g_loop->window, &g_loop->mouse);
+    glfwSetKeyCallback(g_gameloop->window, KeyCallBack);
+    glfwSetCursorPosCallback(g_gameloop->window, MouseCursorPositionCallBack);
+    glfwSetMouseButtonCallback(g_gameloop->window, MouseButtonCallBack);
+    glfwSetScrollCallback(g_gameloop->window, MouseScrollCallBack);
+    glfwSetWindowUserPointer(g_gameloop->window, &g_gameloop->mouse);
 
-    return g_loop;
+    return g_gameloop;
 }
 
 

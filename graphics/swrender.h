@@ -267,7 +267,7 @@ void FreeRenderer(SwRenderer *rend) {
 
 
 // TODO: sort out static/re-usable memory
-void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u32 frameno) {
+void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u64 frameno) {
     TimeFunction;
 
     _memzero(r->image_buffer, 4 * r->w * r->h);
