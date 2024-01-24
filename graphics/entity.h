@@ -443,6 +443,7 @@ void EntitySystemPrint(EntitySystem *es) {
         else if (next->data_tpe == EF_EXTERNAL) {
             printf("%u: pointcloud, %lu bytes\n", eidx, next->ext_points->len * sizeof(Vector3f));
         }
+        PrintTransform(next->transform);
         eidx++;
         next = es->TreeIterNext(next, &iter, false);
     }

@@ -623,6 +623,7 @@ float QuatInnerProduct(Quat q1, Quat q2) {
     return dotprod;
 }
 Quat Slerp(Quat q1, Quat q2, float t) {
+    // TODO: not robust with q1 == q2, please fix
     assert(t >= 0.0f && t <= 1.0f);
 
     float theta = acos( QuatInnerProduct(q1, q2) );
