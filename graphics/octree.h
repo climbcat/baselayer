@@ -284,6 +284,6 @@ VoxelGridReduce VoxelGridReduceInit(float leaf_size_max, float box_radius, Matri
 
     return vgr;
 }
-
+// TODO: vgr free
 
 #endif
