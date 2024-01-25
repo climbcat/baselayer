@@ -280,43 +280,47 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u64 frameno) {
     InitTreeIter(&iter);
     Entity *next = NULL;
     while ((next = es->TreeIterNext(next, &iter)) != NULL) {
-        if (next->active && (next->data_tpe == EF_ANALYTIC)) {
-            if (next->tpe == ET_LINES_ROT) {
-                model = next->transform * TransformBuildRotateY(0.03f * frameno);
+
+        if (next->active) {
+
+            if (EntityIsTiedToRenderer(next->tpe)) {
+                if (next->tpe == ET_LINES_ROT) {
+                    model = next->transform * TransformBuildRotateY(0.03f * frameno);
+                }
+                else {
+                    model = next->transform;
+                }
+                mvp = TransformBuildMVP(model, *vp);
+
+                // lines to screen buffer
+                for (u32 i = next->verts_low; i <= next->verts_high; ++i) {
+                    r->ndc_buffer.lst[i] = TransformPerspective(mvp, r->vertex_buffer.lst[i]);
+                    // TODO: here, it is faster to do a frustum filter in world space
+                }
+                // render lines
+                LinesToScreenCoords(r->w, r->h, &r->screen_buffer, &r->index_buffer, &r->ndc_buffer, next->lines_low, next->lines_high, next->color);
             }
             else {
-                model = next->transform;
-            }
-            mvp = TransformBuildMVP(model, *vp);
+                mvp = TransformBuildMVP(next->transform, *vp);
 
-            // lines to screen buffer
-            for (u32 i = next->verts_low; i <= next->verts_high; ++i) {
-                r->ndc_buffer.lst[i] = TransformPerspective(mvp, r->vertex_buffer.lst[i]);
-                // TODO: here, it is faster to do a frustum filter in world space
-            }
-            // render lines
-            LinesToScreenCoords(r->w, r->h, &r->screen_buffer, &r->index_buffer, &r->ndc_buffer, next->lines_low, next->lines_high, next->color);
-        }
-        else if (next->active && (next->data_tpe == EF_STREAM || next->data_tpe == EF_EXTERNAL)) {
-            mvp = TransformBuildMVP(next->transform, *vp);
-
-            // render pointcloud
-            if (next->tpe == ET_POINTCLOUD) {
-                RenderPointCloud(r->image_buffer, r->w, r->h, &mvp, next->GetVertices(), next->color);
-            }
-            else if (next->tpe == ET_POINTCLOUD_W_NORMALS) {
-                RenderPointCloudWithNormals(r->image_buffer, r->w, r->h, &mvp, next->GetVertices(), next->GetNormals(), next->color, next->color_alt);
-            }
-            else if (next->tpe == ET_MESH) {
-                RenderMesh();
-                // as a fallback, just render the vertices as a point cloud:
-                RenderPointCloud(r->image_buffer, r->w, r->h, &mvp, next->GetVertices(), next->color);
-            }
-            else if (next->tpe == ET_EMPTY_NODE) {
-                // just an iteration handle
-            }
-            else {
-                printf("Unknown entity type: %d (stream/external)\n", next->tpe);
+                // render pointcloud
+                if (next->tpe == ET_POINTCLOUD) {
+                    RenderPointCloud(r->image_buffer, r->w, r->h, &mvp, next->GetVertices(), next->color);
+                }
+                else if (next->tpe == ET_POINTCLOUD_W_NORMALS) {
+                    RenderPointCloudWithNormals(r->image_buffer, r->w, r->h, &mvp, next->GetVertices(), next->GetNormals(), next->color, next->color_alt);
+                }
+                else if (next->tpe == ET_MESH) {
+                    RenderMesh();
+                    // as a fallback, just render the vertices as a point cloud:
+                    RenderPointCloud(r->image_buffer, r->w, r->h, &mvp, next->GetVertices(), next->color);
+                }
+                else if (next->tpe == ET_EMPTY_NODE) {
+                    // just an iteration handle
+                }
+                else {
+                    printf("Unknown entity type: %d (stream/external)\n", next->tpe);
+                }
             }
         }
         eidx++;

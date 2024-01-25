@@ -66,6 +66,13 @@ struct StreamHeader {
         }
         return result;
     }
+    StreamHeader *GetNextTypeSameId(StreamType tpe) {
+        StreamHeader *result = GetNext(true);
+        while (result && result->tpe != tpe && result->id == id) {
+            result = result->GetNext(true);
+        }
+        return result;
+    }
     StreamHeader *GetNextId(bool iter_nonext = false) {
         StreamHeader *result = GetNext(iter_nonext);
         while (result && result->id == this->id) {

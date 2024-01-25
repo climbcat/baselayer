@@ -34,25 +34,53 @@ void PrintColorInline(Color c) {
 
 
 enum EntityType {
+    // lines etc.
+    // TODO: eventually collapse into just ET_LINES
     ET_AXES,
     ET_LINES,
     ET_LINES_ROT,
+
+    // data array
     ET_POINTCLOUD,
     ET_POINTCLOUD_W_NORMALS,
     ET_MESH,
+
+    // UI related
+    ET_BLITBOX,
+
+    // handle
     ET_EMPTY_NODE,
+
+    // wildcard
     ET_ANY,
 
+    // iteration len
     ET_CNT,
 };
-enum EntityTypeFilter {
-    EF_ANALYTIC,
-    EF_STREAM,
-    EF_EXTERNAL,
-    EF_ANY,
-
-    EF_CNT,
-};
+bool EntityIsTiedToRenderer(EntityType tpe) {
+    if (tpe == ET_AXES || tpe == ET_LINES || tpe == ET_LINES_ROT) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+bool EntityHasVertices(EntityType tpe) {
+    if (tpe == ET_POINTCLOUD || tpe == ET_POINTCLOUD_W_NORMALS || tpe == ET_MESH) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+bool EntityIsGeometrical(EntityType tpe) {
+    if (tpe == ET_EMPTY_NODE || tpe == ET_ANY || tpe == ET_CNT || ET_BLITBOX) {
+        return false;
+    }
+    else {
+        return true;
+    }
+}
 
 
 //
@@ -65,7 +93,6 @@ struct Entity {
     Entity *prev = NULL;
     Entity *next = NULL;
 
-    EntityTypeFilter data_tpe;
     EntityType tpe;
     Matrix4f transform; // TODO: make this into a transform_id and store externally
     Color color { RGBA_WHITE };
@@ -125,33 +152,40 @@ struct Entity {
         ext_normals = &ext_normals_lst;
     }
     List<Vector3f> GetVertices() {
-        assert(
-            (data_tpe == EF_STREAM || data_tpe == EF_EXTERNAL) &&
-            (tpe == ET_POINTCLOUD || tpe == ET_POINTCLOUD_W_NORMALS) && "GetVertices: Only call with point cloud or mesh ext data"
-        );
+        assert((tpe == ET_POINTCLOUD || tpe == ET_MESH || tpe == ET_POINTCLOUD_W_NORMALS));
 
-        List<Vector3f> verts;
-        if (data_tpe == EF_STREAM)  {
-            if (entity_stream != NULL) {
-                verts = entity_stream->GetDataVector3f();
-            }
+        List<Vector3f> verts { NULL, 0 };
+        if (entity_stream != NULL) {
+            verts = entity_stream->GetDataVector3f();
         }
-        else if (data_tpe == EF_EXTERNAL) {
+        else if (ext_points != NULL) {
             verts = *ext_points;
+        }
+        else {
+            verts = ext_points_lst;
         }
         return verts;
     }
     List<Vector3f> GetNormals() { 
-        // TODO: handle the situation where normals are located in stream->nxt location
+        assert((tpe == ET_POINTCLOUD || tpe == ET_MESH || tpe == ET_POINTCLOUD_W_NORMALS));
 
         List<Vector3f> normals { NULL, 0 };
-        if (ext_normals != NULL) {
+        if (entity_stream != NULL) {
+            StreamHeader *stream = entity_stream->GetNextTypeSameId(ST_NORMALS);
+            if (stream != NULL) {
+                normals = stream->GetDataVector3f();
+            }
+        }
+        else if (ext_normals != NULL) {
             normals = *ext_normals;
+        }
+        else {
+            normals = ext_normals_lst;
         }
         return normals;
     }
     void SetStreamVertexCount(u32 npoints) {
-        assert(data_tpe == EF_STREAM && (tpe == ET_POINTCLOUD || tpe == ET_POINTCLOUD_W_NORMALS || tpe == ET_MESH));
+        assert(tpe == ET_POINTCLOUD || tpe == ET_POINTCLOUD_W_NORMALS || tpe == ET_MESH);
         if (entity_stream->tpe == ST_POINTS) {
             entity_stream->SetVertexCount(npoints);
         }
@@ -162,7 +196,7 @@ struct Entity {
         ext_points = &ext_points_lst;
     }
     void SetStreamNormalsCount(u32 npoints) {
-        assert(data_tpe == EF_STREAM && (tpe == ET_POINTCLOUD_W_NORMALS || tpe == ET_MESH));
+        assert(tpe == ET_POINTCLOUD_W_NORMALS || tpe == ET_MESH);
         StreamHeader *nxt = entity_stream->GetNext(true);
         if (nxt->tpe == ST_NORMALS) {
             nxt->SetVertexCount(npoints);
@@ -186,12 +220,6 @@ static Entity entity_zero;
 Entity InitEntity(EntityType tpe) {
     Entity e;
     e.tpe = tpe;
-    if (tpe == ET_MESH || tpe == ET_POINTCLOUD) {
-        e.data_tpe = EF_STREAM;
-    }
-    else {
-        e.data_tpe = EF_ANALYTIC;
-    }
     e.transform = Matrix4f_Identity();
     e.active = true;
     return e;
@@ -434,16 +462,18 @@ void EntitySystemPrint(EntitySystem *es) {
     InitTreeIter(&iter);
     Entity *next = es->TreeIterNext(NULL, &iter, false);
     while (next != NULL) {
-        if (next->data_tpe == EF_ANALYTIC) {
+        if (EntityIsTiedToRenderer(next->tpe)) {
             printf("%u: analytic,   vertices %u -> %u lines %u -> %u\n", eidx, next->verts_low, next->verts_high, next->lines_low, next->lines_high);
         }
-        else if (next->data_tpe == EF_STREAM) {
-            printf("%u: stream#%d,  %u bytes\n", eidx, next->entity_stream->tpe, next->entity_stream->datasize);
+        else if (EntityHasVertices(next->tpe)) {
+            printf("%u: data, %lu bytes\n", eidx, next->GetVertices().len * sizeof(Vector3f));
         }
-        else if (next->data_tpe == EF_EXTERNAL) {
-            printf("%u: pointcloud, %lu bytes\n", eidx, next->ext_points->len * sizeof(Vector3f));
+        else {
+            printf("%u: other", eidx);
         }
-        PrintTransform(next->transform);
+        if (EntityIsGeometrical(next->tpe)) {
+            PrintTransform(next->transform);
+        }
         eidx++;
         next = es->TreeIterNext(next, &iter, false);
     }
@@ -596,7 +626,6 @@ Entity *EntityBranchHandle(EntitySystem *es, Entity* branch) {
 }
 Entity *EntityPoints(EntitySystem *es, Entity* branch, Matrix4f transform, List<Vector3f> points) {
     Entity *pc = es->AllocEntityChild(branch);
-    pc->data_tpe = EF_EXTERNAL;
     pc->tpe = ET_POINTCLOUD;
     pc->entity_stream = NULL;
     pc->ext_points_lst = points;
@@ -611,7 +640,6 @@ Entity *EntityPoints(EntitySystem *es, Entity* branch, List<Vector3f> points) {
 }
 Entity *EntityPointsNormals(EntitySystem *es, Entity* branch) {
     Entity *pc = es->AllocEntityChild(branch);
-    pc->data_tpe = EF_EXTERNAL;
     pc->tpe = ET_POINTCLOUD_W_NORMALS;
     pc->entity_stream = NULL;
     pc->ext_points_lst = { NULL, 0 };
@@ -626,7 +654,6 @@ Entity *EntityPointsNormals(EntitySystem *es, Entity* branch) {
 }
 Entity *EntityMesh(EntitySystem *es, Entity* branch) {
     Entity *pc = es->AllocEntityChild(branch);
-    pc->data_tpe = EF_EXTERNAL;
     pc->tpe = ET_MESH;
     pc->entity_stream = NULL;
     pc->ext_points_lst = { NULL, 0 };
@@ -644,7 +671,6 @@ Entity *EntityStream(EntitySystem *es, Entity* branch, MArena *a_stream_bld, u32
     hdr->id = id;
 
     Entity *pc = es->AllocEntityChild(branch);
-    pc->data_tpe = EF_STREAM;
     pc->tpe = tpe;
     pc->entity_stream = hdr;
     pc->color  = { RGBA_GREEN };
@@ -654,7 +680,6 @@ Entity *EntityStream(EntitySystem *es, Entity* branch, MArena *a_stream_bld, u32
 }
 Entity *EntityStreamLoad(EntitySystem *es, Entity* branch, StreamHeader *data, bool do_transpose) {
     Entity *ent = es->AllocEntityChild(branch);
-    ent->data_tpe = EF_STREAM;
     if (data->tpe == ST_POINTS) {
         // check if point cloud with normals:
         StreamHeader *data_nxt = data->GetNext(true);

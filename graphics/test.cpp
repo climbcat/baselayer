@@ -304,4 +304,5 @@ void Test() {
     //TestQuaternionRotMult();
     //TestSlerpAndMat2Quat();
     TestPointCloudsBoxesAndSceneGraph();
+    //TestBlitSomeImage();
 }
