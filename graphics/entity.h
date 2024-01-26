@@ -53,7 +53,7 @@ bool EntityHasVertices(EntityType tpe) {
     }
 }
 bool EntityIsGeometrical(EntityType tpe) {
-    if (tpe == ET_EMPTY_NODE || tpe == ET_ANY || tpe == ET_CNT || ET_BLITBOX_RGB || ET_BLITBOX_RGBA) {
+    if (tpe == ET_BLITBOX_RGB || tpe == ET_BLITBOX_RGBA || tpe == ET_EMPTY_NODE || tpe == ET_ANY || tpe == ET_CNT) {
         return false;
     }
     else {
@@ -343,6 +343,7 @@ struct TreeIterState {
 };
 void InitTreeIter(TreeIterState *iter) {
     iter->_stc.lst = &iter->mem[0];
+    iter->_stc.len = 0;
     iter->_stc.cap = TREE_ITER_STACK_CAPACITY;
 }
 
@@ -384,18 +385,28 @@ struct EntitySystem {
         EntityYank(e);
         return PoolFree(&pool, e);
     }
-    void FreeEntityBranch(Entity *branch_root) {
+    u32 FreeEntityBranch(Entity *branch_root) {
+        u32 cnt;
         if (branch_root) {
             Entity *ent = branch_root;
             Entity *next;
             TreeIterState itr;
             InitTreeIter(&itr);
             while (ent) {
-                next = TreeIterNext(ent, &itr);
+                next = TreeIterNext(ent, &itr, false);
                 FreeEntity(ent);
+                cnt++;
                 ent = next;
             }
         }
+        return cnt;
+    }
+    u32 FreeEntitiesBelowBranch(Entity *branch_root) {
+        u32 cnt = 0;
+        if (branch_root->down != NULL) {
+            FreeEntityBranch(branch_root->down);
+        }
+        return cnt;
     }
     Entity *AllocEntityChild(Entity *parent = NULL) {
         Entity default_val;
@@ -482,7 +493,7 @@ void EntitySystemPrint(EntitySystem *es) {
             printf("%u: data, %lu bytes\n", eidx, next->GetVertices().len * sizeof(Vector3f));
         }
         else {
-            printf("%u: other", eidx);
+            printf("%u: other\n", eidx);
         }
         if (EntityIsGeometrical(next->tpe)) {
             PrintTransform(next->transform);
