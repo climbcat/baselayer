@@ -81,7 +81,7 @@ struct ScreenQuadTextureProgram {
         }
     )glsl";
 
-    void Init(u8* imgbuffer, u32 width, u32 height) {
+    void Init() {
         float sqreen_quad_verts[] = {
             1.0f,  1.0f, 1.0f, 1.0f,
             -1.0f,  1.0f, 0.0f, 1.0f,

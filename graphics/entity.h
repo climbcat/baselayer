@@ -216,7 +216,7 @@ struct Entity {
         origo.z = 0.0f;
     }
     Rectangle GetBlitBox() {
-        Rectangle rect { (u16) dims.x, (u16) dims.y, (u16) origo.x, (u16) origo.y };
+        Rectangle rect = InitRectangle((u16) dims.x, (u16) dims.y, (s16) origo.x, (s16) origo.y);
         return rect;
     }
 

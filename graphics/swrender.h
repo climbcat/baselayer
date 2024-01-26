@@ -218,12 +218,14 @@ void RenderMesh() {
 
 
 void BlitImageInvertY(ImageRGBA dest, ImageRGBA src, Rectangle blit_in) {
-    Rectangle rect_src = InitRectangle(dest.width, dest.height);
-    Rectangle blit = rect_src.Crop(blit_in);
+    Rectangle rect_dest = InitRectangle(dest.width, dest.height);
+    Rectangle blit = RectangleCrop(rect_dest, blit_in);
+
+    blit.Print();
 
     // point-sample source
-    float scale_x = 1.0f * src.width / blit_in.width;
-    float scale_y = 1.0f * src.height / blit_in.height;
+    float scale_x = (float) src.width / blit_in.width;
+    float scale_y = (float) src.height / blit_in.height;
 
     u32 k, l; // source indices
     u32 ii; // dest y index
@@ -231,14 +233,14 @@ void BlitImageInvertY(ImageRGBA dest, ImageRGBA src, Rectangle blit_in) {
     u32 idx_src;
 
     // looping on rectangle coordinates
-    for (u16 i = 0; i < blit.height; ++i) {
-        for (u16 j = 0; j < blit.width; ++j) {
-            // ii = i + blit.top; // <- not inverted
-            ii = dest.height - (i + blit.top); // <- inverted
+    for (u32 i = 0; i < blit.height; ++i) {
+        for (u32 j = 0; j < blit.width; ++j) {
+            //ii = i + blit.top; // <- not inverted
+            ii = dest.height - 1 - (i + blit.top); // <- inverted
             idx_dest = ii*dest.width + j + blit.left;
 
             //k = floor( scale_y * i ); // <- not inverted 
-            k = src.height - floor( scale_y * i ); // <- inverted
+            k = src.height - 1 - floor( scale_y * i ); // <- inverted
             l = floor( scale_x * j ); 
             idx_src = k*src.width + l;
 
@@ -291,7 +293,7 @@ SwRenderer InitRenderer(u32 width = 1280, u32 height = 800) {
     rend.screen_buffer = InitList<ScreenAnchor>(rend.a, 1024 * 8);
 
     // shader
-    rend.screen.Init(rend.image_buffer, rend.w, rend.h);
+    rend.screen.Init();
     rend.initialized = true;
 
     return rend;

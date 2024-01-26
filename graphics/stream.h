@@ -29,56 +29,13 @@ void PrintColorInline(Color c) {
 
 
 struct Rectangle {
-    u16 left;
-    u16 top;
     u16 width;
     u16 height;
+    s16 left;
+    s16 top;
 
-    inline
-    Rectangle Crop(Rectangle other) {
-        Rectangle rect { other.left, other.top, other.width, other.height };
-        bool occluded = false;
-        bool partially_occluded = false;
-
-        // cases where other is completely outside of us
-        if (other.left > left + width) { // to the right of us
-            rect.left = left + width;
-            rect.width = 0;
-            occluded = true;
-        }
-        if (other.left + other.width < left) { // to the left of us
-            rect.left = left;
-            rect.width = 0;
-            occluded = true;
-        }
-        if (other.top > top + height) { // above us
-            rect.top = top + height;
-            rect.height = 0;
-            occluded = true;
-        }
-        if (other.top + other.height < top) { // below us
-            rect.top = top;
-            rect.height = 0;
-            occluded = true;
-        }
-        if (occluded) {
-            return rect;
-        }
-
-        // at least partially visible
-        if (other.left < left) {
-            rect.left = left;
-        }
-        if (other.top < top) {
-            rect.top = top;
-        }
-        if (other.left + other.width > left + width) {
-            rect.width = top + width;
-        }
-        if (other.top + other.height > top + height) {
-            rect.height = top + height;
-        }
-        return rect;
+    void Print() {
+        printf("rect: w: %u, h: %u, left: %d, top: %d\n", width, height, left, top);
     }
 };
 Rectangle InitRectangle(u16 width, u16 height, u16 left = 0, u16 top = 0) {
@@ -89,7 +46,55 @@ Rectangle InitRectangle(u16 width, u16 height, u16 left = 0, u16 top = 0) {
     rect.top = top;
     return rect;
 }
+Rectangle RectangleCrop(Rectangle us, Rectangle other) {
+    Rectangle rect = InitRectangle(other.width, other.height, other.left, other.top);
+    bool occluded = false;
+    bool partially_occluded = false;
 
+    // cases where other is completely outside of us
+    if (other.left > us.left + us.width) { // to the right of us
+        rect.left = us.left + us.width;
+        rect.width = 0;
+        occluded = true;
+    }
+    if (other.left + other.width < us.left) { // to the left of us
+        rect.left = us.left;
+        rect.width = 0;
+        occluded = true;
+    }
+    if (other.top > us.top + us.height) { // above us
+        rect.top = us.top + us.height;
+        rect.height = 0;
+        occluded = true;
+    }
+    if (other.top + other.height < us.top) { // below us
+        rect.top = us.top;
+        rect.height = 0;
+        occluded = true;
+    }
+    if (occluded) {
+        return rect;
+    }
+
+    // at least partially visible
+    if (other.left < us.left) {
+        rect.left = us.left;
+        s16 diff = us.left - other.left;
+        rect.width = rect.width - diff;
+    }
+    if (other.top < us.top) {
+        rect.top = us.top;
+        s16 diff = us.top - other.top;
+        rect.height = rect.height - diff;
+    }
+    if (other.left + other.width > us.left + us.width) {
+        rect.width = us.top + us.width;
+    }
+    if (other.top + other.height > us.top + us.height) {
+        rect.height = us.top + us.height;
+    }
+    return rect;
+}
 
 //
 // Entity System
