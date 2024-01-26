@@ -133,7 +133,7 @@ struct ScreenQuadTextureProgram {
         // TODO: what is the better way to update texture data than to (probably) allocate every frame?
         glBindTexture(GL_TEXTURE_2D, tex);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, imgbuffer);
-        glGenerateMipmap(GL_TEXTURE_2D); // <-- do we need this?
+        glGenerateMipmap(GL_TEXTURE_2D);
 
         glDrawArrays(GL_TRIANGLE_STRIP, 0, nverts);
         glBindVertexArray(0);
