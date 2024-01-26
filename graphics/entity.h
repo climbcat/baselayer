@@ -386,7 +386,7 @@ struct EntitySystem {
         return PoolFree(&pool, e);
     }
     u32 FreeEntityBranch(Entity *branch_root) {
-        u32 cnt;
+        u32 cnt = 0;
         if (branch_root) {
             Entity *ent = branch_root;
             Entity *next;
