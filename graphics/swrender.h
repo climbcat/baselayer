@@ -217,18 +217,31 @@ void RenderMesh() {
 // 2D blit
 
 
-void BlitImage(ImageRGBA dest, ImageRGBA src, Rectangle blit_in) {
-
+void BlitImageInvertY(ImageRGBA dest, ImageRGBA src, Rectangle blit_in) {
     Rectangle rect_src = InitRectangle(dest.width, dest.height);
     Rectangle blit = rect_src.Crop(blit_in);
 
+    // point-sample source
+    float scale_x = 1.0f * src.width / blit_in.width;
+    float scale_y = 1.0f * src.height / blit_in.height;
+
+    u32 k, l; // source indices
+    u32 ii; // dest y index
+    u32 idx_dest;
+    u32 idx_src;
+
+    // looping on rectangle coordinates
     for (u16 i = 0; i < blit.height; ++i) {
         for (u16 j = 0; j < blit.width; ++j) {
-            // src indices are:
-            // k = i + blit.top;
-            // l = j + blit.left;
-            u32 idx_dest = (i + blit.top)*dest.width + j + blit.left;
-            u32 idx_src = i*src.width + j;
+            // ii = i + blit.top; // <- not inverted
+            ii = dest.height - (i + blit.top); // <- inverted
+            idx_dest = ii*dest.width + j + blit.left;
+
+            //k = floor( scale_y * i ); // <- not inverted 
+            k = src.height - floor( scale_y * i ); // <- inverted
+            l = floor( scale_x * j ); 
+            idx_src = k*src.width + l;
+
             dest.img[idx_dest] = src.img[idx_src];
         }
     }
@@ -343,7 +356,7 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u64 frameno) {
                     ImageRGBA img_src = next->GetTexture();
                     // TODO: change the image buffer to be of type Color* or even ImageRGBA*
                     ImageRGBA img_dest { r->w, r->h, (Color*) r->image_buffer };
-                    BlitImage(img_dest, img_src, blitbox);
+                    BlitImageInvertY(img_dest, img_src, blitbox);
                 }
                 else if (next->tpe == ET_EMPTY_NODE) {
                     // just an iteration handle

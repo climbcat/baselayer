@@ -305,10 +305,10 @@ void TestBlitSomeImage() {
     GameLoopOne *gl = InitGameLoopOne();
     Entity *axes = EntityCoordAxes(es, NULL, gl->GetRenderer());
 
-    Rectangle blit { 500, 400, 50, 50 };
+    Rectangle blit { 100, 100, 50, 50 };
     Color buff[500 * 400];
     RandInit();
-    for (u32 i = 0; i < 500 * 400; ++i) {
+    for (u32 i = 0; i < 500 * 400 / 2; ++i) {
         Color c;
         c.a = 255;
         c.r = RandMinMaxI(0, 255);
