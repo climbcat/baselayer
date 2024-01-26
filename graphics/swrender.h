@@ -222,18 +222,14 @@ void BlitImage(ImageRGBA dest, ImageRGBA src, Rectangle blit_in) {
     Rectangle rect_src = InitRectangle(dest.width, dest.height);
     Rectangle blit = rect_src.Crop(blit_in);
 
-    // DEBUG
-    assert(blit.left == blit_in.left);
-    assert(blit.top == blit_in.top);
-    assert(blit.width == blit_in.width);
-    assert(blit.height == blit_in.height);
-
-    for (u16 i = blit.top; i < blit.top + blit.height; ++i) {
-        for (u16 j = blit.left; j < blit.left + blit.width; ++j) {
-            u32 idx_dest = i*dest.width + j;
-
-            // DEBUG
-            dest.img[idx_dest] = Color { RGBA_WHITE };
+    for (u16 i = 0; i < blit.height; ++i) {
+        for (u16 j = 0; j < blit.width; ++j) {
+            // src indices are:
+            // k = i + blit.top;
+            // l = j + blit.left;
+            u32 idx_dest = (i + blit.top)*dest.width + j + blit.left;
+            u32 idx_src = i*src.width + j;
+            dest.img[idx_dest] = src.img[idx_src];
         }
     }
 }

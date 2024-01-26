@@ -305,10 +305,18 @@ void TestBlitSomeImage() {
     GameLoopOne *gl = InitGameLoopOne();
     Entity *axes = EntityCoordAxes(es, NULL, gl->GetRenderer());
 
-    // TODO: blit src image from dest rectangle loop
-
     Rectangle blit { 500, 400, 50, 50 };
-    ImageRGBA src;
+    Color buff[500 * 400];
+    RandInit();
+    for (u32 i = 0; i < 500 * 400; ++i) {
+        Color c;
+        c.a = 255;
+        c.r = RandMinMaxI(0, 255);
+        c.g = RandMinMaxI(0, 255);
+        c.b = RandMinMaxI(0, 255);
+        buff[i] = c;
+    }
+    ImageRGBA src { 500, 400, &buff[0] };
     Entity *blitbox = EntityBlitBox(es, NULL, blit, src);
 
     GameLoopJustRun(gl, es);
