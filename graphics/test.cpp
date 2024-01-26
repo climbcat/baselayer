@@ -305,7 +305,7 @@ void TestBlitSomeImage() {
     GameLoopOne *gl = InitGameLoopOne();
     Entity *axes = EntityCoordAxes(es, NULL, gl->GetRenderer());
 
-    Rectangle blit = InitRectangle(200, 200, 0, 0);
+    Rect blit = InitRectangle(200, 200, 0, 0);
     Color buff[500 * 500];
     RandInit();
     for (u32 i = 0; i < 500 * 500; ++i) {

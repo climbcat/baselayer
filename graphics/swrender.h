@@ -217,9 +217,9 @@ void RenderMesh() {
 // 2D blit
 
 
-void BlitImageInvertY(ImageRGBA dest, ImageRGB src, Rectangle blit_in) {
-    Rectangle rect_dest = InitRectangle(dest.width, dest.height);
-    Rectangle blit = RectangleCrop(rect_dest, blit_in);
+void BlitImageInvertY(ImageRGBA dest, ImageRGB src, Rect blit_in) {
+    Rect rect_dest = InitRectangle(dest.width, dest.height);
+    Rect blit = RectangleCrop(rect_dest, blit_in);
 
     assert(blit_in.left == blit.left && blit_in.top == blit.top && blit_in.width == blit.width && blit_in.height == blit.height);
 
@@ -355,7 +355,7 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u64 frameno) {
                 }
                 else if (next->tpe == ET_BLITBOX_RGB) {
                     assert(next->ext_texture != NULL);
-                    Rectangle blitbox = next->GetBlitBox();
+                    Rect blitbox = next->GetBlitBox();
 
                     // TODO: remove hack
                     ImageRGBA _img_src = next->GetTexture();

@@ -28,7 +28,7 @@ void PrintColorInline(Color c) {
 }
 
 
-struct Rectangle {
+struct Rect {
     u16 width;
     u16 height;
     s16 left;
@@ -38,16 +38,17 @@ struct Rectangle {
         printf("rect: w: %u, h: %u, left: %d, top: %d\n", width, height, left, top);
     }
 };
-Rectangle InitRectangle(u16 width, u16 height, u16 left = 0, u16 top = 0) {
-    Rectangle rect;
-    rect.width = width;
-    rect.height = height;
-    rect.left = left;
-    rect.top = top;
-    return rect;
+
+Rect InitRectangle(u16 width, u16 height, u16 left = 0, u16 top = 0) {
+    Rect r;
+    r.width = width;
+    r.height = height;
+    r.left = left;
+    r.top = top;
+    return r;
 }
-Rectangle RectangleCrop(Rectangle us, Rectangle other) {
-    Rectangle rect = InitRectangle(other.width, other.height, other.left, other.top);
+Rect RectangleCrop(Rect us, Rect other) {
+    Rect rect = InitRectangle(other.width, other.height, other.left, other.top);
     bool occluded = false;
     bool partially_occluded = false;
 

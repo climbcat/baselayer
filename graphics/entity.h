@@ -208,7 +208,7 @@ struct Entity {
         }
         return img;
     }
-    void SetBlitBox(Rectangle rect) {
+    void SetBlitBox(Rect rect) {
         dims.x = rect.width;
         dims.y = rect.height;
         dims.z = 0.0f;
@@ -216,8 +216,8 @@ struct Entity {
         origo.y = rect.top;
         origo.z = 0.0f;
     }
-    Rectangle GetBlitBox() {
-        Rectangle rect = InitRectangle((u16) dims.x, (u16) dims.y, (s16) origo.x, (s16) origo.y);
+    Rect GetBlitBox() {
+        Rect rect = InitRectangle((u16) dims.x, (u16) dims.y, (s16) origo.x, (s16) origo.y);
         return rect;
     }
 
@@ -746,7 +746,7 @@ Entity *EntityStreamLoad(EntitySystem *es, Entity* branch, StreamHeader *data, b
 // 2d / UI element / texture entities
 
 
-Entity *EntityBlitBox(EntitySystem *es, Entity* branch, Rectangle box, ImageRGBA src) {
+Entity *EntityBlitBox(EntitySystem *es, Entity* branch, Rect box, ImageRGBA src) {
     Entity *bb = es->AllocEntityChild(branch);
     bb->tpe = ET_BLITBOX_RGB;
     bb->SetTexture(src);
