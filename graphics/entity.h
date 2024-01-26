@@ -8,28 +8,6 @@
 
 
 //
-// Colors
-
-
-#define RGBA_BLACK      0, 0, 0, 255
-#define RGBA_WHITE      255, 255, 255, 255
-#define RGBA_GRAY_50    128, 128, 128, 255
-#define RGBA_GRAY_25    64, 64, 64, 255
-#define RGBA_RED        255, 0, 0, 255
-#define RGBA_GREEN      0, 255, 0, 255
-#define RGBA_BLUE       0, 0, 255, 255
-struct Color {
-    u8 r;
-    u8 g;
-    u8 b;
-    u8 a;
-};
-void PrintColorInline(Color c) {
-    printf("%hhx %hhx %hhx %hhx", c.r, c.g, c.b, c.a);
-}
-
-
-//
 // Entity System
 
 
@@ -116,6 +94,8 @@ struct Entity {
     List<Vector3f> *ext_normals;
     List<Vector3f> ext_points_lst;
     List<Vector3f> ext_normals_lst;
+    ImageRGBA *ext_texture;
+    ImageRGBA ext_texture_var;
 
     // scene graph switch
     bool active = true;
@@ -206,6 +186,38 @@ struct Entity {
         }
         ext_normals_lst = nxt->GetDataVector3f();
         ext_normals = &ext_normals_lst;
+    }
+    void SetTexture(ImageRGBA texture) {
+        ext_texture_var = texture;
+        ext_texture = &ext_texture_var;
+    }
+    void SetTexture(ImageRGBA *texture) {
+        ext_texture_var.width = 0;
+        ext_texture_var.height = 0;
+        ext_texture_var.img = NULL;
+        ext_texture = texture;
+    }
+    ImageRGBA GetTexture() {
+        ImageRGBA img;
+        if (ext_texture != NULL) {
+            img = *ext_texture;
+        }
+        else {
+            img = ext_texture_var;
+        }
+        return img;
+    }
+    void SetBlitBox(Rectangle rect) {
+        dims.x = rect.width;
+        dims.y = rect.height;
+        dims.z = 0.0f;
+        origo.x = rect.left;
+        origo.y = rect.top;
+        origo.z = 0.0f;
+    }
+    Rectangle GetBlitBox() {
+        Rectangle rect { dims.x, dims.y, origo.x, origo.y };
+        return rect;
     }
 
     // scene graph behavior
@@ -715,6 +727,28 @@ Entity *EntityStreamLoad(EntitySystem *es, Entity* branch, StreamHeader *data, b
     }
 
     return ent;
+}
+
+
+//
+// 2d / UI element / texture entities
+
+
+Entity *EntityBlitBox(EntitySystem *es, Entity* branch, Rectangle box, ImageRGBA src) {
+    Entity *bb = es->AllocEntityChild(branch);
+    bb->tpe = ET_BLITBOX;
+    bb->SetTexture(src);
+    bb->SetBlitBox(box);
+
+    // TODO: use zero-is-initialization on all entities
+    bb->entity_stream = NULL;
+    bb->ext_points_lst = { NULL, 0 };
+    bb->ext_points = &bb->ext_points_lst;
+    bb->ext_normals_lst = { NULL, 0 };
+    bb->ext_normals = &bb->ext_normals_lst;
+    bb->color  = { RGBA_WHITE };
+    bb->color_alt  = { RGBA_GRAY_25 };
+    bb->transform = Matrix4f_Identity();
 }
 
 

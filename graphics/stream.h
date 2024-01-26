@@ -7,6 +7,91 @@
 
 
 //
+// Colors
+
+
+#define RGBA_BLACK      0, 0, 0, 255
+#define RGBA_WHITE      255, 255, 255, 255
+#define RGBA_GRAY_50    128, 128, 128, 255
+#define RGBA_GRAY_25    64, 64, 64, 255
+#define RGBA_RED        255, 0, 0, 255
+#define RGBA_GREEN      0, 255, 0, 255
+#define RGBA_BLUE       0, 0, 255, 255
+struct Color {
+    u8 r;
+    u8 g;
+    u8 b;
+    u8 a;
+};
+void PrintColorInline(Color c) {
+    printf("%hhx %hhx %hhx %hhx", c.r, c.g, c.b, c.a);
+}
+
+
+struct Rectangle {
+    u16 left;
+    u16 top;
+    u16 width;
+    u16 height;
+
+    inline
+    Rectangle Crop(Rectangle other) {
+        Rectangle rect { other.left, other.top, other.width, other.height };
+        bool occluded = false;
+        bool partially_occluded = false;
+
+        // cases where other is completely outside of us
+        if (other.left > left + width) { // to the right of us
+            rect.left = left + width;
+            rect.width = 0;
+            occluded = true;
+        }
+        if (other.left + other.width < left) { // to the left of us
+            rect.left = left;
+            rect.width = 0;
+            occluded = true;
+        }
+        if (other.top > top + height) { // above us
+            rect.top = top + height;
+            rect.height = 0;
+            occluded = true;
+        }
+        if (other.top + other.height < top) { // below us
+            rect.top = top;
+            rect.height = 0;
+            occluded = true;
+        }
+        if (occluded) {
+            return rect;
+        }
+
+        // at least partially visible
+        if (other.left < left) {
+            rect.left = left;
+        }
+        if (other.top < top) {
+            rect.top = top;
+        }
+        if (other.left + other.width > left + width) {
+            rect.width = top + width;
+        }
+        if (other.top + other.height > top + height) {
+            rect.height = top + height;
+        }
+        return rect;
+    }
+};
+Rectangle InitRectangle(u16 width, u16 height, u16 left = 0, u16 top = 0) {
+    Rectangle rect;
+    rect.width = width;
+    rect.height = height;
+    rect.left = left;
+    rect.top = top;
+    return rect;
+}
+
+
+//
 // Entity System
 
 
@@ -36,6 +121,11 @@ struct Vector2f {
     f32 y;
 };
 
+struct ImageRGBA {
+    u16 width;
+    u16 height;
+    Color *img;
+};
 struct ImageF32 {
     u32 width;
     u32 height;

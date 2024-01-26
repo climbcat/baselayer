@@ -3,6 +3,7 @@
 #include "octree.h"
 #include "shaders.h"
 #include "ui.h"
+// TODO: have a render_types.h or something; Color is used in stream.h but defined in entity.h, and I want all image (data) types in one place
 #include "stream.h"
 #include "entity.h"
 #include "swrender.h"

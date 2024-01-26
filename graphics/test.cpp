@@ -298,98 +298,6 @@ void TestPointCloudsBoxesAndSceneGraph() {
 }
 
 
-struct Rectangle {
-    u16 left;
-    u16 top;
-    u16 width;
-    u16 height;
-
-    inline
-    Rectangle Crop(Rectangle other) {
-        Rectangle rect { other.left, other.top, other.width, other.height };
-        bool occluded = false;
-        bool partially_occluded = false;
-
-        // cases where other is completely outside of us
-        if (other.left > left + width) { // to the right of us
-            rect.left = left + width;
-            rect.width = 0;
-            occluded = true;
-        }
-        if (other.left + other.width < left) { // to the left of us
-            rect.left = left;
-            rect.width = 0;
-            occluded = true;
-        }
-        if (other.top > top + height) { // above us
-            rect.top = top + height;
-            rect.height = 0;
-            occluded = true;
-        }
-        if (other.top + other.height < top) { // below us
-            rect.top = top;
-            rect.height = 0;
-            occluded = true;
-        }
-        if (occluded) {
-            return rect;
-        }
-
-        // at least partially visible
-        if (other.left < left) {
-            rect.left = left;
-        }
-        if (other.top < top) {
-            rect.top = top;
-        }
-        if (other.left + other.width > left + width) {
-            rect.width = top + width;
-        }
-        if (other.top + other.height > top + height) {
-            rect.height = top + height;
-        }
-        return rect;
-    }
-};
-Rectangle InitRectangle(u16 width, u16 height, u16 left = 0, u16 top = 0) {
-    Rectangle rect;
-    rect.width = width;
-    rect.height = height;
-    rect.left = left;
-    rect.top = top;
-    return rect;
-}
-
-
-struct ImageRGBA {
-    Color *img;
-    u16 width;
-    u16 height;
-};
-
-
-void BlitImage(ImageRGBA *dest, ImageRGBA *src, Rectangle blit_in) {
-
-    Rectangle rect_src = InitRectangle(dest->width, dest->height);
-    Rectangle blit = rect_src.Crop(blit_in);
-
-    // DEBUG
-    assert(blit.left == blit_in.left);
-    assert(blit.top == blit_in.top);
-    assert(blit.width == blit_in.width);
-    assert(blit.height == blit_in.height);
-
-    for (u16 i = blit.top; i < blit.top + blit.height; ++i) {
-        for (u16 j = blit.left; j < blit.left + blit.width; ++j) {
-            u32 idx_dest = i*dest->width + j;
-
-            // DEBUG
-            dest->img[idx_dest] = Color { RGBA_WHITE };
-        }
-    }
-}
-
-
 void TestBlitSomeImage() {
     printf("TestBlitSomeImage\n");
 
@@ -397,31 +305,13 @@ void TestBlitSomeImage() {
     GameLoopOne *gl = InitGameLoopOne();
     Entity *axes = EntityCoordAxes(es, NULL, gl->GetRenderer());
 
-
-
-
-    // TODO: entity ET_BLITBOX: init fct
-    // TODO: entity ET_BLITBOX: renderer blitting
     // TODO: blit src image from dest rectangle loop
 
-
-    auto r = gl->GetRenderer();
-
-    ImageRGBA dest;
-    dest.img = (Color*) r->image_buffer;
-    dest.width = r->w;
-    dest.height = r->h;
     Rectangle blit { 500, 400, 50, 50 };
-
     ImageRGBA src;
+    Entity *blitbox = EntityBlitBox(es, NULL, blit, src);
 
-    while (gl->GameLoopRunning()) {
-        // NOTE: blitting gets overwritten in renderer, see above TODOs
-        BlitImage(&dest, &src, blit);
-
-        gl->CycleFrame(es);
-    }
-    gl->Terminate();
+    GameLoopJustRun(gl, es);
 }
 
 

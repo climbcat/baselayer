@@ -214,6 +214,32 @@ void RenderMesh() {
 
 
 //
+// 2D blit
+
+
+void BlitImage(ImageRGBA dest, ImageRGBA src, Rectangle blit_in) {
+
+    Rectangle rect_src = InitRectangle(dest.width, dest.height);
+    Rectangle blit = rect_src.Crop(blit_in);
+
+    // DEBUG
+    assert(blit.left == blit_in.left);
+    assert(blit.top == blit_in.top);
+    assert(blit.width == blit_in.width);
+    assert(blit.height == blit_in.height);
+
+    for (u16 i = blit.top; i < blit.top + blit.height; ++i) {
+        for (u16 j = blit.left; j < blit.left + blit.width; ++j) {
+            u32 idx_dest = i*dest.width + j;
+
+            // DEBUG
+            dest.img[idx_dest] = Color { RGBA_WHITE };
+        }
+    }
+}
+
+
+//
 // Rendering functions wrapper
 
 
@@ -314,6 +340,14 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u64 frameno) {
                     RenderMesh();
                     // as a fallback, just render the vertices as a point cloud:
                     RenderPointCloud(r->image_buffer, r->w, r->h, &mvp, next->GetVertices(), next->color);
+                }
+                else if (next->tpe == ET_BLITBOX) {
+                    assert(next->ext_texture != NULL);
+                    Rectangle blitbox = next->GetBlitBox();
+                    ImageRGBA img_src = next->GetTexture();
+                    // TODO: change the image buffer to be of type Color* or even ImageRGBA*
+                    ImageRGBA img_dest { r->w, r->h, (Color*) r->image_buffer };
+                    BlitImage(img_dest, img_src, blitbox);
                 }
                 else if (next->tpe == ET_EMPTY_NODE) {
                     // just an iteration handle
