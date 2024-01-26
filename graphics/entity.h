@@ -749,6 +749,7 @@ Entity *EntityBlitBox(EntitySystem *es, Entity* branch, Rectangle box, ImageRGBA
     bb->color  = { RGBA_WHITE };
     bb->color_alt  = { RGBA_GRAY_25 };
     bb->transform = Matrix4f_Identity();
+    return bb;
 }
 
 

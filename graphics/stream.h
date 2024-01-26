@@ -126,6 +126,11 @@ struct Vector2f {
     f32 y;
 };
 
+struct ImageRGB {
+    u32 width;
+    u32 height;
+    u8 *img;
+};
 struct ImageRGBA {
     u32 width;
     u32 height;
