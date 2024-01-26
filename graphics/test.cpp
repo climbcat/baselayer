@@ -321,7 +321,7 @@ void TestBlitSomeImage() {
         }
         buff[i] = c;
     }
-    ImageRGBA src { 500, 400, &buff[0] };
+    ImageRGBA src { 500, 500, &buff[0] };
     Entity *blitbox = EntityBlitBox(es, NULL, blit, src);
 
     GameLoopJustRun(gl, es);

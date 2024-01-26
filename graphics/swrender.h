@@ -221,7 +221,7 @@ void BlitImageInvertY(ImageRGBA dest, ImageRGBA src, Rectangle blit_in) {
     Rectangle rect_dest = InitRectangle(dest.width, dest.height);
     Rectangle blit = RectangleCrop(rect_dest, blit_in);
 
-    blit.Print();
+    assert(blit_in.left == blit.left && blit_in.top == blit.top && blit_in.width == blit.width && blit_in.height == blit.height);
 
     // point-sample source
     float scale_x = (float) src.width / blit_in.width;
