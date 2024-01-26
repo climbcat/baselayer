@@ -24,7 +24,8 @@ enum EntityType {
     ET_MESH,
 
     // UI related
-    ET_BLITBOX,
+    ET_BLITBOX_RGBA,
+    ET_BLITBOX_RGB,
 
     // handle
     ET_EMPTY_NODE,
@@ -52,7 +53,7 @@ bool EntityHasVertices(EntityType tpe) {
     }
 }
 bool EntityIsGeometrical(EntityType tpe) {
-    if (tpe == ET_EMPTY_NODE || tpe == ET_ANY || tpe == ET_CNT || ET_BLITBOX) {
+    if (tpe == ET_EMPTY_NODE || tpe == ET_ANY || tpe == ET_CNT || ET_BLITBOX_RGB || ET_BLITBOX_RGBA) {
         return false;
     }
     else {
@@ -736,7 +737,7 @@ Entity *EntityStreamLoad(EntitySystem *es, Entity* branch, StreamHeader *data, b
 
 Entity *EntityBlitBox(EntitySystem *es, Entity* branch, Rectangle box, ImageRGBA src) {
     Entity *bb = es->AllocEntityChild(branch);
-    bb->tpe = ET_BLITBOX;
+    bb->tpe = ET_BLITBOX_RGB;
     bb->SetTexture(src);
     bb->SetBlitBox(box);
 

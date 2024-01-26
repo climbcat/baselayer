@@ -217,7 +217,7 @@ void RenderMesh() {
 // 2D blit
 
 
-void BlitImageInvertY(ImageRGBA dest, ImageRGBA src, Rectangle blit_in) {
+void BlitImageInvertY(ImageRGBA dest, ImageRGB src, Rectangle blit_in) {
     Rectangle rect_dest = InitRectangle(dest.width, dest.height);
     Rectangle blit = RectangleCrop(rect_dest, blit_in);
 
@@ -239,12 +239,13 @@ void BlitImageInvertY(ImageRGBA dest, ImageRGBA src, Rectangle blit_in) {
             ii = dest.height - 1 - (i + blit.top); // <- inverted
             idx_dest = ii*dest.width + j + blit.left;
 
-            //k = floor( scale_y * i ); // <- not inverted 
-            k = src.height - 1 - floor( scale_y * i ); // <- inverted
+            k = floor( scale_y * i ); // <- not inverted 
+            //k = src.height - 1 - floor( scale_y * i ); // <- inverted
             l = floor( scale_x * j ); 
             idx_src = k*src.width + l;
 
-            dest.img[idx_dest] = src.img[idx_src];
+            dest.img[idx_dest] = * (Color*) (src.img + idx_src * 3);
+            (dest.img + idx_dest)->a = 255;
         }
     }
 }
@@ -352,13 +353,19 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u64 frameno) {
                     // as a fallback, just render the vertices as a point cloud:
                     RenderPointCloud(r->image_buffer, r->w, r->h, &mvp, next->GetVertices(), next->color);
                 }
-                else if (next->tpe == ET_BLITBOX) {
+                else if (next->tpe == ET_BLITBOX_RGB) {
                     assert(next->ext_texture != NULL);
                     Rectangle blitbox = next->GetBlitBox();
-                    ImageRGBA img_src = next->GetTexture();
+
+                    // TODO: remove hack
+                    ImageRGBA _img_src = next->GetTexture();
+                    ImageRGB img_src { _img_src.width, _img_src.height, (u8*) _img_src.img };
                     // TODO: change the image buffer to be of type Color* or even ImageRGBA*
                     ImageRGBA img_dest { r->w, r->h, (Color*) r->image_buffer };
                     BlitImageInvertY(img_dest, img_src, blitbox);
+                }
+                else if (next->tpe == ET_BLITBOX_RGBA) {
+                    assert(1 == 0 && "not implemented");
                 }
                 else if (next->tpe == ET_EMPTY_NODE) {
                     // just an iteration handle
