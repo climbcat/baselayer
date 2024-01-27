@@ -95,8 +95,8 @@ struct Entity {
     List<Vector3f> *ext_normals;
     List<Vector3f> ext_points_lst;
     List<Vector3f> ext_normals_lst;
-    ImageRGBA *ext_texture;
-    ImageRGBA ext_texture_var;
+    ImageRGBX *ext_texture;
+    ImageRGBX ext_texture_var;
 
     // scene graph switch
     bool active = true;
@@ -188,18 +188,18 @@ struct Entity {
         ext_normals_lst = nxt->GetDataVector3f();
         ext_normals = &ext_normals_lst;
     }
-    void SetTexture(ImageRGBA texture) {
+    void SetTexture(ImageRGBX texture) {
         ext_texture_var = texture;
         ext_texture = &ext_texture_var;
     }
-    void SetTexture(ImageRGBA *texture) {
+    void SetTexture(ImageRGBX *texture) {
         ext_texture_var.width = 0;
         ext_texture_var.height = 0;
         ext_texture_var.img = NULL;
         ext_texture = texture;
     }
-    ImageRGBA GetTexture() {
-        ImageRGBA img;
+    ImageRGBX GetTexture() {
+        ImageRGBX img;
         if (ext_texture != NULL) {
             img = *ext_texture;
         }
@@ -746,7 +746,7 @@ Entity *EntityStreamLoad(EntitySystem *es, Entity* branch, StreamHeader *data, b
 // 2d / UI element / texture entities
 
 
-Entity *EntityBlitBox(EntitySystem *es, Entity* branch, Rect box, ImageRGBA src) {
+Entity *EntityBlitBox(EntitySystem *es, Entity* branch, Rect box, ImageRGBX src) {
     Entity *bb = es->AllocEntityChild(branch);
     bb->tpe = ET_BLITBOX_RGB;
     bb->SetTexture(src);

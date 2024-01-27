@@ -17,6 +17,13 @@
 #define RGBA_RED        255, 0, 0, 255
 #define RGBA_GREEN      0, 255, 0, 255
 #define RGBA_BLUE       0, 0, 255, 255
+
+
+#define BYTES_RGB 3
+#define BYTES_RGBA 4
+
+
+// TODO: change into Color4, Color3, etc.
 struct Color {
     u8 r;
     u8 g;
@@ -97,8 +104,9 @@ Rect RectangleCrop(Rect us, Rect other) {
     return rect;
 }
 
+
 //
-// Entity System
+// Data stream
 
 
 enum StreamType {
@@ -127,11 +135,20 @@ struct Vector2f {
     f32 y;
 };
 
-struct ImageRGB {
+struct ImageRGBX {
     u32 width;
     u32 height;
+    u32 pixel_size;
     u8 *img;
 };
+ImageRGBX InitImageRGBX(void *data, u32 width, u32 height, u32 pixel_size) {
+    ImageRGBX img;
+    img.width = width;
+    img.height = height;
+    img.pixel_size = pixel_size;
+    img.img = (u8*) data;
+    return img;
+}
 struct ImageRGBA {
     u32 width;
     u32 height;
