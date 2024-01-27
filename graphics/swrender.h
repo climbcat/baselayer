@@ -155,24 +155,43 @@ inline
 void RenderLineRGBA(u8* image_buffer, u16 w, u16 h, ScreenAnchor a, ScreenAnchor b) {
     RenderLineRGBA(image_buffer, w, h, a.x, a.y, b.x, b.y, a.c);
 }
-void RenderPointCloud(u8* image_buffer, u16 w, u16 h, Matrix4f *mvp, List<Vector3f> points, Color color) {
-    float color_fade = 1;
+void RenderPointCloud(u8* image_buffer, u16 w, u16 h, Matrix4f *mvp, List<Vector3f> points, List<Color> colors, Color color) {
     Vector3f p;
+    Color c;
     Vector3f p_ndc;
     Vector2_s16 p_screen;
     u32 pix_idx;
-    for (u32 i = 0; i < points.len; ++i) {
-        p = points.lst[i];
-        p_ndc = TransformPerspective( *mvp, p );
-        p_screen = NDC2Screen(w, h, p_ndc);
-        if (CullScreenCoords(p_screen.x, p_screen.y, w, h) ) {
-            continue;
+
+    if (colors.len == points.len) {
+        for (u32 i = 0; i < points.len; ++i) {
+            p = points.lst[i];
+            c = colors.lst[i];
+            p_ndc = TransformPerspective( *mvp, p );
+            p_screen = NDC2Screen(w, h, p_ndc);
+            if (CullScreenCoords(p_screen.x, p_screen.y, w, h) ) {
+                continue;
+            }
+            pix_idx = ScreenCoordsPosition2Idx(p_screen.x, p_screen.y, w);
+            image_buffer[4 * pix_idx + 0] = c.r;
+            image_buffer[4 * pix_idx + 1] = c.g;
+            image_buffer[4 * pix_idx + 2] = c.b;
+            image_buffer[4 * pix_idx + 3] = c.a;
         }
-        pix_idx = ScreenCoordsPosition2Idx(p_screen.x, p_screen.y, w);
-        image_buffer[4 * pix_idx + 0] = color.r * color_fade;
-        image_buffer[4 * pix_idx + 1] = color.g * color_fade;
-        image_buffer[4 * pix_idx + 2] = color.b * color_fade;
-        image_buffer[4 * pix_idx + 3] = color.a;
+    }
+    else {
+        for (u32 i = 0; i < points.len; ++i) {
+            p = points.lst[i];
+            p_ndc = TransformPerspective( *mvp, p );
+            p_screen = NDC2Screen(w, h, p_ndc);
+            if (CullScreenCoords(p_screen.x, p_screen.y, w, h) ) {
+                continue;
+            }
+            pix_idx = ScreenCoordsPosition2Idx(p_screen.x, p_screen.y, w);
+            image_buffer[4 * pix_idx + 0] = color.r;
+            image_buffer[4 * pix_idx + 1] = color.g;
+            image_buffer[4 * pix_idx + 2] = color.b;
+            image_buffer[4 * pix_idx + 3] = color.a;
+        }
     }
 }
 #define NORMALS_DOWNSCALE_FACTOR 0.01f
@@ -241,7 +260,7 @@ void BlitImageInvertY(ImageRGBA dest, ImageRGBX src, Rect blit_in) {
 
             k = floor( scale_y * i ); // <- not inverted 
             //k = src.height - 1 - floor( scale_y * i ); // <- inverted
-            l = floor( scale_x * j ); 
+            l = floor( scale_x * j );
             idx_src = k*src.width + l;
 
             dest.img[idx_dest] = * (Color*) (src.img + idx_src * src.pixel_size);
@@ -343,7 +362,7 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u64 frameno) {
 
                 // render pointcloud
                 if (next->tpe == ET_POINTCLOUD) {
-                    RenderPointCloud(r->image_buffer, r->w, r->h, &mvp, next->GetVertices(), next->color);
+                    RenderPointCloud(r->image_buffer, r->w, r->h, &mvp, next->GetVertices(), next->GetPointColors(), next->color);
                 }
                 else if (next->tpe == ET_POINTCLOUD_W_NORMALS) {
                     RenderPointCloudWithNormals(r->image_buffer, r->w, r->h, &mvp, next->GetVertices(), next->GetNormals(), next->color, next->color_alt);
@@ -351,7 +370,7 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u64 frameno) {
                 else if (next->tpe == ET_MESH) {
                     RenderMesh();
                     // as a fallback, just render the vertices as a point cloud:
-                    RenderPointCloud(r->image_buffer, r->w, r->h, &mvp, next->GetVertices(), next->color);
+                    RenderPointCloud(r->image_buffer, r->w, r->h, &mvp, next->GetVertices(), next->GetPointColors(), next->color);
                 }
                 else if (next->tpe == ET_BLITBOX_RGB) {
                     assert(next->ext_texture != NULL);

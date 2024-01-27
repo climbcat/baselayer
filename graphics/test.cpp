@@ -271,6 +271,21 @@ void TestPointCloudsBoxesAndSceneGraph() {
     pc_2->color = { RGBA_BLUE };
     pc_3->color = { RGBA_RED };
 
+
+    // test point colors
+    RandInit();
+    List<Color> point_colors = InitList<Color>(a_pcs, points_1.len);
+    for (u32 i = 0; i < points_1.len; ++i) {
+        Color c;
+        c.a = 255;
+        c.r = RandMinMaxI(0, 255);
+        c.g = RandMinMaxI(0, 255);
+        c.b = RandMinMaxI(0, 255);
+        point_colors.Add(c);
+    }
+    pc_1->SetColorsList(point_colors);
+
+
     // test render only active entities
     pc_2->DeActivate();
     EntitySystemPrint(es);
@@ -338,6 +353,6 @@ void Test() {
     //TestVGROcTree();
     //TestQuaternionRotMult();
     //TestSlerpAndMat2Quat();
-    //TestPointCloudsBoxesAndSceneGraph();
-    TestBlitSomeImage();
+    TestPointCloudsBoxesAndSceneGraph();
+    //TestBlitSomeImage();
 }

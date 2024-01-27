@@ -92,9 +92,11 @@ struct Entity {
 
     // external data
     List<Vector3f> *ext_points;
-    List<Vector3f> *ext_normals;
     List<Vector3f> ext_points_lst;
+    List<Vector3f> *ext_normals;
     List<Vector3f> ext_normals_lst;
+    List<Color> *ext_point_colors;
+    List<Color> ext_point_colors_lst;
     ImageRGBX *ext_texture;
     ImageRGBX ext_texture_var;
 
@@ -132,6 +134,10 @@ struct Entity {
         ext_normals_lst = normals;
         ext_normals = &ext_normals_lst;
     }
+    void SetColorsList(List<Color> colors) {
+        ext_point_colors_lst = colors;
+        ext_point_colors = &ext_point_colors_lst;
+    }
     List<Vector3f> GetVertices() {
         assert((tpe == ET_POINTCLOUD || tpe == ET_MESH || tpe == ET_POINTCLOUD_W_NORMALS));
 
@@ -164,6 +170,18 @@ struct Entity {
             normals = ext_normals_lst;
         }
         return normals;
+    }
+    List<Color> GetPointColors() {
+        assert((tpe == ET_POINTCLOUD || tpe == ET_MESH || tpe == ET_POINTCLOUD_W_NORMALS));
+
+        List<Color> colors { NULL, 0 };
+        if (ext_points != NULL) {
+            colors = *ext_point_colors;
+        }
+        else {
+            colors = ext_point_colors_lst;
+        }
+        return colors;
     }
     void SetStreamVertexCount(u32 npoints) {
         assert(tpe == ET_POINTCLOUD || tpe == ET_POINTCLOUD_W_NORMALS || tpe == ET_MESH);
