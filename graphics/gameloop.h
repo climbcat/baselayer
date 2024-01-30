@@ -94,6 +94,7 @@ struct GameLoopOne {
 
         // call key / mouse / scrool event handlers
         glfwPollEvents();
+
         bool exit_esc = false;
         while (UiEvent *e = PopEvent()) {
             // notify mouse
@@ -136,8 +137,7 @@ struct GameLoopOne {
     }
 };
 void MouseCursorPositionCallBack(GLFWwindow* window, double xpos, double ypos) {
-    GameLoopOne *game_loop = (GameLoopOne*) glfwGetWindowUserPointer(window);
-    game_loop->mouse.UpdateFrameMouseState((s32) xpos, (s32) ypos);
+    // empty
 }
 void MouseButtonCallBack(GLFWwindow* window, int button, int action, int mods)
 {
