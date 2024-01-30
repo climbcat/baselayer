@@ -290,20 +290,21 @@ void TestPointCloudsBoxesAndSceneGraph() {
     pc_2->DeActivate();
     EntitySystemPrint(es);
     while (loop->GameLoopRunning()) {
+        Key kpress = loop->mouse.last_keypress_frame;
 
-        if (loop->mouse.key_left) {
+        if (kpress == OUR_GLFW_KEY_LEFT) {
             es->CursorPrev();
         }
-        else if (loop->mouse.key_right) {
+        else if (kpress == OUR_GLFW_KEY_RIGHT) {
             es->CursorNext();
         }
-        else if (loop->mouse.key_up) {
+        else if (kpress == OUR_GLFW_KEY_UP) {
             es->CursorUp();
         }
-        else if (loop->mouse.key_down) {
+        else if (kpress == OUR_GLFW_KEY_DOWN) {
             es->CursorDown();
         }
-        else if (loop->mouse.key_space) {
+        else if (kpress == OUR_GLFW_KEY_SPACE) {
             es->CursorToggleEntityActive();
         }
 

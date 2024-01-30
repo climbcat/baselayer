@@ -10,66 +10,235 @@
 #define DEFAULT_WINDOW_HEIGHT 800
 
 
+#define OUR_GLFW_RELEASE                0
+#define OUR_GLFW_PRESS                  1
+#define OUR_GLFW_REPEAT                 2
+
+#define OUR_GLFW_KEY_UNKNOWN            -1
+#define OUR_GLFW_KEY_SPACE              32
+#define OUR_GLFW_KEY_APOSTROPHE         39
+#define OUR_GLFW_KEY_COMMA              44
+#define OUR_GLFW_KEY_MINUS              45
+#define OUR_GLFW_KEY_PERIOD             46
+#define OUR_GLFW_KEY_SLASH              47
+#define OUR_GLFW_KEY_0                  48
+#define OUR_GLFW_KEY_1                  49
+#define OUR_GLFW_KEY_2                  50
+#define OUR_GLFW_KEY_3                  51
+#define OUR_GLFW_KEY_4                  52
+#define OUR_GLFW_KEY_5                  53
+#define OUR_GLFW_KEY_6                  54
+#define OUR_GLFW_KEY_7                  55
+#define OUR_GLFW_KEY_8                  56
+#define OUR_GLFW_KEY_9                  57
+#define OUR_GLFW_KEY_SEMICOLON          59
+#define OUR_GLFW_KEY_EQUAL              61
+#define OUR_GLFW_KEY_A                  65
+#define OUR_GLFW_KEY_B                  66
+#define OUR_GLFW_KEY_C                  67
+#define OUR_GLFW_KEY_D                  68
+#define OUR_GLFW_KEY_E                  69
+#define OUR_GLFW_KEY_F                  70
+#define OUR_GLFW_KEY_G                  71
+#define OUR_GLFW_KEY_H                  72
+#define OUR_GLFW_KEY_I                  73
+#define OUR_GLFW_KEY_J                  74
+#define OUR_GLFW_KEY_K                  75
+#define OUR_GLFW_KEY_L                  76
+#define OUR_GLFW_KEY_M                  77
+#define OUR_GLFW_KEY_N                  78
+#define OUR_GLFW_KEY_O                  79
+#define OUR_GLFW_KEY_P                  80
+#define OUR_GLFW_KEY_Q                  81
+#define OUR_GLFW_KEY_R                  82
+#define OUR_GLFW_KEY_S                  83
+#define OUR_GLFW_KEY_T                  84
+#define OUR_GLFW_KEY_U                  85
+#define OUR_GLFW_KEY_V                  86
+#define OUR_GLFW_KEY_W                  87
+#define OUR_GLFW_KEY_X                  88
+#define OUR_GLFW_KEY_Y                  89
+#define OUR_GLFW_KEY_Z                  90
+#define OUR_GLFW_KEY_LEFT_BRACKET       91
+#define OUR_GLFW_KEY_BACKSLASH          92
+#define OUR_GLFW_KEY_RIGHT_BRACKET      93
+#define OUR_GLFW_KEY_GRAVE_ACCENT       96
+#define OUR_GLFW_KEY_WORLD_1            161
+#define OUR_GLFW_KEY_WORLD_2            162
+#define OUR_GLFW_KEY_ESCAPE             256
+#define OUR_GLFW_KEY_ENTER              257
+#define OUR_GLFW_KEY_TAB                258
+#define OUR_GLFW_KEY_BACKSPACE          259
+#define OUR_GLFW_KEY_INSERT             260
+#define OUR_GLFW_KEY_DELETE             261
+#define OUR_GLFW_KEY_RIGHT              262
+#define OUR_GLFW_KEY_LEFT               263
+#define OUR_GLFW_KEY_DOWN               264
+#define OUR_GLFW_KEY_UP                 265
+#define OUR_GLFW_KEY_PAGE_UP            266
+#define OUR_GLFW_KEY_PAGE_DOWN          267
+#define OUR_GLFW_KEY_HOME               268
+#define OUR_GLFW_KEY_END                269
+#define OUR_GLFW_KEY_CAPS_LOCK          280
+#define OUR_GLFW_KEY_SCROLL_LOCK        281
+#define OUR_GLFW_KEY_NUM_LOCK           282
+#define OUR_GLFW_KEY_PRINT_SCREEN       283
+#define OUR_GLFW_KEY_PAUSE              284
+#define OUR_GLFW_KEY_F1                 290
+#define OUR_GLFW_KEY_F2                 291
+#define OUR_GLFW_KEY_F3                 292
+#define OUR_GLFW_KEY_F4                 293
+#define OUR_GLFW_KEY_F5                 294
+#define OUR_GLFW_KEY_F6                 295
+#define OUR_GLFW_KEY_F7                 296
+#define OUR_GLFW_KEY_F8                 297
+#define OUR_GLFW_KEY_F9                 298
+#define OUR_GLFW_KEY_F10                299
+#define OUR_GLFW_KEY_F11                300
+#define OUR_GLFW_KEY_F12                301
+#define OUR_GLFW_KEY_F13                302
+#define OUR_GLFW_KEY_F14                303
+#define OUR_GLFW_KEY_F15                304
+#define OUR_GLFW_KEY_F16                305
+#define OUR_GLFW_KEY_F17                306
+#define OUR_GLFW_KEY_F18                307
+#define OUR_GLFW_KEY_F19                308
+#define OUR_GLFW_KEY_F20                309
+#define OUR_GLFW_KEY_F21                310
+#define OUR_GLFW_KEY_F22                311
+#define OUR_GLFW_KEY_F23                312
+#define OUR_GLFW_KEY_F24                313
+#define OUR_GLFW_KEY_F25                314
+#define OUR_GLFW_KEY_KP_0               320
+#define OUR_GLFW_KEY_KP_1               321
+#define OUR_GLFW_KEY_KP_2               322
+#define OUR_GLFW_KEY_KP_3               323
+#define OUR_GLFW_KEY_KP_4               324
+#define OUR_GLFW_KEY_KP_5               325
+#define OUR_GLFW_KEY_KP_6               326
+#define OUR_GLFW_KEY_KP_7               327
+#define OUR_GLFW_KEY_KP_8               328
+#define OUR_GLFW_KEY_KP_9               329
+#define OUR_GLFW_KEY_KP_DECIMAL         330
+#define OUR_GLFW_KEY_KP_DIVIDE          331
+#define OUR_GLFW_KEY_KP_MULTIPLY        332
+#define OUR_GLFW_KEY_KP_SUBTRACT        333
+#define OUR_GLFW_KEY_KP_ADD             334
+#define OUR_GLFW_KEY_KP_ENTER           335
+#define OUR_GLFW_KEY_KP_EQUAL           336
+#define OUR_GLFW_KEY_LEFT_SHIFT         340
+#define OUR_GLFW_KEY_LEFT_CONTROL       341
+#define OUR_GLFW_KEY_LEFT_ALT           342
+#define OUR_GLFW_KEY_LEFT_SUPER         343
+#define OUR_GLFW_KEY_RIGHT_SHIFT        344
+#define OUR_GLFW_KEY_RIGHT_CONTROL      345
+#define OUR_GLFW_KEY_RIGHT_ALT          346
+#define OUR_GLFW_KEY_RIGHT_SUPER        347
+#define OUR_GLFW_KEY_MENU               348
+#define OUR_GLFW_KEY_LAST               OUR_GLFW_KEY_MENU
+
+#define OUR_GLFW_MOUSE_BUTTON_1         0
+#define OUR_GLFW_MOUSE_BUTTON_2         1
+#define OUR_GLFW_MOUSE_BUTTON_3         2
+#define OUR_GLFW_MOUSE_BUTTON_4         3
+#define OUR_GLFW_MOUSE_BUTTON_5         4
+#define OUR_GLFW_MOUSE_BUTTON_6         5
+#define OUR_GLFW_MOUSE_BUTTON_7         6
+#define OUR_GLFW_MOUSE_BUTTON_8         7
+#define OUR_GLFW_MOUSE_BUTTON_LAST      OUR_GLFW_MOUSE_BUTTON_8
+#define OUR_GLFW_MOUSE_BUTTON_LEFT      OUR_GLFW_MOUSE_BUTTON_1
+#define OUR_GLFW_MOUSE_BUTTON_RIGHT     OUR_GLFW_MOUSE_BUTTON_2
+#define OUR_GLFW_MOUSE_BUTTON_MIDDLE    OUR_GLFW_MOUSE_BUTTON_3
+
+
+typedef s32 KeyAction;
+typedef s32 Key;
+typedef s32 KeyMods;
+
+
+struct UiEvent {
+    Key key;
+    KeyAction action;
+    KeyMods mods;
+    double mwheel_y_delta;
+};
+static UiEvent _zero_uievent;
+UiEvent InitUiEvent(Key key, KeyAction action, KeyMods mods, double mwheel_y_delta) {
+    UiEvent event;
+    event.key = key;
+    event.action = action;
+    event.mods = mods;
+    event.mwheel_y_delta = mwheel_y_delta;
+
+    return event;
+}
+
+
 struct MouseTrap {
     s32 x = 0;
     s32 y = 0;
     s32 dx = 0;
     s32 dy = 0;
-    bool held;
-    bool rheld;
-    bool wup;
-    bool wdown;
-    float wyoffset;
+    bool mouse_left_held;
+    bool mouse_middle_held;
+    bool mouse_right_held;
+    double mwheel_y_delta;
+    Key last_keypress_frame;
 
-    bool key_space;
-    bool key_s;
-    bool key_n;
-    bool key_h;
-    bool key_esc;
-    bool key_left;
-    bool key_right;
-    bool key_up;
-    bool key_down;
-    s32 key_digit;
-
-    void UpdatePosition(s32 xpos, s32 ypos) {
+    void Reset(s32 xpos, s32 ypos) {
+        x = xpos;
+        y = ypos;
+        dx = 0;
+        dy = 0;
+        mouse_left_held = false;
+        mouse_middle_held = false;
+        mouse_right_held = false;
+        mwheel_y_delta = 0;
+        last_keypress_frame = 0;
+    }
+    void FrameEnd() {
+        mwheel_y_delta = 0;
+        last_keypress_frame = 0;
+    }
+    inline
+    void UpdateFrameMouseState(s32 xpos, s32 ypos) {
         dx = xpos - x;
         dy = ypos - y;
         x = xpos;
         y = ypos;
     }
-    void ResetKeyAndScrollFlags() {
-        key_space = false;
-        key_s = false;
-        key_n = false;
-        key_esc = false;
-        key_left = false;
-        key_right = false;
-        key_up = false;
-        key_down = false;
-        key_digit = -1;
-        wup = false;
-        wdown = false;
-        wyoffset = 0;
-    }
-    void ResetMouse(int mouse_x, int mouse_y) {
-        x = mouse_x;
-        y = mouse_y;
-        held = false;
-        rheld = false;    }
-    void PrintState() {
-        printf("mouse trap state: %d %d %d %d %d %d %d %d %d %d %d %f\n",
-            held, rheld, wup, wdown,
-            key_space, key_s, key_esc,
-            x, y, dx, dy,
-            wyoffset
-        );
+    void Update(UiEvent event) {
+        bool ldown =
+            (event.key == OUR_GLFW_MOUSE_BUTTON_LEFT) &&
+            (event.action == OUR_GLFW_PRESS);
+        bool lup =
+            (event.key == OUR_GLFW_MOUSE_BUTTON_LEFT) &&
+            (event.action == OUR_GLFW_RELEASE);
+        bool rdown =
+            (event.key == OUR_GLFW_MOUSE_BUTTON_RIGHT) &&
+            (event.action == OUR_GLFW_PRESS);
+        bool rup =
+            (event.key == OUR_GLFW_MOUSE_BUTTON_RIGHT) &&
+            (event.action == OUR_GLFW_RELEASE);
+        bool mdown =
+            (event.key == OUR_GLFW_MOUSE_BUTTON_MIDDLE) &&
+            (event.action == OUR_GLFW_PRESS);
+        bool mup =
+            (event.key == OUR_GLFW_MOUSE_BUTTON_MIDDLE) &&
+            (event.action == OUR_GLFW_RELEASE);
+
+        mouse_left_held = (ldown || mouse_left_held) && !(lup);
+        mouse_right_held = (rdown || mouse_right_held) && !(rup);
+        mouse_middle_held = (mdown || mouse_middle_held) && !(mup);
+
+        last_keypress_frame = event.key * (event.action == OUR_GLFW_PRESS);
+
+        mwheel_y_delta = event.mwheel_y_delta;
     }
 };
 MouseTrap InitMouseTrap(int mouse_x, int mouse_y) {
     MouseTrap m;
-    m.ResetKeyAndScrollFlags();
-    m.ResetMouse(mouse_x, mouse_y);
+    m.Reset(mouse_x, mouse_y);
     return m;
 }
 
@@ -102,26 +271,31 @@ struct OrbitCamera {
         float result = MaxF32(clamp_up, min);
         return result;
     }
-    void Update(MouseTrap *m, bool invert_x) {
+    void Update(MouseTrap m) {
         float sign_x = 1;
+
+        // why
+        bool invert_x = true;
         if (invert_x) {
             sign_x = - 1;
         }
 
-        if (m->held) {
+        if (m.mouse_left_held) {
             // orbit
-            theta = OrbitCamera::ClampTheta(theta - m->dy * mouse2rot);
-            phi += sign_x * m->dx * mouse2rot;
+            theta = OrbitCamera::ClampTheta(theta - m.dy * mouse2rot);
+            phi += sign_x * m.dx * mouse2rot;
         }
-        else if (m->wdown) {
-            float mult = PositiveSqrtMultiplier(m->wyoffset);
+        else if (m.mwheel_y_delta > 0) {
+            // zoom in
+            float mult = PositiveSqrtMultiplier(m.mwheel_y_delta);
             radius *= 1.1 * mult;
         }
-        else if (m->wup) {
-            float mult = PositiveSqrtMultiplier(m->wyoffset);
+        else if (m.mwheel_y_delta < 0) {
+            // zoom out
+            float mult = PositiveSqrtMultiplier(m.mwheel_y_delta);
             radius /= 1.1 * mult;
         }
-        else if (m->rheld) {
+        else if (m.mouse_right_held) {
             // pan
             Vector3f forward = - SphericalCoordsY(theta*deg2rad, phi*deg2rad, radius);
             forward.Normalize();
@@ -130,11 +304,11 @@ struct OrbitCamera {
             Vector3f right = - left;
             Vector3f up = forward.Cross(left);
             up.Normalize();
-            center = center + mouse2pan * m->dx * right;
-            center = center + mouse2pan * m->dy * up;
+            center = center + mouse2pan * m.dx * right;
+            center = center + mouse2pan * m.dy * up;
         }
 
-        // build orbit camp transform
+        // build orbit transform
         view = TransformBuildOrbitCam(center, theta, phi, radius);
         vp = TransformBuildViewProj(view, proj);
     }
