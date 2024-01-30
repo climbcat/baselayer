@@ -15,6 +15,8 @@ enum EntityType {
     // lines etc.
     // TODO: collapse into just ET_LINES
     ET_AXES,
+    ET_BOX,
+    ET_CAMPOS,
     ET_LINES,
     ET_LINES_ROT,
 
@@ -37,7 +39,7 @@ enum EntityType {
     ET_CNT,
 };
 bool EntityIsTiedToRenderer(EntityType tpe) {
-    if (tpe == ET_AXES || tpe == ET_LINES || tpe == ET_LINES_ROT) {
+    if (tpe == ET_AXES || tpe == ET_LINES || tpe == ET_LINES_ROT || tpe == ET_BOX || tpe == ET_CAMPOS) {
         return true;
     }
     else {
@@ -545,16 +547,13 @@ EntitySystem *InitEntitySystem() {
 // Coordinate axes
 
 
-Entity CoordAxes(List<Vector3f> *vertex_buffer, List<Vector2_u16> *index_buffer) {
-    Entity ax = InitEntity(ET_AXES);
-    ax.color = { RGBA_BLUE };
-    ax.origo = { 0, 0, 0 };
-    ax.dims = { 1, 1, 1 };
+void CoordAxesWireframe(Entity *axes, List<Vector3f> *vertex_buffer, List<Vector2_u16> *index_buffer) {
+    assert(vertex_buffer != NULL && index_buffer != NULL);
+
     Vector3f x { 1, 0, 0 };
     Vector3f y { 0, 1, 0 };
     Vector3f z { 0, 0, 1 };
 
-    Entity *axes = &ax;
     axes->verts_low = vertex_buffer->len;
     axes->lines_low = index_buffer->len;
 
@@ -569,6 +568,18 @@ Entity CoordAxes(List<Vector3f> *vertex_buffer, List<Vector2_u16> *index_buffer)
 
     axes->verts_high = vertex_buffer->len - 1;
     axes->lines_high = index_buffer->len - 1;
+}
+
+
+Entity CoordAxes(List<Vector3f> *vertex_buffer, List<Vector2_u16> *index_buffer) {
+    Entity ax = InitEntity(ET_AXES);
+    ax.color = { RGBA_BLUE };
+    ax.origo = { 0, 0, 0 };
+    ax.dims = { 1, 1, 1 };
+
+    if (vertex_buffer != NULL && index_buffer != NULL) {
+        CoordAxesWireframe(&ax, vertex_buffer, index_buffer);
+    }
 
     return ax;
 }
@@ -578,43 +589,49 @@ Entity CoordAxes(List<Vector3f> *vertex_buffer, List<Vector2_u16> *index_buffer)
 // Axis-aligned box
 
 
+void AABoxWireFrame(Entity *box, List<Vector3f> *vertex_buffer, List<Vector2_u16> *index_buffer) {
+    assert(vertex_buffer != NULL && index_buffer != NULL);
+
+    box->verts_low = vertex_buffer->len;
+    box->lines_low = index_buffer->len;
+
+    u16 vertex_offset = vertex_buffer->len;
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 1) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 2) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 4) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 3), (u16) (vertex_offset + 1) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 3), (u16) (vertex_offset + 2) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 3), (u16) (vertex_offset + 7) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 5), (u16) (vertex_offset + 1) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 5), (u16) (vertex_offset + 4) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 5), (u16) (vertex_offset + 7) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 2) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 4) };
+    *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 7) };
+
+    *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x - box->dims.x, box->origo.y - box->dims.y, box->origo.z - box->dims.z };
+    *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x - box->dims.x, box->origo.y - box->dims.y, box->origo.z + box->dims.z };
+    *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x - box->dims.x, box->origo.y + box->dims.y, box->origo.z - box->dims.z };
+    *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x - box->dims.x, box->origo.y + box->dims.y, box->origo.z + box->dims.z };
+    *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x + box->dims.x, box->origo.y - box->dims.y, box->origo.z - box->dims.z };
+    *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x + box->dims.x, box->origo.y - box->dims.y, box->origo.z + box->dims.z };
+    *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x + box->dims.x, box->origo.y + box->dims.y, box->origo.z - box->dims.z };
+    *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x + box->dims.x, box->origo.y + box->dims.y, box->origo.z + box->dims.z };
+
+    box->verts_high = vertex_buffer->len - 1;
+    box->lines_high = index_buffer->len - 1;
+}
+
+
 Entity AABox(Vector3f translate_coords, float radius, List<Vector3f> *vertex_buffer, List<Vector2_u16> *index_buffer) {
-    Entity aabox = InitEntity(ET_LINES);
+    Entity aabox = InitEntity(ET_BOX);
     aabox.transform = TransformBuild(y_hat, 0, translate_coords);
     aabox.color = { RGBA_GREEN };
     aabox.origo = Vector3f { 0, 0, 0 },
     aabox.dims = Vector3f { radius, radius, radius };
 
     if (vertex_buffer != NULL && index_buffer != NULL) {
-        Entity *box = &aabox;
-        box->verts_low = vertex_buffer->len;
-        box->lines_low = index_buffer->len;
-
-        u16 vertex_offset = vertex_buffer->len;
-        *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 1) };
-        *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 2) };
-        *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 4) };
-        *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 3), (u16) (vertex_offset + 1) };
-        *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 3), (u16) (vertex_offset + 2) };
-        *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 3), (u16) (vertex_offset + 7) };
-        *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 5), (u16) (vertex_offset + 1) };
-        *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 5), (u16) (vertex_offset + 4) };
-        *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 5), (u16) (vertex_offset + 7) };
-        *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 2) };
-        *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 4) };
-        *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 6), (u16) (vertex_offset + 7) };
-
-        *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x - box->dims.x, box->origo.y - box->dims.y, box->origo.z - box->dims.z };
-        *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x - box->dims.x, box->origo.y - box->dims.y, box->origo.z + box->dims.z };
-        *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x - box->dims.x, box->origo.y + box->dims.y, box->origo.z - box->dims.z };
-        *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x - box->dims.x, box->origo.y + box->dims.y, box->origo.z + box->dims.z };
-        *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x + box->dims.x, box->origo.y - box->dims.y, box->origo.z - box->dims.z };
-        *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x + box->dims.x, box->origo.y - box->dims.y, box->origo.z + box->dims.z };
-        *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x + box->dims.x, box->origo.y + box->dims.y, box->origo.z - box->dims.z };
-        *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x + box->dims.x, box->origo.y + box->dims.y, box->origo.z + box->dims.z };
-
-        box->verts_high = vertex_buffer->len - 1;
-        box->lines_high = index_buffer->len - 1;
+        AABoxWireFrame(&aabox, vertex_buffer, index_buffer);
     }
 
     return aabox;
@@ -625,16 +642,15 @@ Entity AABox(Vector3f translate_coords, float radius, List<Vector3f> *vertex_buf
 // Camera wireframe
 
 
-Entity CameraWireframe(float radius_xy, float length_z, List<Vector3f> *vertex_buffer, List<Vector2_u16> *index_buffer) {
-    Entity cam = InitEntity(ET_LINES);
-    cam.color = { RGBA_WHITE };
-    cam.origo = Vector3f { 0, 0, 0 },
-    cam.dims = Vector3f { 0, 0, 0 };
+void CameraPositionWireframe(Entity *campos, List<Vector3f> *vertex_buffer, List<Vector2_u16> *index_buffer) {
+    assert(vertex_buffer != NULL && index_buffer != NULL);
+    assert(campos->dims.x == campos->dims.y);
 
-    // add vertices & indices to the renderer's default / small object "vbo"
-    Entity *box = &cam;
-    box->verts_low = vertex_buffer->len;
-    box->lines_low = index_buffer->len;
+    float radius_xy = campos->dims.x;
+    float length_z = campos->dims.z;
+
+    campos->verts_low = vertex_buffer->len;
+    campos->lines_low = index_buffer->len;
 
     u16 vertex_offset = vertex_buffer->len;
     *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 0), (u16) (vertex_offset + 1) };
@@ -646,14 +662,24 @@ Entity CameraWireframe(float radius_xy, float length_z, List<Vector3f> *vertex_b
     *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 4), (u16) (vertex_offset + 3) };
     *(index_buffer->lst + index_buffer->len++) = Vector2_u16 { (u16) (vertex_offset + 3), (u16) (vertex_offset + 1) };
 
-    *(vertex_buffer->lst + vertex_buffer->len++) = cam.origo;
-    *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x - radius_xy, box->origo.y - radius_xy, box->origo.z + length_z };
-    *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x - radius_xy, box->origo.y + radius_xy, box->origo.z + length_z };
-    *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x + radius_xy, box->origo.y - radius_xy, box->origo.z + length_z };
-    *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { box->origo.x + radius_xy, box->origo.y + radius_xy, box->origo.z + length_z };
+    *(vertex_buffer->lst + vertex_buffer->len++) = campos->origo;
+    *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { campos->origo.x - radius_xy, campos->origo.y - radius_xy, campos->origo.z + length_z };
+    *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { campos->origo.x - radius_xy, campos->origo.y + radius_xy, campos->origo.z + length_z };
+    *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { campos->origo.x + radius_xy, campos->origo.y - radius_xy, campos->origo.z + length_z };
+    *(vertex_buffer->lst + vertex_buffer->len++) = Vector3f { campos->origo.x + radius_xy, campos->origo.y + radius_xy, campos->origo.z + length_z };
 
-    box->verts_high = vertex_buffer->len - 1;
-    box->lines_high = index_buffer->len - 1;
+    campos->verts_high = vertex_buffer->len - 1;
+    campos->lines_high = index_buffer->len - 1;
+}
+
+
+Entity CameraPosition(float radius_xy, float length_z, List<Vector3f> *vertex_buffer, List<Vector2_u16> *index_buffer) {
+    Entity cam = InitEntity(ET_CAMPOS);
+    cam.color = { RGBA_WHITE };
+    cam.origo = Vector3f { 0, 0, 0 },
+    cam.dims = Vector3f { radius_xy, radius_xy, length_z };
+
+    CameraPositionWireframe(&cam, vertex_buffer, index_buffer);
 
     return cam;
 }

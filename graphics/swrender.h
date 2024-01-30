@@ -321,23 +321,27 @@ SwRenderer InitRenderer(u32 width = 1280, u32 height = 800) {
 void FreeRenderer(SwRenderer *rend) {
     // TODO: impl.
 }
-// TODO: apply / use
-void SwRenderRefreshWireframeEntities(EntitySystem *es) {
-    // update those wireframe entities // pull/generate wireframe data into line vertex & index buffers
+void SwRenderRefreshWireframeEntities(SwRenderer *r, EntitySystem *es, bool clear_buffers) {
+    if (clear_buffers) {
+        r->vertex_buffer.len = 0;
+        r->index_buffer.len = 0;
+    }
+
     TreeIterState iter;
     InitTreeIter(&iter);
-
     Entity *next = NULL;
     while ((next = es->TreeIterNext(next, &iter)) != NULL) {
-        switch (next->tpe)
-        {
+        switch (next->tpe) {
         case ET_AXES: {
-            // TODO: impl.
+            CoordAxesWireframe(next, &r->vertex_buffer, &r->index_buffer);
         } break;
-        case ET_LINES: {
-            // TODO: impl.
+        case ET_BOX: {
+            AABoxWireFrame(next, &r->vertex_buffer, &r->index_buffer);
         } break;
-        
+        case ET_CAMPOS: {
+            CameraPositionWireframe(next, &r->vertex_buffer, &r->index_buffer);
+        } break;
+
         default:
             break;
         }
@@ -458,7 +462,7 @@ Entity *EntityCameraWireframe(EntitySystem *es, Entity* branch, float size = 0.0
     Entity *dest = es->AllocEntityChild(branch);
     float radius_xy = 0.5 * size;
     float length_z = 1.5 * size;
-    Entity cam = CameraWireframe(radius_xy, length_z, &r->vertex_buffer, &r->index_buffer);
+    Entity cam = CameraPosition(radius_xy, length_z, &r->vertex_buffer, &r->index_buffer);
     EntityCopyBodyOnly(dest, cam);
     return dest;
 }
