@@ -324,7 +324,8 @@ void TestBlitSomeImage() {
 
     u16 src_w = 500;
     u16 src_h = 500;
-    u32 src_len = src_w * src_h;
+    const u32 src_len = 500 * 500;
+    assert(src_len == src_w * src_h);
 
     u16 rect_w = 200;
     u16 rect_h = 200;
