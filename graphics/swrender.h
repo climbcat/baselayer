@@ -321,6 +321,28 @@ SwRenderer InitRenderer(u32 width = 1280, u32 height = 800) {
 void FreeRenderer(SwRenderer *rend) {
     // TODO: impl.
 }
+// TODO: apply / use
+void SwRenderRefreshWireframeEntities(EntitySystem *es) {
+    // update those wireframe entities // pull/generate wireframe data into line vertex & index buffers
+    TreeIterState iter;
+    InitTreeIter(&iter);
+
+    Entity *next = NULL;
+    while ((next = es->TreeIterNext(next, &iter)) != NULL) {
+        switch (next->tpe)
+        {
+        case ET_AXES: {
+            // TODO: impl.
+        } break;
+        case ET_LINES: {
+            // TODO: impl.
+        } break;
+        
+        default:
+            break;
+        }
+    }
+}
 
 
 // TODO: sort out static/re-usable memory
@@ -350,12 +372,17 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u64 frameno) {
                 mvp = TransformBuildMVP(model, *vp);
 
                 // lines to screen buffer
-                for (u32 i = next->verts_low; i <= next->verts_high; ++i) {
-                    r->ndc_buffer.lst[i] = TransformPerspective(mvp, r->vertex_buffer.lst[i]);
-                    // TODO: here, it is faster to do a frustum filter in world space
+                if (next->verts_high) {
+                    for (u32 i = next->verts_low; i <= next->verts_high; ++i) {
+                        r->ndc_buffer.lst[i] = TransformPerspective(mvp, r->vertex_buffer.lst[i]);
+                        // TODO: here, it is faster to do a frustum filter in world space
+                    }
+                    // render lines
+                    LinesToScreenCoords(r->w, r->h, &r->screen_buffer, &r->index_buffer, &r->ndc_buffer, next->lines_low, next->lines_high, next->color);
                 }
-                // render lines
-                LinesToScreenCoords(r->w, r->h, &r->screen_buffer, &r->index_buffer, &r->ndc_buffer, next->lines_low, next->lines_high, next->color);
+                else {
+                    printf("WARN: empty wireframe entity\n");
+                }
             }
             else {
                 mvp = TransformBuildMVP(next->transform, *vp);
@@ -404,7 +431,15 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u64 frameno) {
 
 Entity *EntityAABox(EntitySystem *es, Entity* branch, Vector3f center_transf, float radius, SwRenderer *r) {
     Entity *dest = es->AllocEntityChild(branch);
-    Entity box = AABox(center_transf, radius, &r->vertex_buffer, &r->index_buffer);
+    Entity box;
+
+    // TODO: streamline this
+    if (r != NULL) {
+        box = AABox(center_transf, radius, &r->vertex_buffer, &r->index_buffer);
+    }
+    else {
+        box = AABox(center_transf, radius, NULL, NULL);
+    }
     EntityCopyBodyOnly(dest, box);
     return dest;
 }
