@@ -321,6 +321,21 @@ SwRenderer InitRenderer(u32 width = 1280, u32 height = 800) {
 void FreeRenderer(SwRenderer *rend) {
     // TODO: impl.
 }
+void SwRenderUpdateWireframeEntity(SwRenderer *r, Entity *e) {
+    switch (e->tpe) {
+        case ET_AXES: {
+            CoordAxesWireframe(e, &r->vertex_buffer, &r->index_buffer);
+        } break;
+        case ET_BOX: {
+            AABoxWireFrame(e, &r->vertex_buffer, &r->index_buffer);
+        } break;
+        case ET_CAMPOS: {
+            CameraPositionWireframe(e, &r->vertex_buffer, &r->index_buffer);
+        } break;
+        default: break;
+    }
+
+}
 void SwRenderRefreshWireframeEntities(SwRenderer *r, EntitySystem *es, bool clear_buffers) {
     if (clear_buffers) {
         r->vertex_buffer.len = 0;
@@ -331,18 +346,7 @@ void SwRenderRefreshWireframeEntities(SwRenderer *r, EntitySystem *es, bool clea
     InitTreeIter(&iter);
     Entity *next = NULL;
     while ((next = es->TreeIterNext(next, &iter)) != NULL) {
-        switch (next->tpe) {
-            case ET_AXES: {
-                CoordAxesWireframe(next, &r->vertex_buffer, &r->index_buffer);
-            } break;
-            case ET_BOX: {
-                AABoxWireFrame(next, &r->vertex_buffer, &r->index_buffer);
-            } break;
-            case ET_CAMPOS: {
-                CameraPositionWireframe(next, &r->vertex_buffer, &r->index_buffer);
-            } break;
-            default: break;
-        }
+        SwRenderUpdateWireframeEntity(r, next);
     }
 }
 
@@ -365,6 +369,11 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u64 frameno) {
         if (next->active) {
 
             if (EntityIsTiedToRenderer(next->tpe)) {
+                if (next->touched == true) {
+                    next->touched = false;
+                    SwRenderUpdateWireframeEntity(r, next);
+                }
+
                 if (next->tpe == ET_LINES_ROT) {
                     model = next->transform * TransformBuildRotateY(0.03f * frameno);
                 }

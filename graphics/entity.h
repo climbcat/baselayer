@@ -104,6 +104,7 @@ struct Entity {
 
     // scene graph switch
     bool active = true;
+    bool touched = false;
 
     // transforms
     inline Matrix4f GetLocal2World() {
