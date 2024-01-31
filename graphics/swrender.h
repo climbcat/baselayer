@@ -332,6 +332,9 @@ void SwRenderUpdateWireframeEntity(SwRenderer *r, Entity *e) {
         case ET_CAMPOS: {
             CameraPositionWireframe(e, &r->vertex_buffer, &r->index_buffer);
         } break;
+        case ET_CYLINDER_Z: {
+            CylinderVerticalWireframe(e, &r->vertex_buffer, &r->index_buffer);
+        } break;
         default: break;
     }
 
@@ -440,37 +443,64 @@ void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u64 frameno) {
 }
 
 
-Entity *EntityAABox(EntitySystem *es, Entity* branch, Vector3f center_transf, float radius, SwRenderer *r) {
+Entity *EntityAABox(EntitySystem *es, Entity* branch, Vector3f center_translation, float radius, SwRenderer *r) {
     Entity *dest = es->AllocEntityChild(branch);
     Entity box;
 
-    // TODO: streamline this
     if (r != NULL) {
-        box = AABox(center_transf, radius, &r->vertex_buffer, &r->index_buffer);
+        box = AABox(center_translation, radius, &r->vertex_buffer, &r->index_buffer);
     }
     else {
-        box = AABox(center_transf, radius, NULL, NULL);
+        box = AABox(center_translation, radius, NULL, NULL);
     }
     EntityCopyBodyOnly(dest, box);
     return dest;
 }
 
 
-Entity *EntityCoordAxes(EntitySystem *es, Entity* branch, SwRenderer *r) {
+Entity *EntityCoordAxes(EntitySystem *es, Entity* branch, SwRenderer *r = NULL) {
     Entity *dest = es->AllocEntityChild(branch);
-    Entity axes = CoordAxes(&r->vertex_buffer, &r->index_buffer);
+
+    Entity axes;
+    if (r != NULL) {
+        axes = CoordAxes(&r->vertex_buffer, &r->index_buffer);
+    }
+    else {
+        axes = CoordAxes(NULL, NULL);
+    }
     EntityCopyBodyOnly(dest, axes);
     return dest;
 }
 
 
 Entity *EntityCameraWireframe(EntitySystem *es, Entity* branch, float size = 0.05f, SwRenderer *r = NULL) {
-    assert(r != NULL);
     Entity *dest = es->AllocEntityChild(branch);
+    Entity cam;
     float radius_xy = 0.5 * size;
     float length_z = 1.5 * size;
-    Entity cam = CameraPosition(radius_xy, length_z, &r->vertex_buffer, &r->index_buffer);
+
+    if (r != NULL) {
+        Entity cam = CameraPosition(radius_xy, length_z, &r->vertex_buffer, &r->index_buffer);
+    }
+    else {
+        Entity cam = CameraPosition(radius_xy, length_z, NULL, NULL);
+    }
     EntityCopyBodyOnly(dest, cam);
+    return dest;
+}
+
+
+Entity *EntityCylinderVertical(EntitySystem *es, Entity* branch, Vector3f center_translation, float radius_xy, float radius_z, SwRenderer *r) {
+    Entity *dest = es->AllocEntityChild(branch);
+    Entity cylinder;
+
+    if (r != NULL) {
+        cylinder = CylinderVertical(center_translation, radius_xy, radius_z, &r->vertex_buffer, &r->index_buffer);
+    }
+    else {
+        cylinder = CylinderVertical(center_translation, radius_xy, radius_z, NULL, NULL);
+    }
+    EntityCopyBodyOnly(dest, cylinder);
     return dest;
 }
 

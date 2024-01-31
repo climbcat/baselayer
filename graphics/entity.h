@@ -17,6 +17,7 @@ enum EntityType {
     ET_AXES,
     ET_BOX,
     ET_CAMPOS,
+    ET_CYLINDER_Z,
     ET_LINES,
     ET_LINES_ROT,
 
@@ -39,7 +40,7 @@ enum EntityType {
     ET_CNT,
 };
 bool EntityIsTiedToRenderer(EntityType tpe) {
-    if (tpe == ET_AXES || tpe == ET_LINES || tpe == ET_LINES_ROT || tpe == ET_BOX || tpe == ET_CAMPOS) {
+    if (tpe == ET_AXES || tpe == ET_LINES || tpe == ET_LINES_ROT || tpe == ET_BOX || tpe == ET_CAMPOS || tpe == ET_CYLINDER_Z) {
         return true;
     }
     else {
@@ -624,9 +625,9 @@ void AABoxWireFrame(Entity *box, List<Vector3f> *vertex_buffer, List<Vector2_u16
 }
 
 
-Entity AABox(Vector3f translate_coords, float radius, List<Vector3f> *vertex_buffer, List<Vector2_u16> *index_buffer) {
+Entity AABox(Vector3f center_translation, float radius, List<Vector3f> *vertex_buffer, List<Vector2_u16> *index_buffer) {
     Entity aabox = InitEntity(ET_BOX);
-    aabox.transform = TransformBuild(y_hat, 0, translate_coords);
+    aabox.transform = TransformBuildTranslationOnly(center_translation);
     aabox.color = { RGBA_GREEN };
     aabox.origo = Vector3f { 0, 0, 0 };
     aabox.dims = Vector3f { radius, radius, radius };
@@ -687,13 +688,78 @@ Entity CameraPosition(float radius_xy, float length_z, List<Vector3f> *vertex_bu
     Entity cam = InitEntity(ET_CAMPOS);
     cam.color = { RGBA_WHITE };
     cam.origo = Vector3f { 0, 0, 0 },
-    cam.dims = Vector3f { radius_xy, radius_xy, length_z };
+    cam.dims = Vector3f { radius_xy, length_z, radius_xy };
 
     if (vertex_buffer != NULL && index_buffer != NULL) {
         CameraPositionWireframe(&cam, vertex_buffer, index_buffer);
     }
 
     return cam;
+}
+
+
+//
+// Cylinder
+
+
+void CylinderVerticalWireframe(Entity *cylinder, List<Vector3f> *vertex_buffer, List<Vector2_u16> *index_buffer) {
+    assert(vertex_buffer != NULL && index_buffer != NULL);
+
+    float radius_xy = cylinder->dims.x;
+    float radius_z = cylinder->dims.y;
+
+    cylinder->verts_low = vertex_buffer->len;
+    cylinder->lines_low = index_buffer->len;
+
+    u16 vertex_offset = vertex_buffer->len;
+    Vector3f v_upper;
+    Vector3f v_lower;
+    Vector2_u16 line_vertical;
+    Vector2_u16 line_upperring;
+    Vector2_u16 line_lowerring;
+    for (u32 i = 0; i < 8; ++i) {
+        float theta = M_PI * 0.25f * i;
+        v_upper = { radius_xy * cos(theta), radius_z, radius_xy * sin(theta) };
+        v_lower = { radius_xy * cos(theta), - radius_z, radius_xy * sin(theta) };
+        vertex_buffer->Add(v_upper);
+        vertex_buffer->Add(v_lower);
+
+        line_vertical = { (u16) (vertex_offset + 2*i + 0), (u16) (vertex_offset + 2*i + 1) };
+        index_buffer->Add(line_vertical);
+
+        if (i == 7) {
+            line_upperring = { (u16) (vertex_offset + 2*i + 0), (u16) (vertex_offset + 0) };
+            line_lowerring = { (u16) (vertex_offset + 2*i + 1), (u16) (vertex_offset + 1) };
+        }
+        else {
+            line_upperring = { (u16) (vertex_offset + 2*i + 0), (u16) (vertex_offset + 2*i + 2) };
+            line_lowerring = { (u16) (vertex_offset + 2*i + 1), (u16) (vertex_offset + 2*i + 3) };
+        }
+        index_buffer->Add(line_upperring);
+        index_buffer->Add(line_lowerring);
+    }
+ 
+    cylinder->verts_high = vertex_buffer->len - 1;
+    cylinder->lines_high = index_buffer->len - 1;
+
+    assert(cylinder->verts_high == cylinder->verts_low + 15);
+    assert(cylinder->lines_high == cylinder->lines_low + 23);
+    assert(vertex_buffer->len = cylinder->verts_high + 1);
+    assert(index_buffer->len = cylinder->lines_high + 1);
+}
+
+
+Entity CylinderVertical(Vector3f center_translation, float radius_xy, float radius_z, List<Vector3f> *vertex_buffer, List<Vector2_u16> *index_buffer) {
+    Entity cylinder = InitEntity(ET_CYLINDER_Z);
+    cylinder.transform = TransformBuildTranslationOnly(center_translation);
+    cylinder.color = { RGBA_BLUE };
+    cylinder.origo = Vector3f { 0, 0, 0 };
+    cylinder.dims = Vector3f { radius_xy, radius_z, radius_xy };
+
+    if (vertex_buffer != NULL && index_buffer != NULL) {
+        CylinderVerticalWireframe(&cylinder, vertex_buffer, index_buffer);
+    }
+    return cylinder;
 }
 
 
