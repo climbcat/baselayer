@@ -285,12 +285,12 @@ struct OrbitCamera {
             theta = OrbitCamera::ClampTheta(theta - m.dy * mouse2rot);
             phi += sign_x * m.dx * mouse2rot;
         }
-        else if (m.mwheel_y_delta > 0) {
+        else if (m.mwheel_y_delta < 0) {
             // zoom in
             float mult = PositiveSqrtMultiplier(m.mwheel_y_delta);
             radius *= 1.1 * mult;
         }
-        else if (m.mwheel_y_delta < 0) {
+        else if (m.mwheel_y_delta > 0) {
             // zoom out
             float mult = PositiveSqrtMultiplier(m.mwheel_y_delta);
             radius /= 1.1 * mult;
