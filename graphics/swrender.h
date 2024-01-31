@@ -332,18 +332,16 @@ void SwRenderRefreshWireframeEntities(SwRenderer *r, EntitySystem *es, bool clea
     Entity *next = NULL;
     while ((next = es->TreeIterNext(next, &iter)) != NULL) {
         switch (next->tpe) {
-        case ET_AXES: {
-            CoordAxesWireframe(next, &r->vertex_buffer, &r->index_buffer);
-        } break;
-        case ET_BOX: {
-            AABoxWireFrame(next, &r->vertex_buffer, &r->index_buffer);
-        } break;
-        case ET_CAMPOS: {
-            CameraPositionWireframe(next, &r->vertex_buffer, &r->index_buffer);
-        } break;
-
-        default:
-            break;
+            case ET_AXES: {
+                CoordAxesWireframe(next, &r->vertex_buffer, &r->index_buffer);
+            } break;
+            case ET_BOX: {
+                AABoxWireFrame(next, &r->vertex_buffer, &r->index_buffer);
+            } break;
+            case ET_CAMPOS: {
+                CameraPositionWireframe(next, &r->vertex_buffer, &r->index_buffer);
+            } break;
+            default: break;
         }
     }
 }
