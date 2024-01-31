@@ -627,7 +627,7 @@ Entity AABox(Vector3f translate_coords, float radius, List<Vector3f> *vertex_buf
     Entity aabox = InitEntity(ET_BOX);
     aabox.transform = TransformBuild(y_hat, 0, translate_coords);
     aabox.color = { RGBA_GREEN };
-    aabox.origo = Vector3f { 0, 0, 0 },
+    aabox.origo = Vector3f { 0, 0, 0 };
     aabox.dims = Vector3f { radius, radius, radius };
 
     if (vertex_buffer != NULL && index_buffer != NULL) {
@@ -635,6 +635,15 @@ Entity AABox(Vector3f translate_coords, float radius, List<Vector3f> *vertex_buf
     }
 
     return aabox;
+}
+float AABoxRetreiveRadius(Entity *box) {
+    assert(box->dims.x == box->dims.y && box->dims.x == box->dims.z);
+    float radius = box->dims.x;
+    return radius;
+}
+Vector3f AABoxRetreiveTranslation(Entity *box) {
+    Vector3f translation = TransformGetTranslation(box->transform);
+    return translation;
 }
 
 
@@ -679,7 +688,9 @@ Entity CameraPosition(float radius_xy, float length_z, List<Vector3f> *vertex_bu
     cam.origo = Vector3f { 0, 0, 0 },
     cam.dims = Vector3f { radius_xy, radius_xy, length_z };
 
-    CameraPositionWireframe(&cam, vertex_buffer, index_buffer);
+    if (vertex_buffer != NULL && index_buffer != NULL) {
+        CameraPositionWireframe(&cam, vertex_buffer, index_buffer);
+    }
 
     return cam;
 }

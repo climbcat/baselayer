@@ -428,6 +428,10 @@ Matrix4f TransformGetInverse(Matrix4f *a) {
 Matrix4f TransformGetInverse(Matrix4f a) {
     return TransformGetInverse(&a);
 }
+Vector3f TransformGetTranslation(Matrix4f transform) {
+    Vector3f result { transform.m[0][3], transform.m[1][3], transform.m[2][3] };
+    return result;
+}
 inline
 Vector3f TransformPoint(Matrix4f *a, Vector3f *v) {
     Vector3f result;
