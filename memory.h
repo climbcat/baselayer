@@ -143,7 +143,7 @@ void *PoolAlloc(MPool *p) {
     }
     void *retval = p->free_list.next;
     p->free_list.next = p->free_list.next->next;
-    _memzero(retval, MPOOL_MIN_BLOCK_SIZE);
+    _memzero(retval, p->block_size);
 
     ++p->occupancy;
     return retval;

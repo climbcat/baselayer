@@ -104,8 +104,8 @@ struct Entity {
     ImageRGBX ext_texture_var;
 
     // scene graph switch
-    bool active = true;
-    bool touched = false;
+    bool active;
+    bool touched;
 
     // transforms
     inline Matrix4f GetLocal2World() {
@@ -179,7 +179,7 @@ struct Entity {
         assert((tpe == ET_POINTCLOUD || tpe == ET_MESH || tpe == ET_POINTCLOUD_W_NORMALS));
 
         List<Color> colors { NULL, 0 };
-        if (ext_points != NULL) {
+        if (ext_point_colors != NULL) {
             colors = *ext_point_colors;
         }
         else {
@@ -431,10 +431,10 @@ struct EntitySystem {
         return cnt;
     }
     Entity *AllocEntityChild(Entity *parent = NULL) {
-        Entity default_val;
         Entity *next = (Entity*) PoolAlloc(&pool);
         assert(next != NULL && "pool capacity exceeded");
-        *next = default_val;
+        next->active = true;
+        next->transform = Matrix4f_Identity();
 
         if (parent == NULL) {
             EntityAppendChild(next, this->root);
