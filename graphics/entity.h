@@ -718,7 +718,7 @@ void CylinderVerticalWireframe(Entity *cylinder, List<Vector3f> *vertex_buffer, 
     Vector2_u16 line_upperring;
     Vector2_u16 line_lowerring;
     for (u32 i = 0; i < 8; ++i) {
-        float theta = M_PI * 0.25f * i;
+        float theta = 3.14159265f * 0.25f * i;
         v_upper = { radius_xy * cos(theta), radius_z, radius_xy * sin(theta) };
         v_lower = { radius_xy * cos(theta), - radius_z, radius_xy * sin(theta) };
         vertex_buffer->Add(v_upper);
