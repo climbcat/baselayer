@@ -18,9 +18,9 @@ struct OcTreeStats {
     u32 actual_branches;
     u32 actual_leaves;
 
-    float box_radius;
-    float max_leaf_size;
-    float actual_leaf_size;
+    float cullbox_radius;
+    float leaf_size;
+    float rootcube_radius;
 
     float avg_verts_pr_leaf;
     u32 nvertices_in;
@@ -32,16 +32,16 @@ struct OcTreeStats {
     }
 
     void Print() {
-        printf("VGR depth: %u\n", depth_max);
-        printf("Box radius: %f\n", box_radius);
-        printf("Req. leaf size: %f\n", max_leaf_size);
-        printf("Act. leaf size: %f\n", actual_leaf_size);
-        printf("Branch nodes: %u\n", actual_branches);
-        printf("Leaf nodes: %u\n", actual_leaves);
-        printf("Vertices in: %u\n", nvertices_in);
-        printf("Vertices out: %u\n", nvertices_out);
+        printf("Depth:                 %u\n", depth_max);
+        printf("Cullbox radius:        %f\n", cullbox_radius);
+        printf("Rootcube radius:       %f\n", rootcube_radius);
+        printf("Leaf size:             %f\n", leaf_size);
+        printf("Branch nodes:          %u\n", actual_branches);
+        printf("Leaf nodes (octets):   %u\n", actual_leaves);
+        printf("Vertices in:           %u\n", nvertices_in);
+        printf("Vertices out:          %u\n", nvertices_out);
         printf("Av. vertices pr. cube: %f\n", avg_verts_pr_leaf);
-        printf("Reduction pct.: %.2f (%u to %u)\n", 100 - PctReduced(), nvertices_in, nvertices_out);
+        printf("Reduction pct.:        %.2f (%u to %u)\n", 100 - PctReduced(), nvertices_in, nvertices_out);
     }
 };
 u32 OcTreeStatsSubCubesTotal(u32 depth) {
@@ -69,20 +69,52 @@ u32 OcTreeStatsLeafSize2Depth(float leaf_size, float box_diameter, float *leaf_s
     *leaf_size_out = box_diameter / power_of_two;
     return depth;
 }
-OcTreeStats OcTreeStatsInit(float box_radius, float leaf_size_max) {
+void OcTreeCalculateCubeRadiusAndDepthFromLeafSize(float leaf_size, float cullbox_radius, float *out_rootcube_radius, u32 *out_depth) {
+    assert(out_rootcube_radius != NULL);
+    assert(out_depth != NULL);
+
+    float cullbox_diameter = cullbox_radius * 2;
+
+    // demand minimum depth 1 - 8 cubes
+    assert(leaf_size < cullbox_diameter);
+
+    u32 depth = 1;
+    u32 two_to_depth = 2;
+    float rootcube_diameter = leaf_size * two_to_depth;
+    while (rootcube_diameter < cullbox_diameter) {
+        ++depth;
+        two_to_depth *= 2;
+        rootcube_diameter = leaf_size * two_to_depth;
+    }
+
+    *out_depth = depth;
+    *out_rootcube_radius = rootcube_diameter * 0.5f;
+}
+OcTreeStats OcTreeStatsInit(float cullbox_radius, float leaf_size) {
     OcTreeStats stats;
-    float actual_leaf_size;
-    u32 depth = OcTreeStatsLeafSize2Depth(leaf_size_max, 2 * box_radius, &actual_leaf_size);
+
+    //float actual_leaf_size;
+    //u32 depth = OcTreeStatsLeafSize2Depth(leaf_size_max, 2 * cullbox_radius, &actual_leaf_size);
+
+    float rootcube_radius;
+    u32 depth;
+    OcTreeCalculateCubeRadiusAndDepthFromLeafSize(leaf_size, cullbox_radius, &rootcube_radius, &depth);
+
     assert(depth <= 9 && "recommended max depth is 9");
-    assert(depth >= 2 && "min depth is 2");
+    assert(depth >= 1 && "min depth is 2");
 
     stats.depth_max = depth;
     u32 max_cubes = OcTreeStatsSubCubesTotal(depth);
     stats.max_branches = OcTreeStatsSubCubesTotal(depth - 1);
     stats.max_leaves = max_cubes - stats.max_branches;
-    stats.box_radius = box_radius;
-    stats.max_leaf_size = leaf_size_max;
-    stats.actual_leaf_size = actual_leaf_size;
+    stats.cullbox_radius = cullbox_radius;
+    stats.rootcube_radius = rootcube_radius;
+    stats.leaf_size = leaf_size;
+    stats.nvertices_in = 0;
+    stats.nvertices_out = 0;
+
+    assert(stats.rootcube_radius >= stats.cullbox_radius && "rootcube region greater than or equal to the minimal value; for targeting custom leaf sizes");
+
     return stats;
 }
 
@@ -144,7 +176,7 @@ static OcLeaf _leaf_zero;
 struct VoxelGridReduce {
     MArena a;
     OcTreeStats stats;
-    Matrix4f box_transform;
+    Matrix4f center_transform;
 
     List<OcLeaf> leaves;
     List<OcBranch> branches;
@@ -158,7 +190,7 @@ struct VoxelGridReduce {
         Vector3f n;
         Vector3f c = Vector3f_Zero();
         float r;
-        Matrix4f p2box = TransformGetInverse(box_transform) * src_transform;
+        Matrix4f p2box = TransformGetInverse(center_transform) * src_transform;
         u8 sidx;
         u16 *bidx;
         u16 *lidx;
@@ -166,7 +198,7 @@ struct VoxelGridReduce {
             // filter
             p = vertices.lst[i];
             p =  TransformPoint(p2box, p);
-            bool keep = FitsWithinBoxRadius(p, stats.box_radius);
+            bool keep = FitsWithinBoxRadius(p, stats.cullbox_radius);
             if (keep == false) {
                 continue;
             }
@@ -175,7 +207,7 @@ struct VoxelGridReduce {
 
             // init
             branch = branches.lst;
-            r = stats.box_radius;
+            r = stats.rootcube_radius;
             c = Vector3f_Zero();
 
             // d < d_max-1
@@ -215,6 +247,7 @@ struct VoxelGridReduce {
         }
         stats.actual_branches = branches.len;
         stats.actual_leaves = leaves.len;
+        stats.nvertices_in += vertices.len;
     }
     void GetPoints(MArena *a_dest, List<Vector3f> *points_dest, List<Vector3f> *normals_dest) {
         assert(points_dest != NULL);
@@ -239,7 +272,7 @@ struct VoxelGridReduce {
 
                     sum = leaf.points_sum[j];
                     avg = cnt_inv * sum;
-                    p_world = TransformPoint(box_transform, avg);
+                    p_world = TransformPoint(center_transform, avg);
                     points.Add(&p_world);
 
                     cnt_sum += cnt;
@@ -262,22 +295,21 @@ struct VoxelGridReduce {
 
                     sum = leaf.normals_sum[j];
                     avg = cnt_inv * sum;
-                    n_world = TransformDirection(box_transform, avg);
+                    n_world = TransformDirection(center_transform, avg);
                     normals.Add(n_world);
                 }
             }
         }
         InitListClose<Vector3f>(a_dest, normals.len);
         *normals_dest = normals;
-
     }
 };
-VoxelGridReduce VoxelGridReduceInit(float leaf_size_max, float box_radius, Matrix4f box_transform) {
+VoxelGridReduce VoxelGridReduceInit(float leaf_size_max, float cullbox_radius, Matrix4f cullbox_transform) {
     VoxelGridReduce vgr;
 
     vgr.a = ArenaCreate();
-    vgr.box_transform = box_transform;
-    vgr.stats = OcTreeStatsInit(box_radius, leaf_size_max);
+    vgr.center_transform = cullbox_transform;
+    vgr.stats = OcTreeStatsInit(cullbox_radius, leaf_size_max);
     vgr.branches = InitList<OcBranch>(&vgr.a, vgr.stats.max_branches / 8);
     vgr.branches.Add(_branch_zero);
     vgr.leaves = InitList<OcLeaf>(&vgr.a, 0);

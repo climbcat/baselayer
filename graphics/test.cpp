@@ -57,7 +57,11 @@ void TestVGROcTree() {
 
     // test parameters
     float rootcube_radius = 0.2;
-    float leaf_size = rootcube_radius / 2.0 / 2.0;
+    //float leaf_size = rootcube_radius / 2.0 / 2.0 / 2.0 / 2.0;
+    //float leaf_size = rootcube_radius / 2.0 / 2.0;
+
+    // TODO: there is a bug, there should be about 8 vertices out for this case, we get 56. !
+    float leaf_size = rootcube_radius;
     u32 nvertices_src = 100;
     u32 nvertices_src_2 = 1000;
     bool display_boxes = false;
@@ -161,7 +165,7 @@ void TestVGROcTree() {
 
     // print vgr stats
     printf("\n");
-    stats.Print();
+    vgr.stats.Print();
 
     loop->JustRun(es);
 }
@@ -352,9 +356,9 @@ void TestBlitSomeImage() {
 
 void Test() {
     //TestRandomPCWithNormals();
-    //TestVGROcTree();
+    TestVGROcTree();
     //TestQuaternionRotMult();
     //TestSlerpAndMat2Quat();
-    TestPointCloudsBoxesAndSceneGraph();
+    //TestPointCloudsBoxesAndSceneGraph();
     //TestBlitSomeImage();
 }
