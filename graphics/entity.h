@@ -688,7 +688,7 @@ Entity CameraPosition(float radius_xy, float length_z, List<Vector3f> *vertex_bu
     Entity cam = InitEntity(ET_CAMPOS);
     cam.color = { RGBA_WHITE };
     cam.origo = Vector3f { 0, 0, 0 },
-    cam.dims = Vector3f { radius_xy, length_z, radius_xy };
+    cam.dims = Vector3f { radius_xy, radius_xy, length_z };
 
     if (vertex_buffer != NULL && index_buffer != NULL) {
         CameraPositionWireframe(&cam, vertex_buffer, index_buffer);

@@ -17,6 +17,7 @@
 #define RGBA_RED        255, 0, 0, 255
 #define RGBA_GREEN      0, 255, 0, 255
 #define RGBA_BLUE       0, 0, 255, 255
+#define RGBA_YELLOW     0, 255, 255, 255
 
 
 #define BYTES_RGB 3

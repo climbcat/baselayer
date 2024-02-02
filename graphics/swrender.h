@@ -476,14 +476,15 @@ Entity *EntityCoordAxes(EntitySystem *es, Entity* branch, SwRenderer *r = NULL) 
 Entity *EntityCameraWireframe(EntitySystem *es, Entity* branch, float size = 0.05f, SwRenderer *r = NULL) {
     Entity *dest = es->AllocEntityChild(branch);
     Entity cam;
+    cam.tpe = ET_CAMPOS;
     float radius_xy = 0.5 * size;
     float length_z = 1.5 * size;
 
     if (r != NULL) {
-        Entity cam = CameraPosition(radius_xy, length_z, &r->vertex_buffer, &r->index_buffer);
+        cam = CameraPosition(radius_xy, length_z, &r->vertex_buffer, &r->index_buffer);
     }
     else {
-        Entity cam = CameraPosition(radius_xy, length_z, NULL, NULL);
+        cam = CameraPosition(radius_xy, length_z, NULL, NULL);
     }
     EntityCopyBodyOnly(dest, cam);
     return dest;
