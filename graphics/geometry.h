@@ -425,11 +425,21 @@ Matrix4f TransformGetInverse(Matrix4f *a) {
 
     return result;
 }
+inline
 Matrix4f TransformGetInverse(Matrix4f a) {
     return TransformGetInverse(&a);
 }
+inline
 Vector3f TransformGetTranslation(Matrix4f transform) {
     Vector3f result { transform.m[0][3], transform.m[1][3], transform.m[2][3] };
+    return result;
+}
+inline
+Matrix4f TransformSetTranslation(const Matrix4f transform, const Vector3f translation) {
+    Matrix4f result = transform;
+    result.m[0][3] = translation.x;
+    result.m[1][3] = translation.y;
+    result.m[2][3] = translation.z;
     return result;
 }
 inline
@@ -507,7 +517,6 @@ Vector3f TransformInverseDirection(Matrix4f *a, Vector3f *d) {
     return result;
 }
 Matrix4f TransformBuildLookRotationYUp(Vector3f at, Vector3f from) {
-
     Vector3f forward = at - from;
     forward.Normalize();
     Vector3f left = y_hat.Cross(forward);
