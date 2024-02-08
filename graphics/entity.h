@@ -424,6 +424,8 @@ struct EntitySystem {
         return cnt;
     }
     u32 FreeEntitiesBelowBranch(Entity *branch_root) {
+        assert(branch_root != NULL);
+
         u32 cnt = 0;
         if (branch_root->down != NULL) {
             FreeEntityBranch(branch_root->down);
@@ -826,7 +828,7 @@ Entity *EntityStream(EntitySystem *es, Entity* branch, MArena *a_stream_bld, u32
 
     return pc;
 }
-Entity *EntityStreamLoad(EntitySystem *es, Entity* branch, StreamHeader *data, bool do_transpose) {
+Entity *EntityStreamLoad(EntitySystem *es, Entity* branch, StreamHeader *data) {
     Entity *ent = es->AllocEntityChild(branch);
     if (data->tpe == ST_POINTS) {
         // check if point cloud with normals:
@@ -847,12 +849,7 @@ Entity *EntityStreamLoad(EntitySystem *es, Entity* branch, StreamHeader *data, b
         }
 
         ent->color  = { RGBA_GREEN };
-        if (do_transpose == true) {
-            ent->transform = Matrix4f_Transpose( data->transform );
-        }
-        else {
-            ent->transform = data->transform;
-        }
+        ent->transform = data->transform;
     }
     // NOTE: load mesh entity stream here, if needed
 

@@ -148,14 +148,16 @@ int RandIntMax(u32 max) {
 void PrintHex(u8* data, u32 len) {
     const char *nibble_to_hex = "0123456789ABCDEF";
 
-    for (int i = 0; i < len; ++i) {
-        u8 byte = data[i];
-        char a = nibble_to_hex[byte >> 4];
-        char b = nibble_to_hex[byte & 0x0F];
-        printf("%c%c ", a, b);
+    if (data) {
+        for (int i = 0; i < len; ++i) {
+            u8 byte = data[i];
+            char a = nibble_to_hex[byte >> 4];
+            char b = nibble_to_hex[byte & 0x0F];
+            printf("%c%c ", a, b);
 
-        if (i % 4 == 3 || (i == len + 1)) {
-            printf("\n");
+            if (i % 4 == 3 || (i == len + 1)) {
+                printf("\n");
+            }
         }
     }
 }
