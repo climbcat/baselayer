@@ -30,6 +30,7 @@ typedef double f64;
 #define MEGABYTE (1024 * 1024)
 #define SIXTEEN_MB (16 * 1024 * 1024)
 #define GIGABYTE (1024 * 1024 * 1024)
+#define FOUR_GB (4 * 1024 * 1024 * 1024)
 
 
 #define PI 3.14159

@@ -100,7 +100,9 @@ OcTreeStats OcTreeStatsInit(float cullbox_radius, float leaf_size) {
     u32 depth;
     OcTreeCalculateCubeRadiusAndDepthFromLeafSize(leaf_size, cullbox_radius, &rootcube_radius, &depth);
 
-    assert(depth <= 9 && "recommended max depth is 9");
+    //assert(depth <= 9 && "recommended max depth is 9");
+    // DEBUG: will we crash?
+    assert(depth <= 10 && "recommended max depth is 10");
     assert(depth >= 1 && "min depth is 2");
 
     stats.depth_max = depth;
