@@ -247,6 +247,9 @@ struct List {
     T Pop() {
         return lst[--len];
     }
+    inline T Last() {
+        return lst[len - 1];
+    }
 };
 template<class T>
 List<T> InitList(MArena *a, u32 count, bool zerod = true) {
