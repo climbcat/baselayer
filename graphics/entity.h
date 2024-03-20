@@ -103,6 +103,9 @@ struct Entity {
     ImageRGBX *ext_texture;
     ImageRGBX ext_texture_var;
 
+    // flags
+    bool flag;
+
     // scene graph switch
     bool active;
     bool touched;
