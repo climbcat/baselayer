@@ -248,7 +248,12 @@ struct List {
         return lst[--len];
     }
     inline T Last() {
+        assert(len > 0);
         return lst[len - 1];
+    }
+    inline T First() {
+        assert(len > 0);
+        return lst[0];
     }
 };
 template<class T>
