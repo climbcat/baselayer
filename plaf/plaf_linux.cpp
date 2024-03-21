@@ -58,21 +58,20 @@ u8 *LoadFileMMAP(char *filepath, u64 *size_bytes) {
     FILE *f = fopen(filepath, "rb");
     if (f == NULL) {
         printf("Could not open file: %s\n", filepath);
-        exit(1);
+        return NULL;
     }
 
     s32 fd = fileno(f);
     struct stat sb;
     if (fstat(fd, &sb) == -1) {
         printf("Could not get file size: %s\n", filepath);
-        exit(1);
+        return NULL;
     }
 
     u8 *data = (u8*) mmap(NULL, sb.st_size + 1, PROT_READ, MAP_PRIVATE | MAP_SHARED, fd, 0);
     if (size_bytes != NULL) {
         *size_bytes = sb.st_size;
     }
-
     fclose(f);
     return data;
 }

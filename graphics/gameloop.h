@@ -86,6 +86,9 @@ struct GameLoopOne {
     OrbitCamera *GetOrbitCam() {
         return &cam;
     }
+
+    // TODO: rename GameLoopRunning to GameLoopFrameBegin()
+    bool _is_running;
     bool GameLoopRunning() {
         // poll mouse for correct dx, dy
         double xpos, ypos;
@@ -110,8 +113,14 @@ struct GameLoopOne {
 
         // exit condition
         bool exit_click = glfwWindowShouldClose(window) != 0;
-        return !(exit_click || exit_esc);
+        _is_running = !(exit_click || exit_esc);
+        return _is_running;
     }
+    bool IsRunning() {
+        return _is_running;
+    }
+
+    // TODO: Rename to GameLoopFrameEnd()
     void CycleFrame(EntitySystem *es) {
         // this frame
         cam.Update(mouse);
@@ -165,6 +174,7 @@ static GameLoopOne *g_gameloop;
 GameLoopOne *InitGameLoopOne(u32 width = 1280, u32 height = 800) {
     if (g_gameloop != NULL) {
         FreeRenderer(&g_gameloop->renderer);
+        _memzero(g_gameloop, sizeof(GameLoopOne));
     }
 
     g_gameloop = &_g_gameloop;

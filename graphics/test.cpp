@@ -354,11 +354,18 @@ void TestBlitSomeImage() {
 }
 
 
+void TestAxisTransforms() {
+    printf("TestAxisTransforms\n");
+
+}
+
+
 void Test() {
     //TestRandomPCWithNormals();
-    TestVGROcTree();
+    //TestVGROcTree();
     //TestQuaternionRotMult();
     //TestSlerpAndMat2Quat();
     //TestPointCloudsBoxesAndSceneGraph();
     //TestBlitSomeImage();
+    TestAxisTransforms();
 }
