@@ -21,6 +21,8 @@ void RunTests() {
     MArena arena = ArenaCreate();
     MArena *a = &arena;
 
+    // init string arena to work behind the scenes
+
     printf("StrLiteral\n");
     Str s1 = StrLiteral(&arena, "hello");
     Str s2 = StrLiteral(&arena, "hello_noteq");

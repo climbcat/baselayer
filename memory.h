@@ -236,8 +236,9 @@ struct List {
         lst[len++] = *element;
     }
     inline
-    void Add(T element) {
+    T *Add(T element) {
         lst[len++] = element;
+        return LastPtr();
     }
     inline
     void Push(T element) {
@@ -250,6 +251,10 @@ struct List {
     inline T Last() {
         assert(len > 0);
         return lst[len - 1];
+    }
+    inline T *LastPtr() {
+        assert(len > 0);
+        return lst + len - 1;
     }
     inline T First() {
         assert(len > 0);

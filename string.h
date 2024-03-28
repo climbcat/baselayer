@@ -5,7 +5,7 @@
 #include <cassert>
 
 
-// NOTE: currently no "string list header" struct, which means that strings and str lst are
+// NOTE: currently we have no "string list header" struct, which means that strings and str lst are
 //       treated a bit differently: Strings are passed as a struct, but str lists as a pointer.
 // NOTE: the string list is in fact an LList1, maybe use the functions from base.c
 
@@ -23,6 +23,10 @@ struct StrLst {
     StrLst *next = NULL;
     char *str = NULL;
     u32 len = 0;
+
+    Str GetStr() {
+        return Str { str, len };
+    }
 };
 
 Str StrLiteral(MArena *a, const char *lit) {
@@ -85,6 +89,10 @@ void StrLstPrint(StrLst *lst) {
     }
 }
 StrLst *StrSplit(MArena *arena, Str base, char split_at_and_remove) {
+    // TODO: impl. "arena push version" e.g. a version that uses ArenaPush(src, len) rather than
+    //      ArenaAlloc(), expected to to better.
+    //      e.g. StringList *StrSplit(MArena *arena, String base, char split) {}
+
     // TODO: reimpl. using StrLstPut
     StrLst *first;
     StrLst *node;
@@ -128,10 +136,6 @@ StrLst *StrSplit(MArena *arena, Str base, char split_at_and_remove) {
         }
     }
 }
-// TODO: impl. "arena push version" e.g. a version that uses ArenaPush(src, len) rather than
-//     ArenaAlloc() to see which one is most readable, I expect it to be better
-// StringList *StrSplit(MArena *arena, String base, char split) {}
-
 Str StrJoin(MArena *a, StrLst *strs) {
     Str join;
     join.str = (char*) ArenaOpen(a);
@@ -170,9 +174,7 @@ Str StrJoinInsertChar(MArena *a, StrLst *strs, char insert) {
 //
 // string list builder functions, another take
 
-StrLst *StrLstStart(MArena *a) {
-    return (StrLst*) ArenaAlloc(a, 0);
-}
+
 StrLst *StrLstPut(MArena *a, char *str, StrLst *after = NULL) {
     StrLst _;
     StrLst *lst = (StrLst*) ArenaPush(a, &_, sizeof(StrLst)); // can we have an ArenaPush(type) for this ideom? T
@@ -216,5 +218,57 @@ void StrAppendHot(MArena *a, char c, StrLst *to) {
 
     to->str[to->len++] = c;
 }
+
+
+//
+//  Automated arena signatures
+//
+MArena *g_a_strings;
+void StringSetGlobalArena(MArena *a) {
+    g_a_strings = a;
+}
+
+
+Str StrAlloc(u32 len) {
+    char *buff = (char*) ArenaAlloc(g_a_strings, len);
+    return Str { buff, len };
+}
+inline
+Str StrLiteral(const char *literal) {
+    return StrLiteral(g_a_strings, literal);
+}
+inline
+Str StrLiteral(char *literal) {
+    return StrLiteral(g_a_strings, (const char*) literal);
+}
+inline
+Str StrCat(Str a, Str b) {
+    return StrCat(g_a_strings, a, b);
+}
+inline
+StrLst *StrSplit(Str base, char split_at_and_remove) {
+    return StrSplit(g_a_strings, base, split_at_and_remove);
+}
+inline
+Str StrJoin(StrLst *strs) {
+    return StrJoin(g_a_strings, strs);
+}
+inline
+Str StrJoinInsertChar(StrLst *strs, char insert) {
+    return StrJoinInsertChar(g_a_strings, strs, insert);
+}
+inline
+StrLst *StrLstPut(char *str, StrLst *after = NULL) {
+    return StrLstPut(g_a_strings, str, after);
+}
+inline
+void StrCatHot(char *str, StrLst *to) {
+    return StrCatHot(g_a_strings, str, to);
+}
+inline
+void StrAppendHot(char c, StrLst *to) {
+    return StrAppendHot(g_a_strings, c, to);
+}
+
 
 #endif
