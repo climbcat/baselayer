@@ -51,6 +51,9 @@ void StrPrint(const char *format, Str s) {
 inline void StrPrint(Str s) {
     printf("%.*s", s.len, s.str);
 }
+inline void StrPrint(const char *aff, Str s, const char *suf) {
+    printf("%s%.*s%s", aff, s.len, s.str, suf);
+}
 inline void StrPrint(StrLst s) {
     printf("%.*s", s.len, s.str);
 }
@@ -72,6 +75,14 @@ bool StrEqual(Str a, Str b) {
 
     return a.len == b.len;
 }
+bool StrContainsChar(Str s, char c) {
+    for (u32 i = 0; i < s.len; ++i) {
+        if (c == s.str[i]) {
+            return true;
+        }
+    }
+    return false;
+}
 Str StrCat(MArena *arena, Str a, Str b) {
     Str cat;
     cat.len = a.len + b.len;
@@ -80,6 +91,14 @@ Str StrCat(MArena *arena, Str a, Str b) {
     _memcpy(cat.str + a.len, b.str, b.len);
 
     return cat;
+}
+u32 StrListLen(StrLst *lst) {
+    u32 cnt = 0;
+    while (lst) {
+        cnt++;
+        lst = lst->next;
+    }
+    return cnt;
 }
 void StrLstPrint(StrLst *lst) {
     while (lst != NULL) {
@@ -268,6 +287,18 @@ void StrCatHot(char *str, StrLst *to) {
 inline
 void StrAppendHot(char c, StrLst *to) {
     return StrAppendHot(g_a_strings, c, to);
+}
+
+
+bool StrEqual(Str a, const char *lit) {
+    Str b = StrLiteral(lit);
+    return StrEqual(a, b);
+}
+char *StrZeroTerm(Str s) {
+    char * result = (char*) ArenaAlloc(g_a_strings, s.len + 1);
+    _memcpy(result, s.str, s.len);
+    result[s.len] = 0;
+    return result;
 }
 
 

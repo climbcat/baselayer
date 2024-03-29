@@ -179,6 +179,29 @@ u32 ParseInt(char *text) {
 
     return val;
 }
+u32 ParseInt(char *text, u32 len) {
+    u32 val = 0;
+    u32 multiplier = 1;
+
+    // signed?
+    bool sgned = text[0] == '-';
+    if (sgned) {
+        ++text;
+    }
+
+    // decimals before dot
+    for (int i = 0; i < len; ++i) {
+        val += (text[len - 1 - i] - 48) * multiplier;
+        multiplier *= 10;
+    }
+
+    // handle the sign
+    if (sgned) {
+        val *= -1;
+    }
+
+    return val;
+}
 
 
 f64 ParseDouble(char *str, u8 len) {
