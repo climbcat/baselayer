@@ -9,6 +9,7 @@
 
 u64 ReadSystemTimerMySec();
 u64 ReadCPUTimer();
+void XSleep(u32 ms);
 
 
 #if PROFILE == 1 // enable profiler
@@ -36,6 +37,15 @@ void ProfilerStop(Profiler *p) {
     p->total_systime = ReadSystemTimerMySec() - p->total_systime;
     p->total_tsc = ReadCPUTimer() - p->total_tsc;
     p->cpu_freq = (float) p->total_tsc / p->total_systime;
+}
+float ProfilerGetCPUFreq(u32 measured_over_interval_ms) {
+    u64 sys_start = ReadSystemTimerMySec();
+    u64 tsc_start = ReadCPUTimer();
+    XSleep(measured_over_interval_ms);
+    u64 sys_end = ReadSystemTimerMySec();
+    u64 tsc_end = ReadCPUTimer();
+    float frequency = (float) (tsc_end - tsc_start) / (sys_end - sys_start);
+    return frequency;
 }
 void ProfilerPrint(Profiler *p) {
     printf("\n");

@@ -248,17 +248,27 @@ struct List {
     T Pop() {
         return lst[--len];
     }
-    inline T Last() {
+    inline
+    T Last() {
         assert(len > 0);
         return lst[len - 1];
     }
-    inline T *LastPtr() {
+    inline
+    T *LastPtr() {
         assert(len > 0);
         return lst + len - 1;
     }
-    inline T First() {
+    inline
+    T First() {
         assert(len > 0);
         return lst[0];
+    }
+    inline
+    void Delete(u32 idx) {
+        T swap = Last();
+        len--;
+        lst[len] = lst[idx];
+        lst[idx] = swap;
     }
 };
 template<class T>
