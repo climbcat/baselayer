@@ -2,8 +2,6 @@
 
 Base layer written in C-style C++.
 
-Simple code intended to cover basic needs.
-
 - Arena and pool memory allocators
 - Fixed-size & dynamic arrays
 - Vector & matrix 3d math
@@ -16,7 +14,7 @@ Simple code intended to cover basic needs.
 
 # C-style
 
-Code should be simple and self-contained.
+Simple and self-contained code intended to cover basic needs.
 
 What's included from C++:
 
