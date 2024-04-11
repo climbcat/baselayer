@@ -107,53 +107,39 @@ void StrLstPrint(StrLst *lst) {
         lst = lst->next;
     }
 }
-StrLst *StrSplit(MArena *arena, Str base, char split_at_and_remove) {
-    // TODO: impl. "arena push version" e.g. a version that uses ArenaPush(src, len) rather than
-    //      ArenaAlloc(), expected to to better.
-    //      e.g. StringList *StrSplit(MArena *arena, String base, char split) {}
+StrLst *_StrLstAllocNext(MArena *a_dest) {
+    static StrLst def;
+    StrLst *lst = (StrLst*) ArenaPush(a_dest, &def, sizeof(StrLst));
+    lst->str = (char*) ArenaAlloc(a_dest, 0);
+    return lst;
+}
+StrLst *StrSplit(MArena *a_dest, Str base, char split) {
+    StrLst *first = _StrLstAllocNext(a_dest);
+    StrLst *node = first;
+    StrLst *next = NULL;
 
-    // TODO: reimpl. using StrLstPut
-    StrLst *first;
-    StrLst *node;
-    StrLst *prev = NULL;
     u32 i = 0;
-
-    while (true) {
-        while (base.str[i] == split_at_and_remove) {
-            ++i;
-        }
-        if (i >= base.len) {
-            return first;
-        }
-
-        node = (StrLst *) ArenaAlloc(arena, sizeof(StrLst));
-        node->str = (char*) ArenaOpen(arena);
-        node->len = 0;
-
-        if (prev != NULL) {
-            prev->next = node;
-        }
-        else {
-            first = node;
+    u32 j = 0;
+    while (i < base.len) {
+        // seek
+        j = 0;
+        while (i < base.len && base.str[i + j] != split) {
+            j++;
         }
 
-        int j = 0;
-        while (base.str[i] != split_at_and_remove && i < base.len) {
-            ++node->len;
-            node->str[j] = base.str[i];
-            ++i;
-            ++j;
-        }
+        // copy
+        node->len = j;
+        ArenaAlloc(a_dest, j);
+        _memcpy(node->str, base.str + i, j);
 
-        ArenaClose(arena, node->len);
-        prev = node;
-        if (i < base.len) {
-            ++i; // skip the split char
-        }
-        else {
-            return first;
-        }
+        // iter
+        i += j + 1;
+        next = _StrLstAllocNext(a_dest);
+        node->next = next;
+        node = next;
     }
+    node->next = 0;
+    return first;
 }
 Str StrJoin(MArena *a, StrLst *strs) {
     Str join;
@@ -242,9 +228,12 @@ void StrAppendHot(MArena *a, char c, StrLst *to) {
 //
 //  Automated arena signatures
 //
-MArena *g_a_strings;
+static MArena *g_a_strings;
 void StringSetGlobalArena(MArena *a) {
     g_a_strings = a;
+}
+MArena *StringGetGlobalArena() {
+    return g_a_strings;
 }
 
 
@@ -267,6 +256,9 @@ Str StrCat(Str a, Str b) {
 inline
 StrLst *StrSplit(Str base, char split_at_and_remove) {
     return StrSplit(g_a_strings, base, split_at_and_remove);
+}
+StrLst *StrSplitLines(Str base) {
+    return StrSplit(g_a_strings, base, '\n');
 }
 inline
 Str StrJoin(StrLst *strs) {
