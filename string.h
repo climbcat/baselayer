@@ -93,6 +93,9 @@ Str StrCat(MArena *arena, Str a, Str b) {
     return cat;
 }
 u32 StrListLen(StrLst *lst) {
+    if (lst == NULL) {
+        return 0;
+    }
     u32 cnt = 0;
     while (lst) {
         cnt++;
@@ -114,9 +117,9 @@ StrLst *_StrLstAllocNext(MArena *a_dest) {
     return lst;
 }
 StrLst *StrSplit(MArena *a_dest, Str base, char split) {
-    StrLst *first = _StrLstAllocNext(a_dest);
-    StrLst *node = first;
-    StrLst *next = NULL;
+    StrLst *next = _StrLstAllocNext(a_dest);
+    StrLst *first = next;
+    StrLst *node = next;
 
     u32 i = 0;
     u32 j = 0;
@@ -128,17 +131,21 @@ StrLst *StrSplit(MArena *a_dest, Str base, char split) {
         }
 
         // copy
-        node->len = j;
-        ArenaAlloc(a_dest, j);
-        _memcpy(node->str, base.str + i, j);
+        if (j > 0) {
+            if (node->len > 0) {
+                next = _StrLstAllocNext(a_dest);
+                node->next = next;
+                node = next;
+            }
+
+            node->len = j;
+            ArenaAlloc(a_dest, j);
+            _memcpy(node->str, base.str + i, j);
+        }
 
         // iter
         i += j + 1;
-        next = _StrLstAllocNext(a_dest);
-        node->next = next;
-        node = next;
     }
-    node->next = 0;
     return first;
 }
 Str StrJoin(MArena *a, StrLst *strs) {
@@ -254,11 +261,14 @@ Str StrCat(Str a, Str b) {
     return StrCat(g_a_strings, a, b);
 }
 inline
-StrLst *StrSplit(Str base, char split_at_and_remove) {
-    return StrSplit(g_a_strings, base, split_at_and_remove);
+StrLst *StrSplit(Str base, char split) {
+    return StrSplit(g_a_strings, base, split);
 }
 StrLst *StrSplitLines(Str base) {
     return StrSplit(g_a_strings, base, '\n');
+}
+StrLst *StrSplitWords(Str base) {
+    return StrSplit(g_a_strings, base, ' ');
 }
 inline
 Str StrJoin(StrLst *strs) {
