@@ -126,7 +126,7 @@ StrLst *StrSplit(MArena *a_dest, Str base, char split) {
     while (i < base.len) {
         // seek
         j = 0;
-        while (i < base.len && base.str[i + j] != split) {
+        while (i + j < base.len && base.str[i + j] != split) {
             j++;
         }
 
