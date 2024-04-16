@@ -89,7 +89,7 @@ u8 *LoadFileMMAP(char *filepath, u64 *size_bytes) {
 
     return data;
 }
-StrLst GetFilesInFolderPaths(MArena *a, char *rootpath) {
+StrLst *GetFilesInFolderPaths(MArena *a, char *rootpath) {
     WIN32_FIND_DATA fd_file;
 
     HANDLE h_find = FindFirstFile(rootpath, &fd_file);

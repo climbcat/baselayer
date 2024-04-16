@@ -20,7 +20,10 @@ u8 *LoadFileMMAP(char *filepath, u64 *size_bytes);
 u8 *LoadFileMMAP(const char *filepath, u64 *size_bytes) {
     return LoadFileMMAP((char*) filepath, size_bytes);
 }
-StrLst GetFilesInFolderPaths(MArena *a, char *rootpath);
+StrLst *GetFilesInFolderPaths(MArena *a, char *rootpath);
+StrLst *GetFilesInFolderPaths(MArena *a, const char *rootpath) {
+    return GetFilesInFolderPaths(a, (char*) rootpath);
+}
 
 u32 LoadFileFSeek(char* filepath, u8* dest) {
     assert(dest != NULL && "data destination must be valid");
@@ -195,5 +198,58 @@ void WriteRandomHexStr(char* dest, int nhexchars, bool put_newline_and_nullchar 
         *dest = '\0';
     }
 }
+
+
+//
+// Baselayer initialization
+
+
+struct MContext {
+    // temporary, persistent, lifetime
+    MArena _a_tmp;
+    MArena _a_pers;
+    MArena _a_life;
+    MArena *a_tmp;
+    MArena *a_pers;
+    MArena *a_life;
+};
+
+static MContext _g_mctx;
+static MContext *g_mctx;
+MContext *GetContext() {
+    if (g_mctx == NULL) {
+        g_mctx = &_g_mctx;
+        g_mctx->_a_tmp = ArenaCreate();
+        g_mctx->a_tmp = &g_mctx->_a_tmp;
+        g_mctx->_a_pers = ArenaCreate();
+        g_mctx->a_pers = &g_mctx->_a_pers;
+        g_mctx->_a_life = ArenaCreate();
+        g_mctx->a_life = &g_mctx->_a_life;
+    }
+
+    return g_mctx;
+}
+
+MArena *GetArenaTemp() {
+    MContext *ctx = GetContext();
+    return ctx->a_tmp;
+}
+
+MArena *GetArenaPers() {
+    MContext *ctx = GetContext();
+    return ctx->a_pers;
+}
+
+MArena *GetArenaLife() {
+    MContext *ctx = GetContext();
+    return ctx->a_life;
+}
+
+MContext *InitBaselayer() {
+    StringCreateArena();
+    MContext *ctx = GetContext();
+    return ctx;
+}
+
 
 #endif

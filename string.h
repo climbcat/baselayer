@@ -20,9 +20,9 @@ struct Str {
 };
 
 struct StrLst {
-    StrLst *next = NULL;
     char *str = NULL;
     u32 len = 0;
+    StrLst *next = NULL; // can cast to Str
 
     Str GetStr() {
         return Str { str, len };
@@ -92,12 +92,12 @@ Str StrCat(MArena *arena, Str a, Str b) {
 
     return cat;
 }
-u32 StrListLen(StrLst *lst) {
+u32 StrListLen(StrLst *lst, u32 limit = -1) {
     if (lst == NULL) {
         return 0;
     }
     u32 cnt = 0;
-    while (lst) {
+    while (lst && cnt < limit) {
         cnt++;
         lst = lst->next;
     }
@@ -235,7 +235,13 @@ void StrAppendHot(MArena *a, char c, StrLst *to) {
 //
 //  Automated arena signatures
 //
+static MArena _g_a_strings;
 static MArena *g_a_strings;
+MArena *StringCreateArena() {
+    _g_a_strings = ArenaCreate();
+    g_a_strings = &_g_a_strings;
+    return g_a_strings;
+}
 void StringSetGlobalArena(MArena *a) {
     g_a_strings = a;
 }

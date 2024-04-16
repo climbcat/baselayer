@@ -79,7 +79,7 @@ u8 *LoadFileMMAP(char *filepath, u64 *size_bytes) {
     fclose(f);
     return data;
 }
-StrLst GetFilesInFolderPaths(MArena *a, char *rootpath) {
+StrLst *GetFilesInFolderPaths(MArena *a, char *rootpath) {
     u32 rootpath_len = _strlen(rootpath);
     bool needslash = rootpath[rootpath_len-1] != '/';
     StrLst *lst = NULL;
@@ -107,7 +107,7 @@ StrLst GetFilesInFolderPaths(MArena *a, char *rootpath) {
         closedir(d);
     }
 
-    return *first;
+    return first;
 }
 bool SaveFile(char *filepath, u8 *data, u32 len) {
     FILE *f = fopen(filepath, "w");

@@ -212,6 +212,10 @@ f64 ParseDouble(char *str, u8 len) {
     bool sgned = str[0] == '-';
     if (sgned) {
         ++str;
+        --len;
+    }
+    if (len == 0) {
+        return 0.0;
     }
 
     u8 decs_denom = 0;
