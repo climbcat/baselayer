@@ -14,14 +14,11 @@ void RunProgram() {
 }
 
 
-void RunTests() {
+void SmallTests() {
     TimeFunction;
-    printf("Running tests ...\n");
 
     MArena arena = ArenaCreate();
     MArena *a = &arena;
-
-    // init string arena to work behind the scenes
 
     printf("StrLiteral\n");
     Str s1 = StrLiteral(&arena, "hello");
@@ -62,21 +59,27 @@ void RunTests() {
     }
     printf("\n");
 
+
     //
     // StrLst & get files in folder
+
     printf("files in folder '.': \n");
     StrLst *files = GetFilesInFolderPaths(a, (char*) ".");
     StrLstPrint(files);
 
+
     //
     // templated list
+
     ListX<u32> lst_T;
     lst_T.Add(14);
     lst_T.Add(222);
     lst_T.At(1);
 
+
     //
     // stretchy buffer
+
     printf("\nstretchy buffer:\n");
     s32 *elst = NULL;
     for (int i = 0; i < 10000; ++i) {
@@ -87,8 +90,10 @@ void RunTests() {
     }
     lst_free(elst);
 
+
     //
     // random numbers
+
     RandInit();
     for (int i = 0; i < 10; ++i)  {
         f64 r = Rand01();
@@ -96,8 +101,10 @@ void RunTests() {
     }
     printf("RandDice: %u\n\n", RandDice(20));
 
+
     //
     // save binary data
+
     u32 num_chars = 1024*1024 + 1;
     char data[num_chars];
     WriteRandomHexStr(data, num_chars, true);
@@ -105,22 +112,28 @@ void RunTests() {
     SaveFile(filepath, (u8*) data, num_chars);
     printf("Saved binary hex chars to file hexdata.txt\n\n");
 
+
     //
     // load using C fseek
+
     u8* dest = (u8*) malloc(num_chars);
     u32 nbytesloaded = LoadFileFSeek(filepath, dest);
     assert(num_chars == nbytesloaded);
     printf("Loaded %d bytes back in using fseek\n\n", nbytesloaded);
 
+
     //
     // memory mapped load
+
     u64 num_chars_64 = (u64) num_chars;
     u8 *data_mmapped = LoadFileMMAP(filepath, &num_chars_64);
     printf("Memory mapped load %ld nbytes:\n", num_chars_64);
     printf("%.1000s\n\n", (char*) data_mmapped);
 
+
     //
     // memory pool
+
     printf("testing mem pool:\n");
     u32 pool_size = 1001;
     u32 test_num_partial = 666;
@@ -161,6 +174,66 @@ void RunTests() {
 }
 
 
+void _PrintFlexArrayU32(u32 *arr) {
+    for (u32 i = 0; i < lst_len(arr); ++i) {
+        printf("%u ", arr[i]);
+    }
+}
+void TestSortingAlgs() {
+    printf("TestSortingAlgs\n");
+
+    MContext *ctx = GetContext();
+    RandInit();
+
+    u32 cnt_a = 100;
+    u32 cnt_b = 300;
+    u32 min_a = 11;
+    u32 max_a = 44;
+    u32 min_b = 22;
+    u32 max_b = 66;
+
+    u32 *arr_a = NULL;
+    for (u32 i = 0; i < cnt_a; ++i) {
+        lst_push(arr_a, RandMinMaxI(min_a, max_a));
+    }
+    assert(cnt_a == lst_len(arr_a) && "another flexi buffer test");
+
+    u32 *arr_b = NULL;
+    for (u32 i = 0; i < cnt_b; ++i) {
+        lst_push(arr_b, RandMinMaxI(min_b, max_b));
+    }
+    assert(cnt_b == lst_len(arr_b) && "another flexi buffer test");
+
+    // print array a
+    printf("\narray a:\n");
+    _PrintFlexArrayU32(arr_a);
+    printf("\n\n");
+
+    // sort array a
+    SortBubbleU32({ arr_a, lst_len(arr_a) });
+    _PrintFlexArrayU32(arr_a);
+    printf("\n\n");
+
+    // print array b
+    printf("array b:\n");
+    _PrintFlexArrayU32(arr_b);
+    printf("\n\n");
+
+    // sort array b
+    SortBubbleU32({ arr_b, lst_len(arr_b) });
+    _PrintFlexArrayU32(arr_b);
+    printf("\n\n");
+}
+
+
+void Test() {
+    printf("Running tests ...\n");
+
+    //SmallTests();
+    TestSortingAlgs();
+}
+
+
 int main (int argc, char **argv) {
     TimeProgram;
     bool forcetest = true;
@@ -169,7 +242,7 @@ int main (int argc, char **argv) {
         printf("Usage:\n        <example>\n");
     }
     else if (CLAContainsArg("--test", argc, argv) || forcetest) {
-        RunTests();
+        Test();
     }
     else {
         RunProgram();

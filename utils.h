@@ -204,47 +204,6 @@ void WriteRandomHexStr(char* dest, int nhexchars, bool put_newline_and_nullchar 
 // Baselayer initialization
 
 
-struct MContext {
-    // temporary, persistent, lifetime
-    MArena _a_tmp;
-    MArena _a_pers;
-    MArena _a_life;
-    MArena *a_tmp;
-    MArena *a_pers;
-    MArena *a_life;
-};
-
-static MContext _g_mctx;
-static MContext *g_mctx;
-MContext *GetContext() {
-    if (g_mctx == NULL) {
-        g_mctx = &_g_mctx;
-        g_mctx->_a_tmp = ArenaCreate();
-        g_mctx->a_tmp = &g_mctx->_a_tmp;
-        g_mctx->_a_pers = ArenaCreate();
-        g_mctx->a_pers = &g_mctx->_a_pers;
-        g_mctx->_a_life = ArenaCreate();
-        g_mctx->a_life = &g_mctx->_a_life;
-    }
-
-    return g_mctx;
-}
-
-MArena *GetArenaTemp() {
-    MContext *ctx = GetContext();
-    return ctx->a_tmp;
-}
-
-MArena *GetArenaPers() {
-    MContext *ctx = GetContext();
-    return ctx->a_pers;
-}
-
-MArena *GetArenaLife() {
-    MContext *ctx = GetContext();
-    return ctx->a_life;
-}
-
 MContext *InitBaselayer() {
     StringCreateArena();
     MContext *ctx = GetContext();

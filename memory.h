@@ -107,6 +107,7 @@ void ArenaClear(MArena *a) {
 // NOTE: Pool indices, if used, are counted from 1, and the value 0 is reserved as the NULL equivalent.
 // TODO: Write a proper, indexed pool that is typed
 
+
 struct MPool {
     u8 *mem;
     u32 block_size;
@@ -219,6 +220,52 @@ bool PoolFree(MPool *p, void *element, bool enable_strict_mode = true) {
 bool PoolFreeIdx(MPool *p, u32 idx) {
     void * ptr = PoolIdx2Ptr(p, idx);
     return PoolFree(p, ptr);
+}
+
+
+//
+//  Memory arena context - just a quick way to get some memory up
+
+
+struct MContext {
+    // temporary, persistent, lifetime
+    MArena _a_tmp;
+    MArena _a_pers;
+    MArena _a_life;
+    MArena *a_tmp;
+    MArena *a_pers;
+    MArena *a_life;
+};
+
+static MContext _g_mctx;
+static MContext *g_mctx;
+MContext *GetContext() {
+    if (g_mctx == NULL) {
+        g_mctx = &_g_mctx;
+        g_mctx->_a_tmp = ArenaCreate();
+        g_mctx->a_tmp = &g_mctx->_a_tmp;
+        g_mctx->_a_pers = ArenaCreate();
+        g_mctx->a_pers = &g_mctx->_a_pers;
+        g_mctx->_a_life = ArenaCreate();
+        g_mctx->a_life = &g_mctx->_a_life;
+    }
+
+    return g_mctx;
+}
+
+MArena *GetArenaTemp() {
+    MContext *ctx = GetContext();
+    return ctx->a_tmp;
+}
+
+MArena *GetArenaPers() {
+    MContext *ctx = GetContext();
+    return ctx->a_pers;
+}
+
+MArena *GetArenaLife() {
+    MContext *ctx = GetContext();
+    return ctx->a_life;
 }
 
 
@@ -349,6 +396,8 @@ Stack<T> InitStackStatic(T *mem, u32 cap) {
 /*
     ListX<u32> lst;
 */
+
+
 template<typename T>
 struct ListX {
     MArena arena;
@@ -387,6 +436,7 @@ struct ListX {
 // TODO: allow the virtual memory -style of growing, for pointer stability (and maybe performance)
 // TODO: adopt "double internal storage space" convention
 
+
 struct LstHdr {
     u32 len;
     u32 cap;
@@ -420,5 +470,33 @@ T *lst__grow(T *lst, u32 add_len) {
     new_hdr->cap = new_cap;
     return (T*) new_hdr->list;
 }
+
+
+//
+//  Sort
+//
+
+
+void SortBubbleU32(List<u32> arr) {
+    u32 a;
+    u32 b;
+    for (u32 i = 0; i < arr.len; ++i) {
+        for (u32 j = 0; j < arr.len - 1; ++j) {
+            a = arr.lst[j];
+            b = arr.lst[j+1];
+
+            if (a > b) {
+                arr.lst[j] = b;
+                arr.lst[j+1] = a;
+            }
+        }
+    }
+}
+
+
+void SortQuickU32() {
+    // TODO: impl.
+}
+
 
 #endif
