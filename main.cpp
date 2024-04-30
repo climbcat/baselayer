@@ -65,7 +65,7 @@ void RunTests() {
     //
     // StrLst & get files in folder
     printf("files in folder '.': \n");
-    StrLst files = GetFilesInFolderPaths(a, (char*) ".");
+    StrLst *files = GetFilesInFolderPaths(a, (char*) ".");
     StrLstPrint(files);
 
     //
