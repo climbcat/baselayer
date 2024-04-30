@@ -126,7 +126,7 @@ StrLst *GetFilesInFolderPaths(MArena *a, char *rootpath) {
         FindClose(h_find);
     }
 
-    return *first;
+    return first;
 }
 bool SaveFile(char *filepath, u8 *data, u32 len) {
     std::ofstream outstream(filepath, std::ios::out | std::ios::binary);
