@@ -122,19 +122,6 @@ enum StreamType {
 
     ST_CNT,
 };
-struct Vector3i {
-    u32 i1;
-    u32 i2;
-    u32 i3;
-};
-struct Vector2i {
-    u32 i1;
-    u32 i2;
-};
-struct Vector2f {
-    f32 x;
-    f32 y;
-};
 
 struct ImageRGBX {
     u32 width;

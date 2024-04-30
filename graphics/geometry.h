@@ -19,6 +19,19 @@ struct Vector2_s16 {
     s16 x;
     s16 y;
 };
+struct Vector3i {
+    u32 i1;
+    u32 i2;
+    u32 i3;
+};
+struct Vector2i {
+    u32 i1;
+    u32 i2;
+};
+struct Vector2f {
+    f32 x;
+    f32 y;
+};
 
 
 struct Matrix4f {
