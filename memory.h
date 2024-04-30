@@ -528,8 +528,10 @@ List<u32> SetIntersectionU32(MArena *a_dest, List<u32> arr_a, List<u32> arr_b) {
     // do the intersection work until we reach max value
     while (i <= i_max && j <= j_max && a <= max && b <= max) {
         if (a == b) {
-            ArenaAlloc(a_dest, sizeof(u32));
-            result.Add(a);
+            if (result.len == 0 || (result.len > 0 && a != result.Last())) {
+                ArenaAlloc(a_dest, sizeof(u32));
+                result.Add(a);
+            }
             a = arr_a.lst[++i];
             b = arr_b.lst[++j];
         }
