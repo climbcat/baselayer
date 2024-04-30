@@ -223,6 +223,14 @@ void TestSortingAlgs() {
     SortBubbleU32({ arr_b, lst_len(arr_b) });
     _PrintFlexArrayU32(arr_b);
     printf("\n\n");
+
+    //
+    printf("intersection:\n");
+    List<u32> intersection = SetIntersectionU32(ctx->a_pers, { arr_a, lst_len(arr_a) }, { arr_b, lst_len(arr_b) });
+    for (u32 i = 0; i < intersection.len; ++i) {
+        printf("%u ", intersection.lst[i]);
+    }
+    printf("\n\n");
 }
 
 

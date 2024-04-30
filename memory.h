@@ -499,4 +499,53 @@ void SortQuickU32() {
 }
 
 
+List<u32> SetIntersectionU32(MArena *a_dest, List<u32> arr_a, List<u32> arr_b) {
+    List<u32> result = InitList<u32>(a_dest, 0);
+    if (arr_a.len == 0 || arr_b.len == 0) {
+        return result;
+    }
+    SortBubbleU32(arr_a);
+    SortBubbleU32(arr_b);
+
+    u32 min = MaxU32(arr_a.First(), arr_b.First());
+    u32 max = MinU32(arr_a.Last(), arr_b.Last());
+    u32 i = 0;
+    u32 j = 0;
+    u32 i_max = arr_a.len - 1;
+    u32 j_max = arr_b.len - 1;
+
+    // fast-forward both arrays to min value
+    // TODO: fast-forward using divide-and-conquer
+    u32 a = arr_a.First();
+    u32 b = arr_b.First();
+    while (a < min) {
+        a = arr_a.lst[++i];
+    }
+    while (b < min) {
+        b = arr_b.lst[++j];
+    }
+
+    // do the intersection work until we reach max value
+    while (i <= i_max && j <= j_max && a <= max && b <= max) {
+        if (a == b) {
+            ArenaAlloc(a_dest, sizeof(u32));
+            result.Add(a);
+            a = arr_a.lst[++i];
+            b = arr_b.lst[++j];
+        }
+        else if (a < b) {
+            while (a < b && i < i_max) {
+                a = arr_a.lst[++i];
+            }
+        }
+        else if (b < a) {
+            while (b < a && j < j_max) {
+                b = arr_b.lst[++j];
+            }
+        }
+    }
+    return result;
+}
+
+
 #endif
