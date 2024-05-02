@@ -69,6 +69,7 @@ void *ArenaAlloc(MArena *a, u64 len, bool zerod = true) {
 
     return result;
 }
+inline
 void *ArenaPush(MArena *a, void *data, u32 len) {
     void *dest = ArenaAlloc(a, len);
     _memcpy(dest, data, len);
@@ -389,10 +390,11 @@ Stack<T> InitStackStatic(T *mem, u32 cap) {
 // Dynamic Arrays
 
 
-// eXpanding list using Templates:
+// eXpanding list:
 //
+// - pass by reference, constructor is there
 // - memory managed by internal arena
-// - array subscripting done by accessing a pointer member
+// - array subscripting, accessed by Lst(), can be used up to Len(), done by accessing a pointer member
 /*
     ListX<u32> lst;
 */
@@ -400,20 +402,52 @@ Stack<T> InitStackStatic(T *mem, u32 cap) {
 
 template<typename T>
 struct ListX {
-    MArena arena;
-    u32 len;
-    T *lst;
-    ListX() {
-        this->len = 0;
-        this->arena = ArenaCreate();
-        this->lst = (T*)arena.mem;
+    MArena _arena;
+
+    inline
+    void _XPand() {
+        ArenaAlloc(&this->_arena, ARENA_COMMIT_CHUNK);
+    }
+    void Init() {
+        this->_arena = ArenaCreate();
+        _XPand();
     }
     inline
-    void Add(T el) {
-        ArenaPush(&this->arena, &el, sizeof(T));
+    T *Lst() {
+        return (T*) _arena.mem;
     }
-    T *At(u32 idx) {
-        return (T*)arena.mem + idx;
+    inline
+    u32 Len() {
+        assert(this->_arena.used % sizeof(T) == 0);
+        u32 len = (u32) this->_arena.used / sizeof(T);
+        return len;
+    }
+    inline
+    u32 Cap() {
+        u32 capacity = (u32) this->_arena.committed % sizeof(T) - Len();
+        return capacity;
+    }
+    inline
+    void Add(T element) {
+        if (sizeof(T) > _arena.committed - _arena.used) {
+            _XPand();
+        }
+        Lst()[Len()] = element;
+        this->_arena.used += sizeof(T);
+    }
+    inline
+    T *GetPtr(u32 idx) {
+        return (T*) _arena.mem + idx;
+    }
+    inline
+    T Get(u32 idx) {
+        return *((T*) _arena.mem + idx);
+    }
+    inline
+    void Set(u32 idx, T element) {
+        if (idx < Len()) {
+            Lst()[idx] = element;
+        }
     }
 };
 
