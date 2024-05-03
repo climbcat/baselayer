@@ -408,9 +408,12 @@ struct ListX {
     void _XPand() {
         ArenaAlloc(&this->_arena, ARENA_COMMIT_CHUNK);
     }
-    void Init() {
+    void Init(u32 initial_cap = 0) {
         this->_arena = ArenaCreate();
         _XPand();
+        while (Cap() < initial_cap) {
+            _XPand();
+        }
     }
     inline
     T *Lst() {
