@@ -271,7 +271,7 @@ MArena *GetArenaLife() {
 
 
 //
-// Static Arrays - List / Stack
+// Static Arrays - List / Stack / Set
 
 
 template<typename T>
@@ -287,6 +287,15 @@ struct List {
     T *Add(T element) {
         lst[len++] = element;
         return LastPtr();
+    }
+    inline
+    T *AddUnique(T element) {
+        for (u32 i = 0; i < len; ++i) {
+            if (lst[i] == element) {
+                return NULL;
+            }
+        }
+        return Add(element);
     }
     inline
     void Push(T element) {
@@ -410,7 +419,9 @@ struct ListX {
     }
     void Init(u32 initial_cap = 0) {
         this->_arena = ArenaCreate();
-        _XPand();
+        if (Cap() == 0) {
+            _XPand();
+        }
         while (Cap() < initial_cap) {
             _XPand();
         }
@@ -425,9 +436,13 @@ struct ListX {
         u32 len = (u32) this->_arena.used / sizeof(T);
         return len;
     }
+    void SetLen(u32 len) {
+        Init(len);
+        _arena.used = len * sizeof(T);
+    }
     inline
     u32 Cap() {
-        u32 capacity = (u32) this->_arena.committed % sizeof(T) - Len();
+        u32 capacity = (u32) this->_arena.committed / sizeof(T);
         return capacity;
     }
     inline
