@@ -1,5 +1,6 @@
 #include "../baselayer.h"
 #include "geometry.h"
+#include "indices.h"
 #include "octree.h"
 #include "shaders.h"
 #include "ui.h"
