@@ -74,7 +74,8 @@ void SmallTests() {
     ListX<u32> lst_T;
     lst_T.Add(14);
     lst_T.Add(222);
-    lst_T.At(1);
+    lst_T.Get(1);
+    lst_T.GetPtr(1);
 
 
     //
