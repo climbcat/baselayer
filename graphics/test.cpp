@@ -354,9 +354,16 @@ void TestBlitSomeImage() {
 }
 
 
-void TestAxisTransforms() {
-    printf("TestAxisTransforms\n");
+void TestIndexSetOperations() {
+    printf("TestIndexSetOperations\n");
 
+    // create a values array
+    // create another values array for appending
+    // create a covering index set with duplicates (random flips to periodic index sets)
+
+    // test extract
+    // test remove
+    // test append
 }
 
 
@@ -367,5 +374,5 @@ void Test() {
     //TestSlerpAndMat2Quat();
     //TestPointCloudsBoxesAndSceneGraph();
     //TestBlitSomeImage();
-    TestAxisTransforms();
+    TestIndexSetOperations();
 }
