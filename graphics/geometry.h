@@ -194,6 +194,9 @@ Vector3f z_hat { 0, 0, 1 };
 Vector3f Vector3f_Zero() {
     return Vector3f { 0, 0, 0 };
 }
+Vector3f Vector3f_Ones() {
+    return Vector3f { 1, 1, 1 };
+}
 Vector3f SphericalCoordsY(float theta, float phi, float radius) {
     Vector3f v;
     v.x = radius * sin(theta) * cos(phi);

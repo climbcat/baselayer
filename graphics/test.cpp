@@ -357,13 +357,66 @@ void TestBlitSomeImage() {
 void TestIndexSetOperations() {
     printf("TestIndexSetOperations\n");
 
+
+    // TODOs:
     // create a values array
     // create another values array for appending
     // create a covering index set with duplicates (random flips to periodic index sets)
-
+    // create a non-covering --- || ---
     // test extract
     // test remove
     // test append
+
+
+    MContext *ctx = InitBaselayer();
+
+    //
+    // create test data
+    //
+
+    // values
+    u32 nvals = 100;
+    u32 nvals_append = 10;
+
+    List<Vector3f> vals = CreateRandomPointCloud(ctx->a_tmp, nvals, Vector3f_Zero(), Vector3f_Ones());
+    List<Vector3f> vals_append = CreateRandomPointCloud(ctx->a_tmp, nvals_append, Vector3f_Zero(), Vector3f_Ones());
+
+    // indices
+    u32 nidxs = 888;
+    u32 nidxs_append = 66;
+    List<u32> idxs = InitList<u32>(ctx->a_tmp, nidxs);
+    List<u32> idxs_append = InitList<u32>(ctx->a_tmp, nidxs_append);
+
+    for (u32 i = 0; i < nidxs; ++i) {
+        idxs.lst[i] = i / nvals;
+    }
+    RandInit();
+    for (u32 i = 0; i < nidxs; ++i) {
+        u32 ridx_0 = RandMinMaxI(0, nidxs - 1);
+        u32 ridx_1 = RandMinMaxI(0, nidxs - 1);
+        u32 swap = idxs.lst[ridx_0];
+        idxs.lst[ridx_0] = idxs.lst[ridx_1];
+        idxs.lst[ridx_1] = swap;
+    }
+    for (u32 i = 0; i < nidxs_append; ++i) {
+        idxs_append.lst[i] = i / nvals_append;
+    }
+    for (u32 i = 0; i < nidxs_append; ++i) {
+        u32 ridx_0 = RandMinMaxI(0, nidxs_append - 1);
+        u32 ridx_1 = RandMinMaxI(0, nidxs_append - 1);
+        u32 swap = idxs_append.lst[ridx_0];
+        idxs_append.lst[ridx_0] = idxs_append.lst[ridx_1];
+        idxs_append.lst[ridx_1] = swap;
+    }
+
+
+    // test extract
+
+
+    List<Vector3f> values_dest;
+    List<u32> indices_dest;
+    IndicesExtract(ctx->a_pers, ctx->a_tmp, &values_dest, &indices_dest, vals, idxs);
+
 }
 
 

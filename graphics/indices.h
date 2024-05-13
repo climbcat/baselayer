@@ -150,6 +150,7 @@ void IndicesAppend(
     _memcpy(values_dest->lst, values.lst, values.len * sizeof(Vector3f));
     values_dest->len = values.len;
     _memcpy(values_dest->lst + values_dest->len, values_append.lst, values_append.len * sizeof(Vector3f));
+    values_dest->len += values_append.len;
     // copy base indices
     _memcpy(indices_dest->lst, indices.lst, indices.len * sizeof(u32));
     indices_dest->len = indices.len;
@@ -157,7 +158,9 @@ void IndicesAppend(
     // copy shifted append indices
     u32 shift = values.len;
     for (u32 i = 0; i < indices_append.len; ++i) {
-        u32 idx = indices_append.lst[i] + shift;
+        u32 append = indices_append.lst[i];
+        assert(append + shift >= 0 && "check producing actual index");
+        u32 idx = append + shift;
         indices_dest->Add(idx);
     }
 }
