@@ -1,6 +1,7 @@
 
 #include "../baselayer.h"
 #include "geometry.h"
+#include "indices.h"
 #include "octree.h"
 #include "ui.h"
 #include "swrender.h"
@@ -416,7 +417,6 @@ void TestIndexSetOperations() {
     List<Vector3f> values_dest;
     List<u32> indices_dest;
     IndicesExtract(ctx->a_pers, ctx->a_tmp, &values_dest, &indices_dest, vals, idxs);
-
 }
 
 

@@ -12,6 +12,8 @@
 //  Preserves the order of values.
 //  Values will not have duplicates.
 //
+//  TODO: test
+//
 u32 IndicesExtract(
     MArena *a_dest,
     MArena *a_tmp,
@@ -71,6 +73,8 @@ u32 IndicesExtract(
 //
 //  Index sets may have duplicates.
 //  Result allocated on tmp arena.
+//
+//  TODO: test
 //
 List<u32> IndicesRemove(
     MArena *a_dest,
