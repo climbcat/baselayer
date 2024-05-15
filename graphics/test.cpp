@@ -355,68 +355,70 @@ void TestBlitSomeImage() {
 }
 
 
+
+void _PrintIndices(const char *prefix, List<u32> idxs) {
+    printf("%s", prefix);
+    for (u32 i = 0; i < idxs.len; ++i) {
+        printf("%u ", idxs.lst[i]);
+    }
+    printf("\n");
+}
 void TestIndexSetOperations() {
     printf("TestIndexSetOperations\n");
 
-
-    // TODOs:
-    // create a values array
-    // create another values array for appending
-    // create a covering index set with duplicates (random flips to periodic index sets)
-    // create a non-covering --- || ---
-    // test extract
-    // test remove
-    // test append
-
-
     MContext *ctx = InitBaselayer();
+    MArena *a = ctx->a_tmp;
 
-    //
-    // create test data
-    //
-
-    // values
-    u32 nvals = 100;
-    u32 nvals_append = 10;
-
-    List<Vector3f> vals = CreateRandomPointCloud(ctx->a_tmp, nvals, Vector3f_Zero(), Vector3f_Ones());
-    List<Vector3f> vals_append = CreateRandomPointCloud(ctx->a_tmp, nvals_append, Vector3f_Zero(), Vector3f_Ones());
-
-    // indices
-    u32 nidxs = 888;
-    u32 nidxs_append = 66;
-    List<u32> idxs = InitList<u32>(ctx->a_tmp, nidxs);
-    List<u32> idxs_append = InitList<u32>(ctx->a_tmp, nidxs_append);
-
-    for (u32 i = 0; i < nidxs; ++i) {
-        idxs.lst[i] = i / nvals;
-    }
-    RandInit();
-    for (u32 i = 0; i < nidxs; ++i) {
-        u32 ridx_0 = RandMinMaxI(0, nidxs - 1);
-        u32 ridx_1 = RandMinMaxI(0, nidxs - 1);
-        u32 swap = idxs.lst[ridx_0];
-        idxs.lst[ridx_0] = idxs.lst[ridx_1];
-        idxs.lst[ridx_1] = swap;
-    }
-    for (u32 i = 0; i < nidxs_append; ++i) {
-        idxs_append.lst[i] = i / nvals_append;
-    }
-    for (u32 i = 0; i < nidxs_append; ++i) {
-        u32 ridx_0 = RandMinMaxI(0, nidxs_append - 1);
-        u32 ridx_1 = RandMinMaxI(0, nidxs_append - 1);
-        u32 swap = idxs_append.lst[ridx_0];
-        idxs_append.lst[ridx_0] = idxs_append.lst[ridx_1];
-        idxs_append.lst[ridx_1] = swap;
+    // naiive values
+    List<u32> values = InitList<u32>(a, 10);
+    for (u32 i = 0; i < 10; ++i) {
+        values.Add( i );
     }
 
+    // covering indices with duplicates
+    List<u32> idxs = InitList<u32>(a, 15);
+    for (u32 i = 0; i < 15; ++i) {
+        idxs.Add( i % 10 );
+    }
 
-    // test extract
+    // list to remove
+    List<u32> idxs_rm = InitList<u32>(a, 15);
+    idxs_rm.Add( (u32) 0 );
+    idxs_rm.Add( 4 );
+    idxs_rm.Add( 5 );
+    idxs_rm.Add( 6 );
+    idxs_rm.Add( 7 );
 
+    // list to extract
+    List<u32> idxs_extr = InitList<u32>(a, 15);
+    idxs_extr.Add( 9 );
+    idxs_extr.Add( 5 );
+    idxs_extr.Add( 1 );
+    idxs_extr.Add( (u32) 0 );
+    idxs_extr.Add( 2 );
 
-    List<Vector3f> values_dest;
-    List<u32> indices_dest;
-    IndicesExtract(ctx->a_pers, ctx->a_tmp, &values_dest, &indices_dest, vals, idxs);
+    printf("\n");
+    _PrintIndices("values:    ", values);
+    _PrintIndices("idxs:      ", idxs);
+    _PrintIndices("idxs_rm:   ", idxs_rm);
+    _PrintIndices("idxs_extr: ", idxs_extr);
+
+    // extract
+    List<u32> vals_extr_out;
+    List<u32> idxs_extr_out;
+    List<u32> indirect = IndicesExtract<u32>(a, a, values, idxs_extr, &vals_extr_out, &idxs_extr_out);
+
+    printf("\ntest IndicesExtract()\n");
+    _PrintIndices("vals_extr_out: ", vals_extr_out);
+    _PrintIndices("idxs_extr_out: ", idxs_extr_out);
+
+    //: remove
+    List<u32> vals_rm_out;
+    List<u32> idxs_rm_out;
+    List<u32> indirect_rm = IndicesRemove<u32>(a, a, values, idxs, idxs_rm, &vals_rm_out, &idxs_rm_out);
+    printf("\ntest IndicesRemove()\n");
+    _PrintIndices("vals_rm_out: ", vals_rm_out);
+    _PrintIndices("idxs_rm_out: ", idxs_rm_out);
 }
 
 
