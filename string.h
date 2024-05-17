@@ -248,6 +248,9 @@ void StringSetGlobalArena(MArena *a) {
 MArena *StringGetGlobalArena() {
     return g_a_strings;
 }
+MArena *InitStrings() {
+    return StringCreateArena();
+}
 
 
 Str StrAlloc(u32 len) {
@@ -265,6 +268,18 @@ Str StrLiteral(char *literal) {
 inline
 Str StrCat(Str a, Str b) {
     return StrCat(g_a_strings, a, b);
+}
+inline
+Str StrCat(Str a, char *b) {
+    return StrCat(g_a_strings, a, StrLiteral(b));
+}
+inline
+Str StrCat(Str a, const char *b) {
+    return StrCat(g_a_strings, a, StrLiteral(b));
+}
+inline
+Str StrCat(const char *a, Str b) {
+    return StrCat(g_a_strings, StrLiteral(a), b);
 }
 inline
 StrLst *StrSplit(Str base, char split) {
@@ -307,6 +322,27 @@ char *StrZeroTerm(Str s) {
     _memcpy(result, s.str, s.len);
     result[s.len] = 0;
     return result;
+}
+
+
+//
+// path / filename stuff
+
+Str StrBasename(char *path) {
+    assert(g_a_strings != NULL);
+
+    return StrSplit(StrLiteral(path), '.')->GetStr();
+}
+
+Str StrExtension(char *path) {
+    assert(g_a_strings != NULL);
+
+    Str s { NULL, 0 };
+    StrLst *lst = StrSplit(StrLiteral(path), '.');
+    if (lst->next != NULL) {
+        s = lst->next->GetStr();
+    }
+    return s;
 }
 
 
