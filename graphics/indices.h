@@ -56,9 +56,9 @@ void IndicesAppend(
 //
 
 
-List<u32> IndicesMarkPositive(MArena *a_dest, u32 max_idx, List<u32> idxs_pos) {
-    List<u32> indirection = InitList<u32>(a_dest, max_idx);
-    indirection.len = max_idx;
+List<u32> IndicesMarkPositive(MArena *a_dest, u32 vals_len, List<u32> idxs_pos) {
+    List<u32> indirection = InitList<u32>(a_dest, vals_len);
+    indirection.len = vals_len;
     for (u32 i = 0; i < indirection.len; ++i) {
         indirection.lst[i] = -1;
     }
@@ -72,9 +72,9 @@ List<u32> IndicesMarkPositive(MArena *a_dest, u32 max_idx, List<u32> idxs_pos) {
 }
 
 
-List<u32> IndicesMarkNegative(MArena *a_dest, u32 max_idx, List<u32> idxs_neg) {
-    List<u32> indirection = InitList<u32>(a_dest, max_idx);
-    indirection.len = max_idx;
+List<u32> IndicesMarkNegative(MArena *a_dest, u32 vals_len, List<u32> idxs_neg) {
+    List<u32> indirection = InitList<u32>(a_dest, vals_len);
+    indirection.len = vals_len;
     for (u32 i = 0; i < indirection.len; ++i) {
         indirection.lst[i] = i;
     }
@@ -88,9 +88,9 @@ List<u32> IndicesMarkNegative(MArena *a_dest, u32 max_idx, List<u32> idxs_neg) {
 }
 
 
-List<u32> IndicesMarkPositiveNegative(MArena *a_dest, u32 max_idx, List<u32> idxs_pos, List<u32> idxs_neg) {
-    List<u32> indirection = InitList<u32>(a_dest, max_idx);
-    indirection.len = max_idx;
+List<u32> IndicesMarkPositiveNegative(MArena *a_dest, u32 vals_len, List<u32> idxs_pos, List<u32> idxs_neg) {
+    List<u32> indirection = InitList<u32>(a_dest, vals_len);
+    indirection.len = vals_len;
     for (u32 i = 0; i < indirection.len; ++i) {
         indirection.lst[i] = -1;
     }
@@ -209,6 +209,15 @@ List<u32> IndicesRemove(MArena *a_dest, MArena *a_indir, List<T> values, List<u3
     IndicesShiftDownIndirectionList(indirection);
 
     *values_out = IndicesSelectValues<T>(a_dest, values, indirection);
+    *idxs_out = IndicesIndirectOrRemove(a_dest, idxs, indirection);
+
+    return indirection;
+}
+
+List<u32> IndicesRemove(MArena *a_dest, MArena *a_indir, u32 vals_len, List<u32> idxs, List<u32> idxs_rm, List<u32> *idxs_out) {
+    List<u32> indirection = IndicesMarkPositiveNegative(a_indir, vals_len, idxs, idxs_rm);
+    IndicesShiftDownIndirectionList(indirection);
+
     *idxs_out = IndicesIndirectOrRemove(a_dest, idxs, indirection);
 
     return indirection;
