@@ -2,22 +2,6 @@
 #define __ATLAS_H__
 
 
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
-#define STB_TRUETYPE_IMPLEMENTATION 
-#include "stb_truetype.h"
-
-
-
-// TODO: meant for shaders.h:
-
-struct GlyphQuadVertex {
-    Vector2f pos;
-    Vector3f tex;
-    // color?
-};
-
-
 struct Glyph {
     u32 c;
 
@@ -37,109 +21,61 @@ struct Glyph {
     float ty1;
 };
 
+
 struct FontAtlas {
-    u8 *bitmap;
-    s32 b_width;
-    s32 b_height;
-    s32 cell_width;
-    s32 cell_height;
+    u32 sz_px;
+    u32 b_width;
+    u32 b_height;
+    u32 cell_width;
+    u32 cell_height;
     List<Glyph> glyphs;
+    u8 *bitmap;
+
+    void Print() {
+        printf("atlas: font_sz %u, bitmap_sz %u %u, cell_sz %u %u, glyphs %u, data ptrs %p %p\n", sz_px, b_width, b_height, cell_width, cell_height, glyphs.len, glyphs.lst, bitmap);
+    }
+};
+
+struct FontAtlasBinaryHdr {
+    u32 glyphs_ptr;
+    u32 bitmap_ptr;
+    FontAtlas atlas;
+};
+
+FontAtlas FontAtlasLoadBinary(char *filename) {
+    FontAtlas atlas;
+
+    u64 sz;
+    FontAtlasBinaryHdr *hdr = (FontAtlasBinaryHdr*) LoadFileMMAP(filename, &sz);
+    u8 *base_ptr = (u8*) hdr;
+
+    atlas = hdr->atlas;
+    atlas.glyphs.lst = (Glyph*) (base_ptr + hdr->glyphs_ptr);
+    atlas.bitmap = base_ptr + hdr->bitmap_ptr;
+
+    return atlas;
 };
 
 
-// TODO: extract stbtt -using stuff into a text executable, e.g. main_glyphatlas.cpp
+void FontAtlasSaveBinary(MArena *a_tmp, char *filename, FontAtlas *atlas) {
+    FontAtlasBinaryHdr hdr;
+    hdr.glyphs_ptr = 0;
+    hdr.bitmap_ptr = 0;
+    hdr.atlas = *atlas;
+    hdr.atlas.glyphs.lst = 0;
 
+    u32 sz_hdr = sizeof(hdr);
+    u8 *dest = (u8*) ArenaPush(a_tmp, &hdr, sz_hdr);
+    hdr.glyphs_ptr = sz_hdr;
 
-void CreateCharAtlas(MArena *a_dest, u8 *font, s32 line_height) {
+    u32 sz_glyphs = sizeof(Glyph) * hdr.atlas.glyphs.len;
+    ArenaPush(a_tmp, atlas->glyphs.lst, sz_glyphs);
 
-    // prepare font
-    stbtt_fontinfo info;
-    if (!stbtt_InitFont(&info, font, 0)) {
-        printf("failed\n");
-    }
+    hdr.bitmap_ptr = sz_hdr + sz_glyphs;
+    u32 sz_bitmap = hdr.atlas.b_height * hdr.atlas.b_width;
+    ArenaPush(a_tmp, atlas->bitmap, sz_bitmap);
 
-    // calculate font scaling
-    f32 scale = stbtt_ScaleForPixelHeight(&info, line_height);
-    u32 nchars = 128 - 32;
-    List<Glyph> glyphs = InitList<Glyph>(a_dest, sizeof(Glyph) * nchars);
-
-    printf("\n");
-    printf("line height, scale: %d %f\n", line_height, scale);
-    printf("\n");
-
-    s32 max_adv = 0;
-    s32 max_ascent = 0;
-    s32 max_descent = 0;
-
-    char c = 32;
-    while (c >= 32 && c <= 127) {
-        // glyph metrics
-        s32 x0, y0, x1, y1;
-        stbtt_GetCodepointBitmapBox(&info, c, scale, scale, &x0, &y0, &x1, &y1);
-
-        s32 advance_x;
-    	s32 lsb;
-        stbtt_GetCodepointHMetrics(&info, c, &advance_x, &lsb);
-        advance_x = roundf(scale * advance_x);
-        lsb = roundf(scale * lsb);
-
-        // put metrics into glyph struct
-        Glyph gl;
-        gl.c = c;
-        gl.x0 = lsb;
-        gl.y0 = y0;
-        gl.w = x1 - x0;
-        gl.h = y1 - y0;
-        gl.adv_x = advance_x;
-        glyphs.Add(gl);
-
-        max_adv = MaxS32(advance_x, max_adv);
-        max_ascent = MaxS32(-y0, max_ascent);
-        max_descent = MaxS32(y1, max_descent);
-
-        printf("%c: adv, lsb, x0, y0, x1, y1: %d %d %d %d %d %d\n", c, advance_x, lsb, x0, y0, x1, y1);
-        ++c;
-    }
-    printf("\n");
-    printf("ascii-wide advance, ascent, descent: %d %d %d\n", max_adv, max_ascent, max_descent);
-    printf("\n");
-
-    FontAtlas atlas;
-    atlas.cell_width = max_adv;
-    atlas.cell_height = max_ascent + max_descent;
-    atlas.b_width = atlas.cell_width * 16;
-    atlas.b_height = atlas.cell_height * 6;
-    atlas.bitmap = (u8*) ArenaAlloc(a_dest, atlas.b_width * atlas.b_height * sizeof(u8), true);
-
-    f32 tex_scale_x = 1.0f / atlas.b_width;
-    f32 tex_scale_y = 1.0f / atlas.b_height;
-    for (u32 i = 0; i < nchars; ++i) {
-        Glyph *g = glyphs.lst + i;
-
-        s32 x = (i % 16) * atlas.cell_width;
-        s32 y = (i / 16) * atlas.cell_height + atlas.cell_height - max_descent;
-
-        x += g->x0;
-        y += g->y0;
-
-        s32 offset = y * atlas.b_width + x;
-        stbtt_MakeCodepointBitmap(&info, atlas.bitmap + offset, g->w, g->h, atlas.b_width, scale, scale, g->c);
-
-        // record texture coords
-        g->tx0 = (f32) x * tex_scale_x;
-        g->ty0 = (f32) y * tex_scale_y;
-        g->tx1 = (f32) (x + g->w) * tex_scale_x;
-        g->ty1 = (f32) (y + g->h) * tex_scale_y;
-        printf("%c: tex coords %.2f %.2f %.2f %.2f\n",g->c, g->tx0, g->ty0, g->tx1, g->ty1);
-    }
-    stbi_write_png("atlas.png", atlas.b_width, atlas.b_height, 1, atlas.bitmap, atlas.b_width);
-    printf("\n");
-    printf("wrote atlas image to atlas.png\n");
-
-
-    // TODO: write a test image e.g. 
-    const char *word = "the quick brown fox";
-    // ...
+    SaveFile(filename, dest, sz_hdr + sz_glyphs + sz_bitmap);
 }
 
 

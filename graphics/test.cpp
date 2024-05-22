@@ -6,6 +6,7 @@
 #include "ui.h"
 #include "swrender.h"
 #include "gameloop.h"
+#include "atlas.h"
 
 
 List<Vector3f> CreateRandomPointCloud(MArena *a, u32 npoints, Vector3f center, Vector3f dimensions) {
@@ -421,32 +422,12 @@ void TestIndexSetOperations() {
     _PrintIndices("idxs_rm_out: ", idxs_rm_out);
 }
 
-#include "atlas.h"
-void TestTextureAtlas() {
-    printf("TestTextureAtlas\n");
 
-    MContext *ctx = InitBaselayer();
+void TestLoadTextureAtlas() {
+    printf("TestLoadTextureAtlas\n");
 
-    // load the font file into memory
-    const char *font_filename = "font/cmunrm.ttf";
-    u8* font;
-    {
-        u32 size;
-
-        FILE* f = fopen(font_filename, "rb");
-        fseek(f, 0, SEEK_END);
-        size = ftell(f); // how long is the file?
-        fseek(f, 0, SEEK_SET); // reset
-
-        font = (u8*) malloc(size);
-
-        fread(font, size, 1, f);
-        fclose(f);
-    }
-
-
-    CreateCharAtlas(ctx->a_pers, font, 64);
-
+    FontAtlas loaded = FontAtlasLoadBinary((char*) "saved.atlas");
+    loaded.Print();
 
     // TODO: bring a single, basic quad onto the screen
 }
@@ -460,5 +441,5 @@ void Test() {
     //TestPointCloudsBoxesAndSceneGraph();
     //TestBlitSomeImage();
     //TestIndexSetOperations();
-    TestTextureAtlas();
+    TestLoadTextureAtlas();
 }

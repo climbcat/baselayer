@@ -141,4 +141,11 @@ struct ScreenQuadTextureProgram {
 };
 
 
+struct GlyphQuadVertex {
+    Vector2f pos;
+    Vector3f tex;
+    // color?
+};
+
+
 #endif

@@ -302,4 +302,11 @@ char *CLAGetArgValue(const char *key, int argc, char **argv) {
     return argv[i+1];
 }
 
+char *CLAGetFirstArg(int argc, char **argv) {
+    if (argc <= 1) {
+        return NULL;
+    }
+    return argv[1];
+}
+
 #endif
