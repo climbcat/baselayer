@@ -28,6 +28,14 @@ struct Vector2i {
     u32 i1;
     u32 i2;
 };
+struct Vector2u {
+    u32 i1;
+    u32 i2;
+};
+struct Vector2s {
+    u32 i1;
+    u32 i2;
+};
 struct Vector2f {
     f32 x;
     f32 y;
