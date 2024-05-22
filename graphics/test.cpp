@@ -421,6 +421,38 @@ void TestIndexSetOperations() {
     _PrintIndices("idxs_rm_out: ", idxs_rm_out);
 }
 
+#ifdef 0
+#include "atlas.h"
+void TestTextureAtlas() {
+    printf("TestTextureAtlas\n");
+
+    MContext *ctx = InitBaselayer();
+
+    // load the font file into memory
+    const char *font_filename = "font/cmunrm.ttf";
+    u8* font;
+    {
+        u32 size;
+
+        FILE* f = fopen(font_filename, "rb");
+        fseek(f, 0, SEEK_END);
+        size = ftell(f); // how long is the file?
+        fseek(f, 0, SEEK_SET); // reset
+
+        font = (u8*) malloc(size);
+
+        fread(font, size, 1, f);
+        fclose(f);
+    }
+
+
+    CreateCharAtlas(ctx->a_pers, font, 64);
+
+
+    // TODO: bring a single, basic quad onto the screen
+}
+#endif
+
 
 void Test() {
     //TestRandomPCWithNormals();
@@ -429,5 +461,6 @@ void Test() {
     //TestSlerpAndMat2Quat();
     //TestPointCloudsBoxesAndSceneGraph();
     //TestBlitSomeImage();
-    TestIndexSetOperations();
+    //TestIndexSetOperations();
+    TestTextureAtlas();
 }
