@@ -462,5 +462,5 @@ void Test() {
     //TestPointCloudsBoxesAndSceneGraph();
     //TestBlitSomeImage();
     //TestIndexSetOperations();
-    TestTextureAtlas();
+    //TestTextureAtlas();
 }
