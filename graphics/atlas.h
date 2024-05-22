@@ -8,10 +8,33 @@
 #include "stb_truetype.h"
 
 
+
+// TODO: meant for shaders.h:
+
+struct GlyphQuadVertex {
+    Vector2f pos;
+    Vector3f tex;
+    // color?
+};
+
+
 struct Glyph {
-    s32 advance;
-    s32 descent;
-    s32 left_side_bearing;
+    u32 c;
+
+    // posiitioning wrt. current point
+    s32 x0; // left side bearing
+    s32 y0; // y ascent (most often < 0)
+    s32 w; // glyph width
+    s32 h; // glyph height
+
+    // advance to next glyph
+    s32 adv_x;
+
+    // atlas texture coords
+    float tx0;
+    float ty0;
+    float tx1;
+    float ty1;
 };
 
 struct FontAtlas {
@@ -24,6 +47,9 @@ struct FontAtlas {
 };
 
 
+// TODO: extract stbtt -using stuff into a text executable, e.g. main_glyphatlas.cpp
+
+
 void CreateCharAtlas(MArena *a_dest, u8 *font, s32 line_height) {
 
     // prepare font
@@ -34,146 +60,86 @@ void CreateCharAtlas(MArena *a_dest, u8 *font, s32 line_height) {
 
     // calculate font scaling
     f32 scale = stbtt_ScaleForPixelHeight(&info, line_height);
-    const char *word = "the quick brown fox";
+    u32 nchars = 128 - 32;
+    List<Glyph> glyphs = InitList<Glyph>(a_dest, sizeof(Glyph) * nchars);
+
+    printf("\n");
     printf("line height, scale: %d %f\n", line_height, scale);
+    printf("\n");
 
-
-    s32 x = 0;
-    s32 ascent;
-    s32 descent;
-    s32 line_gap;
-    stbtt_GetFontVMetrics(&info, &ascent, &descent, &line_gap);
-    ascent = roundf(ascent * scale);
-    descent = roundf(descent * scale);
-    printf("font-wide ascent, descent, line_gap: %d %d %d\n", ascent, descent, line_gap);
-
-
-    // TODO: do the thing
-
-
-    /*
-    s32 x0;
-    s32 y0;
-    s32 x1;
-    s32 y1;
-    stbtt_GetFontBoundingBox(&info, &x0, &y0, &x1, &y1);
-    x0 = roundf(scale * x0);
-    y0 = roundf(scale * y0);
-    x1 = roundf(scale * x1);
-    y1 = roundf(scale * y1);
-    s32 fw_w = x1 - x0;
-    s32 fw_h = y1 - y0;
-    printf("font-wide bounding box x0, y0, x1, y1, width, heigh: %d %d %d %d   %d %d\n", x0, y0, x1, y1, fw_w, fw_h);
-    */
-
-
-    s32 max_cp_w = 0;
-    s32 max_cp_h = 0;
-
+    s32 max_adv = 0;
+    s32 max_ascent = 0;
+    s32 max_descent = 0;
 
     char c = 32;
-    ++c; // discount space
-    while (c > 32 && c <= 126) {
+    while (c >= 32 && c <= 127) {
+        // glyph metrics
         s32 x0, y0, x1, y1;
-        stbtt_GetCodepointBox(&info, c, &x0, &y0, &x1, &y1);
-        x0 = roundf(scale * x0);
-        y0 = roundf(scale * y0);
-        x1 = roundf(scale * x1);
-        y1 = roundf(scale * y1);
-        s32 cp_w = x1 - x0;
-        s32 cp_h = y1 - y0;
-
-        max_cp_w = MaxS32(cp_w, max_cp_w);
-        max_cp_h = MaxS32(cp_h, max_cp_h);
+        stbtt_GetCodepointBitmapBox(&info, c, scale, scale, &x0, &y0, &x1, &y1);
 
         s32 advance_x;
-    	s32 left_side_bearing;
-        stbtt_GetCodepointHMetrics(&info, c, &advance_x, &left_side_bearing);
-        advance_x = roundf(scale*advance_x);
-        left_side_bearing = roundf(scale*left_side_bearing);
+    	s32 lsb;
+        stbtt_GetCodepointHMetrics(&info, c, &advance_x, &lsb);
+        advance_x = roundf(scale * advance_x);
+        lsb = roundf(scale * lsb);
 
+        // put metrics into glyph struct
+        Glyph gl;
+        gl.c = c;
+        gl.x0 = lsb;
+        gl.y0 = y0;
+        gl.w = x1 - x0;
+        gl.h = y1 - y0;
+        gl.adv_x = advance_x;
+        glyphs.Add(gl);
 
-        //printf("%c: advance_x, leftside_bearing, w, h: %d %d   %d %d\n", c, advance_x, left_side_bearing, cp_w, cp_h);
+        max_adv = MaxS32(advance_x, max_adv);
+        max_ascent = MaxS32(-y0, max_ascent);
+        max_descent = MaxS32(y1, max_descent);
 
+        printf("%c: adv, lsb, x0, y0, x1, y1: %d %d %d %d %d %d\n", c, advance_x, lsb, x0, y0, x1, y1);
         ++c;
     }
-    printf("ascii-wide bounding box: %d %d\n", max_cp_w, max_cp_h);
-    
-    
-    
-    
+    printf("\n");
+    printf("ascii-wide advance, ascent, descent: %d %d %d\n", max_adv, max_ascent, max_descent);
+    printf("\n");
+
     FontAtlas atlas;
-    atlas.b_width = max_cp_w * 16;
-    atlas.b_height = max_cp_h * 8;
-    atlas.cell_width = max_cp_w;
-    atlas.cell_height = max_cp_h;
-    atlas.bitmap = (u8*) ArenaAlloc(a_dest, atlas.b_width * atlas.b_height, true);
+    atlas.cell_width = max_adv;
+    atlas.cell_height = max_ascent + max_descent;
+    atlas.b_width = atlas.cell_width * 16;
+    atlas.b_height = atlas.cell_height * 6;
+    atlas.bitmap = (u8*) ArenaAlloc(a_dest, atlas.b_width * atlas.b_height * sizeof(u8), true);
 
-    c = 32;
-    while (c >= 32 && c <= 126) {
-        s32 _advance_x;
-    	s32 left_side_bearing;
-        stbtt_GetCodepointHMetrics(&info, c, &_advance_x, &left_side_bearing);
-        left_side_bearing = roundf(scale*left_side_bearing);
+    f32 tex_scale_x = 1.0f / atlas.b_width;
+    f32 tex_scale_y = 1.0f / atlas.b_height;
+    for (u32 i = 0; i < nchars; ++i) {
+        Glyph *g = glyphs.lst + i;
 
-        s32 ix0, iy0, ix1, iy1;
-        stbtt_GetCodepointBitmapBox(&info, c, scale, scale, &ix0, &iy0, &ix1, &iy1);
-        s32 w = ix1-ix0;
-        s32 h = iy1-iy0;
+        s32 x = (i % 16) * atlas.cell_width;
+        s32 y = (i / 16) * atlas.cell_height + atlas.cell_height - max_descent;
 
-        s32 grid_idx = c - 32;
-        s32 grid_x = grid_idx % 16;
-        s32 grid_y = grid_idx / 16;
-
-        s32 x = grid_x * atlas.cell_width + ix0 + left_side_bearing;
-        s32 y = (grid_y + 1) * atlas.cell_height + iy0;
+        x += g->x0;
+        y += g->y0;
 
         s32 offset = y * atlas.b_width + x;
-        stbtt_MakeCodepointBitmap(&info, atlas.bitmap + offset, w, h, atlas.b_width, scale, scale, c);
+        stbtt_MakeCodepointBitmap(&info, atlas.bitmap + offset, g->w, g->h, atlas.b_width, scale, scale, g->c);
 
-
-        printf("%c: %d %d %d %d, %d %d\n", c, ix0, iy0, ix1, iy1, w, h);
-
-        stbi_write_png("out.png", atlas.b_width, atlas.b_height, 1, atlas.bitmap, atlas.b_width);
-
-        ++c;
+        // record texture coords
+        g->tx0 = (f32) x * tex_scale_x;
+        g->ty0 = (f32) y * tex_scale_y;
+        g->tx1 = (f32) (x + g->w) * tex_scale_x;
+        g->ty1 = (f32) (y + g->h) * tex_scale_y;
+        printf("%c: tex coords %.2f %.2f %.2f %.2f\n",g->c, g->tx0, g->ty0, g->tx1, g->ty1);
     }
-    
-    stbi_write_png("out.png", atlas.b_width, atlas.b_height, 1, atlas.bitmap, atlas.b_width);
+    stbi_write_png("atlas.png", atlas.b_width, atlas.b_height, 1, atlas.bitmap, atlas.b_width);
+    printf("\n");
+    printf("wrote atlas image to atlas.png\n");
 
 
-/*
-    int i;
-    for (i = 0; i < strlen(word); ++i)
-    {
-        // how wide is this character
-        int ax;
-    	int lsb;
-        stbtt_GetCodepointHMetrics(&info, word[i], &ax, &lsb);
-        // (Note that each Codepoint call has an alternative Glyph version which caches the work required to lookup the character word[i].)
-
-        // get bounding box for character (may be offset to account for chars that dip above or below the line)
-        int c_x1, c_y1, c_x2, c_y2;
-        stbtt_GetCodepointBitmapBox(&info, word[i], scale, scale, &c_x1, &c_y1, &c_x2, &c_y2);
-        
-        // compute y (different characters have different heights)
-        int y = ascent + c_y1;
-
-        // render character (stride and offset is important here)
-        int byteOffset = x + roundf(lsb * scale) + (y * b_w);
-        stbtt_MakeCodepointBitmap(&info, bitmap + byteOffset, c_x2 - c_x1, c_y2 - c_y1, b_w, scale, scale, word[i]);
-
-        // advance x
-        x += roundf(ax * scale);
-
-        // add kerning
-        int kern;
-        kern = stbtt_GetCodepointKernAdvance(&info, word[i], word[i + 1]);
-        x += roundf(kern * scale);
-    }
-    stbi_write_png("out.png", b_w, 128, 1, bitmap, 512);
-*/
-
+    // TODO: write a test image e.g. 
+    const char *word = "the quick brown fox";
+    // ...
 }
 
 

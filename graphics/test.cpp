@@ -421,7 +421,6 @@ void TestIndexSetOperations() {
     _PrintIndices("idxs_rm_out: ", idxs_rm_out);
 }
 
-#ifdef 0
 #include "atlas.h"
 void TestTextureAtlas() {
     printf("TestTextureAtlas\n");
@@ -451,7 +450,6 @@ void TestTextureAtlas() {
 
     // TODO: bring a single, basic quad onto the screen
 }
-#endif
 
 
 void Test() {
@@ -462,5 +460,5 @@ void Test() {
     //TestPointCloudsBoxesAndSceneGraph();
     //TestBlitSomeImage();
     //TestIndexSetOperations();
-    //TestTextureAtlas();
+    TestTextureAtlas();
 }
