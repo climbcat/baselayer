@@ -1,5 +1,5 @@
-#include "../baselayer.h"
-#include "atlas.h"
+#include "../../baselayer.h"
+#include "../atlas.h"
 
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -134,5 +134,4 @@ int main (int argc, char **argv) {
 
     FontAtlas atlas = CreateCharAtlas(ctx->a_pers, font, 64);
     FontAtlasSaveBinary(ctx->a_tmp, (char*) "output.atlas", &atlas);
-
 }
