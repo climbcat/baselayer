@@ -47,6 +47,7 @@ struct Rect {
     }
 };
 
+
 Rect InitRectangle(u16 width, u16 height, u16 left = 0, u16 top = 0) {
     Rect r;
     r.width = width;
@@ -121,6 +122,12 @@ enum StreamType {
     ST_TEXCOORDS, // [0;1]^2 image, (8B stride)
 
     ST_CNT,
+};
+
+struct ImageB {
+    u32 width;
+    u32 height;
+    u8 *img;
 };
 
 struct ImageRGBX {

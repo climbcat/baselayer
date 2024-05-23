@@ -47,6 +47,8 @@ void ShaderProgramLink(GLuint *program, const GLchar *vsh_src, const GLchar *fsh
     glUseProgram(*program);
 }
 
+
+// TODO: don't put shaders as default values, we will want to zero-init struct
 struct ScreenQuadTextureProgram {
     // draws a frame buffer / texture to the screen
     GLuint program = 0;

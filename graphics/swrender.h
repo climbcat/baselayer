@@ -276,6 +276,7 @@ void BlitImageInvertY(ImageRGBA dest, ImageRGBX src, Rect blit_in) {
 
 struct SwRenderer {
     bool initialized;
+    bool keep_buffer;
 
     // settings
     u32 w;
@@ -294,9 +295,19 @@ struct SwRenderer {
 
     // shader
     ScreenQuadTextureProgram screen;
+
+    ImageRGBA GetImageAsRGBA() {
+        ImageRGBA img;
+        img.width = w;
+        img.height = h;
+        img.img = (Color *) image_buffer;
+        return img;
+    }
 };
 SwRenderer InitRenderer(u32 width = 1280, u32 height = 800) {
     SwRenderer rend;
+    _memzero(&rend, sizeof(rend));
+    rend.keep_buffer = false;
     rend.w = width;
     rend.h = height;
     rend.aspect = (float) width / height;
@@ -313,6 +324,8 @@ SwRenderer InitRenderer(u32 width = 1280, u32 height = 800) {
     rend.screen_buffer = InitList<ScreenAnchor>(rend.a, 1024 * 8);
 
     // shader
+    ScreenQuadTextureProgram p;
+    rend.screen = p;
     rend.screen.Init();
     rend.initialized = true;
 
@@ -358,7 +371,9 @@ void SwRenderRefreshWireframeEntities(SwRenderer *r, EntitySystem *es, bool clea
 void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u64 frameno) {
     TimeFunction;
 
-    _memzero(r->image_buffer, 4 * r->w * r->h);
+    if (r->keep_buffer == false) {
+        _memzero(r->image_buffer, 4 * r->w * r->h);
+    }
     r->screen_buffer.len = 0;
 
     // entity loop (POC): vertices -> NDC

@@ -433,18 +433,75 @@ void TestLoadTextureAtlas() {
 }
 
 
+struct TextureRectF {
+    f32 left;
+    f32 right;
+    f32 top;
+    f32 bottom;
+};
+
+
+u8 SampleTexture(ImageB tex, f32 x, f32 y) {
+    u32 i = (s32) round(tex.width * x);
+    u32 j = (s32) round(tex.height * y);
+    u32 idx = tex.width * i + j;
+    u8 b = tex.img[idx];
+    return b;
+}
+
+
+void BlitTexture(ImageRGBA img, Rect rect, ImageB tex, TextureRectF coord) {
+    assert(img.height >= rect.height);
+    assert(img.width >= rect.width);
+
+    u32 stride_img = img.width;
+
+    f32 coord_w = coord.right - coord.left;
+    f32 coord_h = coord.bottom - coord.top;
+    f32 scale_x = rect.width / coord_w;
+    f32 scale_y = rect.height / coord_h;
+
+    // i,j          : rect coords
+    // i_img, j_img : img coords
+
+    for (u32 j = 0; j < rect.height; ++j) {
+        u32 j_img = j + rect.top;
+
+        for (u32 i = 0; i < rect.width; ++i) {
+            u32 i_img = rect.left + i;
+
+            f32 x = coord.left + i * scale_x;
+            f32 y = coord.top + j * scale_y;
+
+            u8 b = SampleTexture(tex, x, y);
+            Color c = { b, b, b, 1 };
+
+            u32 idx = j_img * stride_img + i_img;
+            img.img[idx] = c;
+        }
+    }
+
+}
+
+
 void TestLayOutGlyphQuads() {
     MContext *ctx = InitBaselayer();
 
     // ASCII
 
-    FontAtlas loaded = FontAtlasLoadBinary((char*) "output.atlas");
-    List<Glyph> glyphs = InitList<Glyph>(ctx->a_life, 128);
+    FontAtlas atlas = FontAtlasLoadBinary((char*) "output.atlas");
+    List<Glyph> glyphs = atlas.glyphs;
     List<u8> advances = InitList<u8>(ctx->a_life, 128);
     List<GlyphQuad> cooked = InitList<GlyphQuad>(ctx->a_life, 128);
     for (u32 i = 0; i < 128; ++i) {
-        cooked.lst[i] = GlyphQuadCook(glyphs.lst[i]);
+        Glyph g = glyphs.lst[i];
+        GlyphQuad q = GlyphQuadCook(g);
+        cooked.lst[i] = q;
         advances.lst[i] = glyphs.lst[i].adv_x;
+
+        if (i == 31) {
+            printf("her\n");
+        }
     }
 
     // layout
@@ -452,14 +509,42 @@ void TestLayOutGlyphQuads() {
     Vector2f txtbox_ulc { 15.0f, 15.0f };
     Vector2f pt = txtbox_ulc;
 
-    List<GlyphQuad> quads = InitList<GlyphQuad>(ctx->a_tmp, 0);
+    List<GlyphQuad> text = InitList<GlyphQuad>(ctx->a_tmp, 0);
     for (u32 i = 0; i < _strlen(word); ++i) {
         char c = word[i];
-        quads.Add(GlyphQuadOffset(cooked.lst + c, pt));
+        text.Add(GlyphQuadOffset(cooked.lst + c, pt));
         pt.x += advances.lst[c];
     }
 
     // TODO: can I do a software blitting demo /test ? Do believe I have a blit function
+
+    EntitySystem *es = InitEntitySystem();
+    GameLoopOne *loop = InitGameLoopOne();
+    SwRenderer *r = loop->GetRenderer();
+    r->keep_buffer = true;
+
+    u32 w = r->w;
+    u32 h = r->h;
+    r->image_buffer;
+    Color c;
+
+
+    GlyphQuad q = text.lst[0];
+    GlyphQuadVertex ulc = q.verts[0];
+    GlyphQuadVertex urc = q.verts[1];
+    GlyphQuadVertex lrc = q.verts[2];
+    TextureRectF coords { ulc.tex.x, urc.tex.x, urc.tex.y, lrc.tex.y };
+
+    ImageB tex { atlas.b_width, atlas.b_height, atlas.bitmap };
+    ImageRGBA img = r->GetImageAsRGBA();
+    Rect rect { 100, 100, 100, 100 };
+    BlitTexture(img, rect, tex, coords);
+
+    while (loop->GameLoopRunning()) {
+
+        loop->CycleFrame(es);
+    }
+    loop->Terminate();
 }
 
 
@@ -471,6 +556,6 @@ void Test() {
     //TestPointCloudsBoxesAndSceneGraph();
     //TestBlitSomeImage();
     //TestIndexSetOperations();
-    TestLoadTextureAtlas();
+    //TestLoadTextureAtlas();
     TestLayOutGlyphQuads();
 }
