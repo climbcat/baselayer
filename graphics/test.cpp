@@ -423,16 +423,6 @@ void TestIndexSetOperations() {
 }
 
 
-void TestLoadTextureAtlas() {
-    printf("TestLoadTextureAtlas\n");
-
-    FontAtlas loaded = FontAtlasLoadBinary((char*) "output.atlas");
-    loaded.Print();
-
-    // TODO: bring a single, basic quad onto the screen
-}
-
-
 struct TextureRectF {
     f32 left;
     f32 right;
@@ -489,8 +479,11 @@ void TestLayOutGlyphQuads() {
 
     // ASCII
 
-    FontAtlas atlas = FontAtlasLoadBinary((char*) "output.atlas");
-    List<Glyph> glyphs = atlas.glyphs;
+    FontAtlas *atlas = FontAtlasLoadBinary128(ctx->a_pers, (char*) "output.atlas");
+    atlas->Print();
+    atlas->PrintGlyphsQuick();
+
+    List<Glyph> glyphs = atlas->glyphs;
     List<u8> advances = InitList<u8>(ctx->a_life, 128);
     List<GlyphQuad> cooked = InitList<GlyphQuad>(ctx->a_life, 128);
     for (u32 i = 0; i < 128; ++i) {
@@ -498,10 +491,6 @@ void TestLayOutGlyphQuads() {
         GlyphQuad q = GlyphQuadCook(g);
         cooked.lst[i] = q;
         advances.lst[i] = glyphs.lst[i].adv_x;
-
-        if (i == 31) {
-            printf("her\n");
-        }
     }
 
     // layout
@@ -535,7 +524,7 @@ void TestLayOutGlyphQuads() {
     GlyphQuadVertex lrc = q.verts[2];
     TextureRectF coords { ulc.tex.x, urc.tex.x, urc.tex.y, lrc.tex.y };
 
-    ImageB tex { atlas.b_width, atlas.b_height, atlas.bitmap };
+    ImageB tex { atlas->b_width, atlas->b_height, atlas->bitmap };
     ImageRGBA img = r->GetImageAsRGBA();
     Rect rect { 100, 100, 100, 100 };
     BlitTexture(img, rect, tex, coords);
@@ -556,6 +545,5 @@ void Test() {
     //TestPointCloudsBoxesAndSceneGraph();
     //TestBlitSomeImage();
     //TestIndexSetOperations();
-    //TestLoadTextureAtlas();
     TestLayOutGlyphQuads();
 }

@@ -83,50 +83,52 @@ struct FontAtlas {
     u8 *bitmap;
 
     void Print() {
-        printf("atlas: font_sz %u, bitmap_sz %u %u, cell_sz %u %u, glyphs %u, data ptrs %p %p\n", sz_px, b_width, b_height, cell_width, cell_height, glyphs.len, glyphs.lst, bitmap);
+        printf("font_sz %u, bitmap_sz %u %u, cell_sz %u %u, glyphs %u, data ptrs %p %p\n", sz_px, b_width, b_height, cell_width, cell_height, glyphs.len, glyphs.lst, bitmap);
+    }
+    void PrintGlyphsQuick() {
+        for (u32 i = 32; i < glyphs.len; ++i) {
+            Glyph g = glyphs.lst[i];
+            printf("%c ", g.c);
+        }
+        printf("\n");
     }
 };
 
-struct FontAtlasBinaryHdr {
-    u32 glyphs_ptr;
-    u32 bitmap_ptr;
-    FontAtlas atlas;
-};
 
-FontAtlas FontAtlasLoadBinary(char *filename) {
-    FontAtlas atlas;
+FontAtlas *FontAtlasLoadBinary128(MArena *a_dest, char *filename) {
+    u64 sz_file;
+    u8 *base_ptr = (u8*) LoadFileMMAP(filename, &sz_file);
+    base_ptr = (u8*) ArenaPush(a_dest, base_ptr, sz_file); // move to read-write memory location
+    FontAtlas *atlas = (FontAtlas*) base_ptr;
 
-    u64 sz;
-    FontAtlasBinaryHdr *hdr = (FontAtlasBinaryHdr*) LoadFileMMAP(filename, &sz);
-    u8 *base_ptr = (u8*) hdr;
+    u32 sz_base = sizeof(FontAtlas);
+    u32 sz_glyphs = 128 * sizeof(Glyph);
+    u32 sz_bitmap = atlas->b_width * atlas->b_height;
 
-    atlas = hdr->atlas;
-    atlas.glyphs.lst = (Glyph*) (base_ptr + hdr->glyphs_ptr);
-    atlas.bitmap = base_ptr + hdr->bitmap_ptr;
+    assert(sz_file == sz_base + sz_glyphs + sz_bitmap && "sanity check loaded file size");
+
+    // set pointers
+    atlas->glyphs.lst = (Glyph*) (base_ptr + sz_base);
+    atlas->bitmap = base_ptr + sz_base + sz_glyphs;
 
     return atlas;
 };
 
 
-void FontAtlasSaveBinary(MArena *a_tmp, char *filename, FontAtlas *atlas) {
-    FontAtlasBinaryHdr hdr;
-    hdr.glyphs_ptr = 0;
-    hdr.bitmap_ptr = 0;
-    hdr.atlas = *atlas;
-    hdr.atlas.glyphs.lst = 0;
+void FontAtlasSaveBinary128(MArena *a_tmp, char *filename, FontAtlas atlas) {
+    u32 sz_base = sizeof(FontAtlas);
+    u32 sz_glyphs = 128 * sizeof(Glyph);
+    u32 sz_bitmap = atlas.b_width * atlas.b_height;
 
-    u32 sz_hdr = sizeof(hdr);
-    u8 *dest = (u8*) ArenaPush(a_tmp, &hdr, sz_hdr);
-    hdr.glyphs_ptr = sz_hdr;
+    FontAtlas *atlas_inlined = (FontAtlas*) ArenaPush(a_tmp, &atlas, sz_base);
+    ArenaPush(a_tmp, atlas_inlined->glyphs.lst, sz_glyphs);
+    ArenaPush(a_tmp, atlas_inlined->bitmap, sz_bitmap);
 
-    u32 sz_glyphs = sizeof(Glyph) * hdr.atlas.glyphs.len;
-    ArenaPush(a_tmp, atlas->glyphs.lst, sz_glyphs);
+    // invalidate pointers
+    atlas_inlined->glyphs.lst = 0;
+    atlas_inlined->bitmap = 0;
 
-    hdr.bitmap_ptr = sz_hdr + sz_glyphs;
-    u32 sz_bitmap = hdr.atlas.b_height * hdr.atlas.b_width;
-    ArenaPush(a_tmp, atlas->bitmap, sz_bitmap);
-
-    SaveFile(filename, dest, sz_hdr + sz_glyphs + sz_bitmap);
+    SaveFile(filename, (u8*) atlas_inlined, sz_base + sz_glyphs + sz_bitmap);
 }
 
 
