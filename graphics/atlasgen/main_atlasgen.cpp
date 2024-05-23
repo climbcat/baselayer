@@ -17,8 +17,10 @@ FontAtlas CreateCharAtlas(MArena *a_dest, u8 *font, s32 line_height) {
 
     // calculate font scaling
     f32 scale = stbtt_ScaleForPixelHeight(&info, line_height);
-    u32 nchars = 128 - 32;
-    List<Glyph> glyphs = InitList<Glyph>(a_dest, sizeof(Glyph) * nchars);
+    u32 ascii_range = 128;
+    u32 ascii_offset = 32;
+    u32 nchars = ascii_range - ascii_offset;
+    List<Glyph> glyphs = InitList<Glyph>(a_dest, sizeof(Glyph) * ascii_range);
 
     printf("\n");
     printf("line height, scale: %d %f\n", line_height, scale);
@@ -28,8 +30,9 @@ FontAtlas CreateCharAtlas(MArena *a_dest, u8 *font, s32 line_height) {
     s32 max_ascent = 0;
     s32 max_descent = 0;
 
-    char c = 32;
-    while (c >= 32 && c <= 127) {
+    char c = 0;
+    //while (c >= ascii_offset && c < ascii_range) {
+    while (c < ascii_range) {
         // glyph metrics
         s32 x0, y0, x1, y1;
         stbtt_GetCodepointBitmapBox(&info, c, scale, scale, &x0, &y0, &x1, &y1);
@@ -72,11 +75,12 @@ FontAtlas CreateCharAtlas(MArena *a_dest, u8 *font, s32 line_height) {
 
     f32 tex_scale_x = 1.0f / atlas.b_width;
     f32 tex_scale_y = 1.0f / atlas.b_height;
-    for (u32 i = 0; i < nchars; ++i) {
-        Glyph *g = glyphs.lst + i;
+    u32 aidx = 0;
+    for (u32 ascii = ascii_offset; ascii < ascii_range; ++ascii) {
+        Glyph *g = glyphs.lst + ascii;
 
-        s32 x = (i % 16) * atlas.cell_width;
-        s32 y = (i / 16) * atlas.cell_height + atlas.cell_height - max_descent;
+        s32 x = (aidx % 16) * atlas.cell_width;
+        s32 y = (aidx / 16) * atlas.cell_height + atlas.cell_height - max_descent;
 
         x += g->x0;
         y += g->y0;
@@ -90,6 +94,8 @@ FontAtlas CreateCharAtlas(MArena *a_dest, u8 *font, s32 line_height) {
         g->tx1 = (f32) (x + g->w) * tex_scale_x;
         g->ty1 = (f32) (y + g->h) * tex_scale_y;
         printf("%c: tex coords %.2f %.2f %.2f %.2f\n",g->c, g->tx0, g->ty0, g->tx1, g->ty1);
+
+        ++aidx;
     }
     stbi_write_png("atlas.png", atlas.b_width, atlas.b_height, 1, atlas.bitmap, atlas.b_width);
     printf("\n");
