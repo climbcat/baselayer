@@ -434,7 +434,7 @@ struct TextureRectF {
 u8 SampleTexture(ImageB tex, f32 x, f32 y) {
     u32 i = (s32) round(tex.width * x);
     u32 j = (s32) round(tex.height * y);
-    u32 idx = tex.width * i + j;
+    u32 idx = tex.width * j + i;
     u8 b = tex.img[idx];
     return b;
 }
@@ -448,8 +448,8 @@ void BlitTexture(ImageRGBA img, Rect rect, ImageB tex, TextureRectF coord) {
 
     f32 coord_w = coord.right - coord.left;
     f32 coord_h = coord.bottom - coord.top;
-    f32 scale_x = rect.width / coord_w;
-    f32 scale_y = rect.height / coord_h;
+    f32 scale_x = coord_w / rect.width;
+    f32 scale_y = coord_h / rect.height;
 
     // i,j          : rect coords
     // i_img, j_img : img coords
@@ -464,7 +464,11 @@ void BlitTexture(ImageRGBA img, Rect rect, ImageB tex, TextureRectF coord) {
             f32 y = coord.top + j * scale_y;
 
             u8 b = SampleTexture(tex, x, y);
-            Color c = { b, b, b, 1 };
+            if (b != 0) {
+                b = 255;
+            }
+            Color c = { b, b, b, b };
+            //Color c = { RGBA_WHITE };
 
             u32 idx = j_img * stride_img + i_img;
             img.img[idx] = c;
@@ -517,16 +521,16 @@ void TestLayOutGlyphQuads() {
     r->image_buffer;
     Color c;
 
-
     GlyphQuad q = text.lst[0];
     GlyphQuadVertex ulc = q.verts[0];
     GlyphQuadVertex urc = q.verts[1];
     GlyphQuadVertex lrc = q.verts[2];
-    TextureRectF coords { ulc.tex.x, urc.tex.x, urc.tex.y, lrc.tex.y };
+    //TextureRectF coords { ulc.tex.x, urc.tex.x, urc.tex.y, lrc.tex.y };
+    TextureRectF coords { 0.1, 0.9, 0.1, 0.9 };
 
     ImageB tex { atlas->b_width, atlas->b_height, atlas->bitmap };
     ImageRGBA img = r->GetImageAsRGBA();
-    Rect rect { 100, 100, 100, 100 };
+    Rect rect { 600, 400, 200, 200 };
     BlitTexture(img, rect, tex, coords);
 
     while (loop->GameLoopRunning()) {

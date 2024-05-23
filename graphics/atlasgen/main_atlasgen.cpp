@@ -142,7 +142,7 @@ int main (int argc, char **argv) {
 
     // mini test
     printf("\n");
-    printf("atlas to save (glyphs chars 32-%u):\n", atlas.glyphs.len);
+    printf("atlas to save:\n", atlas.glyphs.len);
     for (u32 i = 32; i < atlas.glyphs.len; ++i) {
         Glyph g = atlas.glyphs.lst[i];
         printf("%c ", g.c);
