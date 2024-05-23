@@ -2,6 +2,9 @@
 #define __ATLAS_H__
 
 
+#include "geometry.h"
+
+
 struct Glyph {
     u32 c;
 
@@ -22,12 +25,60 @@ struct Glyph {
 };
 
 
+struct GlyphQuadVertex {
+    Vector2f pos;
+    Vector2f tex;
+};
+
+
+struct GlyphQuad {
+    GlyphQuadVertex verts[6];
+};
+
+
+GlyphQuad GlyphQuadCook(Glyph g) {
+    GlyphQuad q;
+
+    Vector2f ulc_pos { (f32) g.x0, (f32) g.y0 };
+    Vector2f ulc_tex { (f32) g.tx0, (f32) g.ty0 };
+    Vector2f urc_pos { (f32) g.x0 + g.w, (f32) g.y0 };
+    Vector2f urc_tex { (f32) g.tx1, (f32) g.ty0 };
+    Vector2f lrc_pos { (f32) g.x0, (f32) g.y0 + g.h };
+    Vector2f lrc_tex { (f32) g.tx1, (f32) g.ty1 };
+    Vector2f llc_pos { (f32) g.x0 + g.w, (f32) g.y0 + g.h };
+    Vector2f llc_tex { (f32) g.tx0, (f32) g.ty1 };
+
+    q.verts[0] = GlyphQuadVertex { urc_pos, urc_tex };
+    q.verts[1] = GlyphQuadVertex { lrc_pos, lrc_tex };
+    q.verts[2] = GlyphQuadVertex { llc_pos, llc_tex };
+    q.verts[3] = GlyphQuadVertex { llc_pos, llc_tex };
+    q.verts[4] = GlyphQuadVertex { ulc_pos, ulc_tex };
+    q.verts[5] = GlyphQuadVertex { urc_pos, urc_tex };
+
+    return q;
+}
+
+
+inline
+GlyphQuad GlyphQuadOffset(GlyphQuad *q, Vector2f os) {
+    GlyphQuad out;
+    for (u32 i = 0; i < 6; ++i) {
+        GlyphQuadVertex v = q->verts[i];
+        v.pos.x += os.x;
+        v.pos.y += os.y;
+        out.verts[i] = v;
+    }
+    return out;
+}
+
+
 struct FontAtlas {
     u32 sz_px;
     u32 b_width;
     u32 b_height;
     u32 cell_width;
     u32 cell_height;
+    u32 max_ascend;
     List<Glyph> glyphs;
     u8 *bitmap;
 

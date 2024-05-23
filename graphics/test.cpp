@@ -426,10 +426,40 @@ void TestIndexSetOperations() {
 void TestLoadTextureAtlas() {
     printf("TestLoadTextureAtlas\n");
 
-    FontAtlas loaded = FontAtlasLoadBinary((char*) "saved.atlas");
+    FontAtlas loaded = FontAtlasLoadBinary((char*) "output.atlas");
     loaded.Print();
 
     // TODO: bring a single, basic quad onto the screen
+}
+
+
+void TestLayOutGlyphQuads() {
+    MContext *ctx = InitBaselayer();
+
+    // ASCII
+
+    FontAtlas loaded = FontAtlasLoadBinary((char*) "output.atlas");
+    List<Glyph> glyphs = InitList<Glyph>(ctx->a_life, 128);
+    List<u8> advances = InitList<u8>(ctx->a_life, 128);
+    List<GlyphQuad> cooked = InitList<GlyphQuad>(ctx->a_life, 128);
+    for (u32 i = 0; i < 128; ++i) {
+        cooked.lst[i] = GlyphQuadCook(glyphs.lst[i]);
+        advances.lst[i] = glyphs.lst[i].adv_x;
+    }
+
+    // layout
+    char *word = (char *) "The quick brown fox";
+    Vector2f txtbox_ulc { 15.0f, 15.0f };
+    Vector2f pt = txtbox_ulc;
+
+    List<GlyphQuad> quads = InitList<GlyphQuad>(ctx->a_tmp, 0);
+    for (u32 i = 0; i < _strlen(word); ++i) {
+        char c = word[i];
+        quads.Add(GlyphQuadOffset(cooked.lst + c, pt));
+        pt.x += advances.lst[c];
+    }
+
+    // TODO: can I do a software blitting demo /test ? Do believe I have a blit function
 }
 
 
@@ -442,4 +472,5 @@ void Test() {
     //TestBlitSomeImage();
     //TestIndexSetOperations();
     TestLoadTextureAtlas();
+    TestLayOutGlyphQuads();
 }
