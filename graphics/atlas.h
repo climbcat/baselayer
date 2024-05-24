@@ -41,11 +41,14 @@ GlyphQuad GlyphQuadCook(Glyph g) {
 
     Vector2f ulc_pos { (f32) g.x0, (f32) g.y0 };
     Vector2f ulc_tex { (f32) g.tx0, (f32) g.ty0 };
+
     Vector2f urc_pos { (f32) g.x0 + g.w, (f32) g.y0 };
     Vector2f urc_tex { (f32) g.tx1, (f32) g.ty0 };
-    Vector2f lrc_pos { (f32) g.x0, (f32) g.y0 + g.h };
+
+    Vector2f lrc_pos { (f32) g.x0 + g.w, (f32) g.y0 + g.h };
     Vector2f lrc_tex { (f32) g.tx1, (f32) g.ty1 };
-    Vector2f llc_pos { (f32) g.x0 + g.w, (f32) g.y0 + g.h };
+
+    Vector2f llc_pos { (f32) g.x0, (f32) g.y0 + g.h };
     Vector2f llc_tex { (f32) g.tx0, (f32) g.ty1 };
 
     q.verts[0] = GlyphQuadVertex { urc_pos, urc_tex };

@@ -440,7 +440,7 @@ u8 SampleTexture(ImageB tex, f32 x, f32 y) {
 }
 
 
-void BlitTexture(ImageRGBA img, Rect rect, ImageB tex, TextureRectF coord) {
+void BlitTextureU8(ImageRGBA img, Rect rect, ImageB tex, TextureRectF coord) {
     assert(img.height >= rect.height);
     assert(img.width >= rect.width);
 
@@ -464,11 +464,7 @@ void BlitTexture(ImageRGBA img, Rect rect, ImageB tex, TextureRectF coord) {
             f32 y = coord.top + j * scale_y;
 
             u8 b = SampleTexture(tex, x, y);
-            if (b != 0) {
-                b = 255;
-            }
             Color c = { b, b, b, b };
-            //Color c = { RGBA_WHITE };
 
             u32 idx = j_img * stride_img + i_img;
             img.img[idx] = c;
@@ -498,7 +494,7 @@ void TestLayOutGlyphQuads() {
     }
 
     // layout
-    char *word = (char *) "The quick brown fox";
+    char *word = (char *) "2The quick brown fox";
     Vector2f txtbox_ulc { 15.0f, 15.0f };
     Vector2f pt = txtbox_ulc;
 
@@ -522,19 +518,24 @@ void TestLayOutGlyphQuads() {
     Color c;
 
     GlyphQuad q = text.lst[0];
-    GlyphQuadVertex ulc = q.verts[0];
-    GlyphQuadVertex urc = q.verts[1];
-    GlyphQuadVertex lrc = q.verts[2];
-    //TextureRectF coords { ulc.tex.x, urc.tex.x, urc.tex.y, lrc.tex.y };
-    TextureRectF coords { 0.1, 0.9, 0.1, 0.9 };
+    GlyphQuadVertex urc = q.verts[0];
+    GlyphQuadVertex lrc = q.verts[1];
+    GlyphQuadVertex llc = q.verts[2];
+
+    TextureRectF coords { 0, 1, 0, 1 }; // the whole image
+    //TextureRectF coords { 0.123, 0.15, 0.15, 0.3 }; // manually picked '2'
+    //TextureRectF coords { llc.tex.x, urc.tex.x, urc.tex.y, lrc.tex.y }; // atlas first phrase char
+    //printf("%f %f %f %f\n", coords.left, coords.right, coords.top, coords.bottom);
 
     ImageB tex { atlas->b_width, atlas->b_height, atlas->bitmap };
     ImageRGBA img = r->GetImageAsRGBA();
-    Rect rect { 600, 400, 200, 200 };
-    BlitTexture(img, rect, tex, coords);
 
+    //Rect rect { 600, 400, 200, 200 };
+    Rect rect { (u16) atlas->b_width, (u16) atlas->b_height, 0, 0 };
+    BlitTextureU8(img, rect, tex, coords);
+
+    // display
     while (loop->GameLoopRunning()) {
-
         loop->CycleFrame(es);
     }
     loop->Terminate();
@@ -542,12 +543,12 @@ void TestLayOutGlyphQuads() {
 
 
 void Test() {
-    //TestRandomPCWithNormals();
+    TestRandomPCWithNormals();
     //TestVGROcTree();
     //TestQuaternionRotMult();
     //TestSlerpAndMat2Quat();
     //TestPointCloudsBoxesAndSceneGraph();
     //TestBlitSomeImage();
     //TestIndexSetOperations();
-    TestLayOutGlyphQuads();
+    //TestLayOutGlyphQuads();
 }

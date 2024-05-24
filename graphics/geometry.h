@@ -727,18 +727,15 @@ Matrix4f PerspectiveMatrixOpenGL(PerspectiveFrustum frustum, bool flip_x = true,
     // flip the axes (flip to suit desired axis configurations)
     Matrix4f flip = Matrix4f_Identity();
     if (flip_x) {
-        flip.m[0][0] = -1;
+        flip.m[0][0] = -1 * flip.m[0][0];
         m = flip * m;
     }
     if (flip_y) {
-        flip.m[0][0] = 1;
-        flip.m[1][1] = -1;
+        flip.m[1][1] = -1 * flip.m[1][1];
         m = flip * m;
     }
     if (flip_z) {
-        flip.m[0][0] = 1;
-        flip.m[1][1] = 1;
-        flip.m[2][2] = -1;
+        flip.m[2][2] = -1 * flip.m[2][2];
         m = flip * m;
     }
 

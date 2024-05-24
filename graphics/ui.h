@@ -334,7 +334,7 @@ OrbitCamera InitOrbitCamera(float aspect) {
     cam.phi = 35;
     cam.radius = 4;
     cam.view = Matrix4f_Identity();
-    cam.proj = PerspectiveMatrixOpenGL(cam.frustum, false, false, false);
+    cam.proj = PerspectiveMatrixOpenGL(cam.frustum, false, true, false);
     return cam;
 }
 

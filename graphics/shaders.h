@@ -85,10 +85,10 @@ struct ScreenQuadTextureProgram {
 
     void Init() {
         float sqreen_quad_verts[] = {
-            1.0f,  1.0f, 1.0f, 1.0f,
-            -1.0f,  1.0f, 0.0f, 1.0f,
-            1.0f, -1.0f, 1.0f, 0.0f,
-            -1.0f, -1.0f, 0.0f, 0.0f
+            1.0f,  1.0f, 1.0f, 0.0f,
+            -1.0f,  1.0f, 0.0f, 0.0f,
+            1.0f, -1.0f, 1.0f, 1.0f,
+            -1.0f, -1.0f, 0.0f, 1.0f
         };
 
         ShaderProgramLink(&program, vert_src, frag_src);
