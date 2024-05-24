@@ -433,6 +433,23 @@ inline
 TextureCoord InitTextureCoord(f32 u0, f32 u1, f32 v0, f32 v1) {
     return { u0, u1, v0, v1 };
 }
+struct BlitRect {
+    s32 x0;
+    s32 x1;
+    s32 y0;
+    s32 y1;
+
+    inline s32 GetWidth() { return x1 - x0; }
+    inline s32 GetHeight() { return y1 - y0; }
+};
+inline
+BlitRect InitBlitRect(s32 x0, s32 x1, s32 y0, s32 y1) {
+    return { x0, x1, y0, y1 };
+}
+inline
+BlitRect InitBlitRect2(s32 left, s32 top, s32 width, s32 height) {
+    return { left, left + width, top, top + height };
+}
 
 
 u8 SampleTexture(ImageB tex, f32 x, f32 y) {
@@ -444,25 +461,25 @@ u8 SampleTexture(ImageB tex, f32 x, f32 y) {
 }
 
 
-void BlitTextureU8(ImageRGBA img, Rect into, ImageB byte_texture, TextureCoord coord) {
-    assert(img.height >= into.height);
-    assert(img.width >= into.width);
+void BlitTextureU8(ImageRGBA img, BlitRect into, ImageB byte_texture, TextureCoord coord) {
+    assert(img.height >= into.GetHeight());
+    assert(img.width >= into.GetWidth());
 
     u32 stride_img = img.width;
 
     f32 coord_w = coord.u1 - coord.u0;
     f32 coord_h = coord.v1 - coord.v0;
-    f32 scale_x = coord_w / into.width;
-    f32 scale_y = coord_h / into.height;
+    f32 scale_x = coord_w / into.GetWidth();
+    f32 scale_y = coord_h / into.GetHeight();
 
     // i,j          : target coords
     // i_img, j_img : img coords
 
-    for (u32 j = 0; j < into.height; ++j) {
-        u32 j_img = j + into.top;
+    for (u32 j = 0; j < into.GetHeight(); ++j) {
+        u32 j_img = j + into.x0;
 
-        for (u32 i = 0; i < into.width; ++i) {
-            u32 i_img = into.left + i;
+        for (u32 i = 0; i < into.GetWidth(); ++i) {
+            u32 i_img = into.y0 + i;
 
             f32 x = coord.u0 + i * scale_x;
             f32 y = coord.v0 + j * scale_y;
@@ -515,33 +532,25 @@ void TestLayOutGlyphQuads() {
     SwRenderer *r = loop->GetRenderer();
     r->keep_buffer = true;
 
-    u32 w = r->w;
-    u32 h = r->h;
-    r->image_buffer;
-    Color c;
 
     GlyphQuad q = text.lst[0];
     GlyphQuadVertex urc = q.verts[0];
     GlyphQuadVertex lrc = q.verts[1];
     GlyphQuadVertex llc = q.verts[2];
 
-    //TextureCoord coords = InitTextureCoord(0, 1, 0, 1); // the whole image
-    //TextureCoord coords = InitTextureCoord(0.123, 0.15, 0.15, 0.3); // manually picked '2'
-    TextureCoord coords = InitTextureCoord(llc.tex.x, urc.tex.x, urc.tex.y, lrc.tex.y); // atlas first phrase char
-    //printf("%f %f %f %f\n", coords.left, coords.right, coords.top, coords.bottom);
-
+    TextureCoord coords = InitTextureCoord(llc.tex.x, urc.tex.x, urc.tex.y, lrc.tex.y);
     ImageB tex { atlas->b_width, atlas->b_height, atlas->bitmap };
     ImageRGBA img = r->GetImageAsRGBA();
 
-    //Rect rect { 600, 400, 200, 200 };
-    Rect into { (u16) atlas->b_width, (u16) atlas->b_height, 0, 0 };
+    BlitRect into = InitBlitRect2(0, 0, atlas->b_width, atlas->b_height);
     BlitTextureU8(img, into, tex, coords);
 
-    // display
-    while (loop->GameLoopRunning()) {
-        loop->CycleFrame(es);
-    }
-    loop->Terminate();
+
+
+    // TODO: blit a stream of GlyphQuads
+
+
+    loop->JustRun(es);
 }
 
 
