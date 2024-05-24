@@ -114,19 +114,18 @@ int main (int argc, char **argv) {
     bool do_test = true;
 
     if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv)) {
-        printf("usage: supply font as the first arg\n");
+        printf("usage: supply .ttf font file as the first arg\n");
         printf("\n");
         printf("--help:          display help (this text)\n");
-        exit(0);
+        printf("--size [size]    generated font size / line height in pixels\n");
     }
-    if (argc != 2 && !do_test) {
+    else if (argc < 2 && !do_test) {
         printf("Input a true type font to generate atlas\n");
-        exit(0);
     }
-    if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv)) {
-        printf("--help:          display help (this text)\n");
-        exit(0);
+    else if (CLAContainsArg("--size", argc, argv) || CLAContainsArg("-h", argc, argv)) {
+        printf("TODO: impl. --size\n");
     }
+    
     
     const char *font_filename = "fonts/cmunrm.ttf";
     //char *font_filename = CLAGetFirstArg(argc, argv);

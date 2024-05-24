@@ -423,114 +423,18 @@ void TestIndexSetOperations() {
 }
 
 
-struct TextureCoord {
-    f32 u0;
-    f32 u1;
-    f32 v0;
-    f32 v1;
-};
-inline
-TextureCoord InitTextureCoord(f32 u0, f32 u1, f32 v0, f32 v1) {
-    return { u0, u1, v0, v1 };
-}
-inline
-TextureCoord QuadToTextureCoord(GlyphQuad *q) {
-    f32 u0 = q->verts[2].tex.x;
-    f32 u1 = q->verts[0].tex.x;
-    f32 v0 = q->verts[0].tex.y;
-    f32 v1 = q->verts[2].tex.y;
-
-    return { u0, u1, v0, v1 };
-}
-inline
-u8 SampleTexture(ImageB tex, f32 x, f32 y) {
-    u32 i = (s32) round(tex.width * x);
-    u32 j = (s32) round(tex.height * y);
-    u32 idx = tex.width * j + i;
-    u8 b = tex.img[idx];
-    return b;
-}
-
-
-struct BlitRect {
-    s32 x0;
-    s32 x1;
-    s32 y0;
-    s32 y1;
-
-    inline s32 GetWidth() { return x1 - x0; }
-    inline s32 GetHeight() { return y1 - y0; }
-};
-inline
-BlitRect InitBlitRect(s32 x0, s32 x1, s32 y0, s32 y1) {
-    assert(x0 <= x1 && y0 <= y1);
-    return { x0, x1, y0, y1 };
-}
-inline
-BlitRect InitBlitRect2(s32 left, s32 top, s32 width, s32 height) {
-    return { left, left + width, top, top + height };
-}
-inline
-BlitRect QuadToBlitRect(GlyphQuad *q) {
-    s32 x0 = (s32) q->verts[2].pos.x;
-    s32 x1 = (s32) q->verts[0].pos.x;
-    s32 y0 = (s32) q->verts[0].pos.y;
-    s32 y1 = (s32) q->verts[2].pos.y;
-
-    return { x0, x1, y0, y1 };
-}
-
-
-void BlitTextureU8(ImageRGBA img, BlitRect into, ImageB byte_texture, TextureCoord coord) {
-    assert(img.height >= into.GetHeight());
-    assert(img.width >= into.GetWidth());
-
-    u32 stride_img = img.width;
-
-    f32 coord_w = coord.u1 - coord.u0;
-    f32 coord_h = coord.v1 - coord.v0;
-    f32 scale_x = coord_w / into.GetWidth();
-    f32 scale_y = coord_h / into.GetHeight();
-
-    // i,j          : target coords
-    // i_img, j_img : img coords
-
-    for (u32 j = 0; j < into.GetHeight(); ++j) {
-        s32 j_img = j + into.y0;
-        if (j_img < 0 || j_img > img.height) {
-            continue;
-        }
-
-        for (u32 i = 0; i < into.GetWidth(); ++i) {
-            u32 i_img = into.x0 + i;
-            if (i_img < 0 || i_img > img.width) {
-                continue;
-            }
-
-            f32 x = coord.u0 + i * scale_x;
-            f32 y = coord.v0 + j * scale_y;
-
-            if (u8 b = SampleTexture(byte_texture, x, y)) {
-                Color c = { b, b, b, b };
-                u32 idx = j_img * stride_img + i_img;
-                img.img[idx] = c;
-            }
-        }
-    }
-}
-
-
 void TestLayoutGlyphQuads() {
     printf("TestLayoutGlyphQuads\n");
-
     MContext *ctx = InitBaselayer();
 
     // ASCII
 
+    // load atlas
     FontAtlas *atlas = FontAtlasLoadBinary128(ctx->a_pers, (char*) "output.atlas");
     atlas->Print();
     atlas->PrintGlyphsQuick();
 
+    // prepare atlas (TODO: should be part of the load / init function)
     List<Glyph> glyphs = atlas->glyphs;
     List<u8> advances = InitList<u8>(ctx->a_life, 128);
     List<GlyphQuad> cooked = InitList<GlyphQuad>(ctx->a_life, 128);
@@ -541,8 +445,7 @@ void TestLayoutGlyphQuads() {
         advances.lst[i] = glyphs.lst[i].adv_x;
     }
 
-    // init UI
-
+    // init display
     EntitySystem *es = InitEntitySystem();
     GameLoopOne *loop = InitGameLoopOne();
     SwRenderer *r = loop->GetRenderer();
@@ -550,32 +453,14 @@ void TestLayoutGlyphQuads() {
     ImageB tex { atlas->b_width, atlas->b_height, atlas->bitmap };
     ImageRGBA img = r->GetImageAsRGBA();
 
-    // layout
-    char *word = (char *) "The quick brown fox";
-    Vector2f txtbox_ulc { 50, 100 };
-    Vector2f pt = txtbox_ulc;
+    // lahout some text
+    BlitTextSequence( (char*)"The quick brown fox jumps over the lazy dog", Vector2f { 50, 100 }, img, tex, advances, cooked);
 
-    //List<GlyphQuad> quadstream = InitList<GlyphQuad>(ctx->a_tmp, 0);
-    for (u32 i = 0; i < _strlen(word); ++i) {
-        char c = word[i];
-        GlyphQuad q = GlyphQuadOffset(cooked.lst + c, pt);
-        //quadstream.Add(q);
-        pt.x += advances.lst[c];
-
-        TextureCoord coords = QuadToTextureCoord(&q);
-        BlitRect into = QuadToBlitRect(&q);
-
-        BlitTextureU8(img, into, tex, coords);
-    }
-
-    // TODO: can I do a software blitting demo /test ? Do believe I have a blit function
-
-    // TODO: blit a stream of GlyphQuads
-
-
-
+    // display
     loop->JustRun(es);
 }
+
+
 
 
 void Test() {
