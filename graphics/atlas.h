@@ -44,7 +44,7 @@ GlyphQuad GlyphQuadCook(Glyph g) {
 
     Vector2f urc_pos { (f32) g.x0 + g.w, (f32) g.y0 };
     Vector2f urc_tex { (f32) g.tx1, (f32) g.ty0 };
-
+    
     Vector2f lrc_pos { (f32) g.x0 + g.w, (f32) g.y0 + g.h };
     Vector2f lrc_tex { (f32) g.tx1, (f32) g.ty1 };
 
@@ -66,7 +66,7 @@ inline
 GlyphQuad GlyphQuadOffset(GlyphQuad *q, Vector2f os) {
     GlyphQuad out;
     for (u32 i = 0; i < 6; ++i) {
-        GlyphQuadVertex v = q->verts[i];
+        GlyphQuadVertex v = *(q->verts + i);
         v.pos.x += os.x;
         v.pos.y += os.y;
         out.verts[i] = v;

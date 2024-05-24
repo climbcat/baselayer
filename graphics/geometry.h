@@ -33,8 +33,8 @@ struct Vector2u {
     u32 i2;
 };
 struct Vector2s {
-    u32 i1;
-    u32 i2;
+    u32 x;
+    u32 y;
 };
 struct Vector2f {
     f32 x;
