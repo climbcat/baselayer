@@ -423,12 +423,16 @@ void TestIndexSetOperations() {
 }
 
 
-struct TextureRectF {
-    f32 left;
-    f32 right;
-    f32 top;
-    f32 bottom;
+struct TextureCoord {
+    f32 u0;
+    f32 u1;
+    f32 v0;
+    f32 v1;
 };
+inline
+TextureCoord InitTextureCoord(f32 u0, f32 u1, f32 v0, f32 v1) {
+    return { u0, u1, v0, v1 };
+}
 
 
 u8 SampleTexture(ImageB tex, f32 x, f32 y) {
@@ -440,37 +444,36 @@ u8 SampleTexture(ImageB tex, f32 x, f32 y) {
 }
 
 
-void BlitTextureU8(ImageRGBA img, Rect rect, ImageB tex, TextureRectF coord) {
-    assert(img.height >= rect.height);
-    assert(img.width >= rect.width);
+void BlitTextureU8(ImageRGBA img, Rect into, ImageB byte_texture, TextureCoord coord) {
+    assert(img.height >= into.height);
+    assert(img.width >= into.width);
 
     u32 stride_img = img.width;
 
-    f32 coord_w = coord.right - coord.left;
-    f32 coord_h = coord.bottom - coord.top;
-    f32 scale_x = coord_w / rect.width;
-    f32 scale_y = coord_h / rect.height;
+    f32 coord_w = coord.u1 - coord.u0;
+    f32 coord_h = coord.v1 - coord.v0;
+    f32 scale_x = coord_w / into.width;
+    f32 scale_y = coord_h / into.height;
 
-    // i,j          : rect coords
+    // i,j          : target coords
     // i_img, j_img : img coords
 
-    for (u32 j = 0; j < rect.height; ++j) {
-        u32 j_img = j + rect.top;
+    for (u32 j = 0; j < into.height; ++j) {
+        u32 j_img = j + into.top;
 
-        for (u32 i = 0; i < rect.width; ++i) {
-            u32 i_img = rect.left + i;
+        for (u32 i = 0; i < into.width; ++i) {
+            u32 i_img = into.left + i;
 
-            f32 x = coord.left + i * scale_x;
-            f32 y = coord.top + j * scale_y;
+            f32 x = coord.u0 + i * scale_x;
+            f32 y = coord.v0 + j * scale_y;
 
-            u8 b = SampleTexture(tex, x, y);
+            u8 b = SampleTexture(byte_texture, x, y);
             Color c = { b, b, b, b };
 
             u32 idx = j_img * stride_img + i_img;
             img.img[idx] = c;
         }
     }
-
 }
 
 
@@ -494,7 +497,7 @@ void TestLayOutGlyphQuads() {
     }
 
     // layout
-    char *word = (char *) "2The quick brown fox";
+    char *word = (char *) "The quick brown fox";
     Vector2f txtbox_ulc { 15.0f, 15.0f };
     Vector2f pt = txtbox_ulc;
 
@@ -522,17 +525,17 @@ void TestLayOutGlyphQuads() {
     GlyphQuadVertex lrc = q.verts[1];
     GlyphQuadVertex llc = q.verts[2];
 
-    TextureRectF coords { 0, 1, 0, 1 }; // the whole image
-    //TextureRectF coords { 0.123, 0.15, 0.15, 0.3 }; // manually picked '2'
-    //TextureRectF coords { llc.tex.x, urc.tex.x, urc.tex.y, lrc.tex.y }; // atlas first phrase char
+    //TextureCoord coords = InitTextureCoord(0, 1, 0, 1); // the whole image
+    //TextureCoord coords = InitTextureCoord(0.123, 0.15, 0.15, 0.3); // manually picked '2'
+    TextureCoord coords = InitTextureCoord(llc.tex.x, urc.tex.x, urc.tex.y, lrc.tex.y); // atlas first phrase char
     //printf("%f %f %f %f\n", coords.left, coords.right, coords.top, coords.bottom);
 
     ImageB tex { atlas->b_width, atlas->b_height, atlas->bitmap };
     ImageRGBA img = r->GetImageAsRGBA();
 
     //Rect rect { 600, 400, 200, 200 };
-    Rect rect { (u16) atlas->b_width, (u16) atlas->b_height, 0, 0 };
-    BlitTextureU8(img, rect, tex, coords);
+    Rect into { (u16) atlas->b_width, (u16) atlas->b_height, 0, 0 };
+    BlitTextureU8(img, into, tex, coords);
 
     // display
     while (loop->GameLoopRunning()) {
@@ -543,12 +546,12 @@ void TestLayOutGlyphQuads() {
 
 
 void Test() {
-    TestRandomPCWithNormals();
+    //TestRandomPCWithNormals();
     //TestVGROcTree();
     //TestQuaternionRotMult();
     //TestSlerpAndMat2Quat();
     //TestPointCloudsBoxesAndSceneGraph();
     //TestBlitSomeImage();
     //TestIndexSetOperations();
-    //TestLayOutGlyphQuads();
+    TestLayOutGlyphQuads();
 }
