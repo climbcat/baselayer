@@ -83,7 +83,7 @@ struct ScreenQuadTextureProgram {
         }
     )glsl";
 
-    void Init() {
+    void Init(u8* imgbuffer, u32 width, u32 height) {
         float sqreen_quad_verts[] = {
             1.0f,  1.0f, 1.0f, 0.0f,
             -1.0f,  1.0f, 0.0f, 0.0f,
@@ -105,6 +105,11 @@ struct ScreenQuadTextureProgram {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        glUseProgram(program);
+        glBindVertexArray(vao);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, imgbuffer);
 
         // quad
         glGenBuffers(1, &vbo);
@@ -130,10 +135,8 @@ struct ScreenQuadTextureProgram {
         glBindVertexArray(vao);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
-        // TODO: what is the better way to update texture data?
-
         glBindTexture(GL_TEXTURE_2D, tex);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, imgbuffer);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, imgbuffer);
 
         glDrawArrays(GL_TRIANGLE_STRIP, 0, nverts);
         glBindVertexArray(0);

@@ -504,7 +504,6 @@ void TestBrownianGlyphs() {
     TextBox lbl = InitTextBox(50, 50, 1000, 200);
     List<GlyphQuad> label = LayoutText(ctx->a_life, StrLiteral("press space to reset:"), &lbl, plt);
     ScaleTextInline(label, 0.6f, &lbl);
-    
 
     RandInit();
     f32 scale = 0.8;
@@ -536,7 +535,6 @@ void TestBrownianGlyphs() {
         }
 
         // display
-
         {
             TimeBlock("upload & swap");
             loop->ImageBufferDrawAndSwap();

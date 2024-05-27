@@ -324,7 +324,7 @@ SwRenderer InitRenderer(u32 width = 1280, u32 height = 800) {
     // shader
     ScreenQuadTextureProgram p;
     rend.screen = p;
-    rend.screen.Init();
+    rend.screen.Init(rend.image_buffer, width, height);
     rend.initialized = true;
 
     return rend;
