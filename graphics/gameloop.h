@@ -138,7 +138,7 @@ struct GameLoopOne {
         }
         Terminate();
     }
-    void ShowBuffer() {
+    void JustShowBuffer() {
         renderer.screen.Draw(renderer.image_buffer, renderer.w, renderer.h);
         glfwSwapBuffers(window);
 
@@ -147,6 +147,14 @@ struct GameLoopOne {
         }
         Terminate();
     }
+    void ImageBufferClear() {
+        _memzero(renderer.image_buffer, 4*renderer.w * renderer.h);
+    }
+    void ImageBufferDrawAndSwap() {
+        renderer.screen.Draw(renderer.image_buffer, renderer.w, renderer.h);
+        glfwSwapBuffers(window);
+    }
+
     void Terminate() {
         glfwTerminate();
     }

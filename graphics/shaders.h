@@ -103,7 +103,7 @@ struct ScreenQuadTextureProgram {
         glBindTexture(GL_TEXTURE_2D, tex);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
         // quad
@@ -123,19 +123,17 @@ struct ScreenQuadTextureProgram {
     }
 
     void Draw(u8* imgbuffer, u32 width, u32 height) {
-        // clear to black, textures may use opaque pixels
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f );
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glUseProgram(program);
-
         glBindVertexArray(vao);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
-        // TODO: what is the better way to update texture data than to (probably) allocate every frame?
+        // TODO: what is the better way to update texture data?
+
         glBindTexture(GL_TEXTURE_2D, tex);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, imgbuffer);
-        glGenerateMipmap(GL_TEXTURE_2D);
 
         glDrawArrays(GL_TRIANGLE_STRIP, 0, nverts);
         glBindVertexArray(0);

@@ -124,10 +124,10 @@ f32 Rand0132() {
     num /= (f32) ULONG_MAX + 1;
     return num;
 }
-f64 RandPM1() {
-    double randnum;
-    randnum = (f64) McRandom();
-    randnum /= ((f64) ULONG_MAX + 1) / 2;
+f32 RandPM1_f32() {
+    f32 randnum;
+    randnum = (f32) McRandom();
+    randnum /= ((f32) ULONG_MAX + 1) / 2;
     randnum -= 1;
     return randnum;
 }

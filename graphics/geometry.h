@@ -39,7 +39,15 @@ struct Vector2s {
 struct Vector2f {
     f32 x;
     f32 y;
+    inline
+    static Vector2f Add(Vector2f *a, Vector2f *b) {
+        return Vector2f { a->x + b->x, a->y + b->y };
+    }
 };
+inline
+Vector2f operator+(Vector2f u, Vector2f v) {
+    return Vector2f::Add(&u, &v);
+}
 
 
 struct Matrix4f {
