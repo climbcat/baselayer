@@ -438,9 +438,7 @@ void TestLayoutGlyphQuads() {
 
 
     // prepare atlas (TODO: should be part of the load / init function)
-    EntitySystem *es = InitEntitySystem();
     GameLoopOne *loop = InitGameLoopOne();
-    loop->GetRenderer()->keep_buffer = true;
     ImageRGBA img = loop->GetRenderer()->GetImageAsRGBA();
     {
         List<Glyph> glyphs = atlas->glyphs;
@@ -473,7 +471,7 @@ void TestLayoutGlyphQuads() {
 
 
     // display
-    loop->JustRun(es);
+    loop->ShowBuffer();
 }
 
 

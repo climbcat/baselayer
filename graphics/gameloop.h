@@ -138,6 +138,15 @@ struct GameLoopOne {
         }
         Terminate();
     }
+    void ShowBuffer() {
+        renderer.screen.Draw(renderer.image_buffer, renderer.w, renderer.h);
+        glfwSwapBuffers(window);
+
+        while (GameLoopRunning()) {
+            XSleep(10);
+        }
+        Terminate();
+    }
     void Terminate() {
         glfwTerminate();
     }

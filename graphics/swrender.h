@@ -276,7 +276,6 @@ void BlitImageInvertY(ImageRGBA dest, ImageRGBX src, Rect blit_in) {
 
 struct SwRenderer {
     bool initialized;
-    bool keep_buffer;
 
     // settings
     u32 w;
@@ -307,7 +306,6 @@ struct SwRenderer {
 SwRenderer InitRenderer(u32 width = 1280, u32 height = 800) {
     SwRenderer rend;
     _memzero(&rend, sizeof(rend));
-    rend.keep_buffer = false;
     rend.w = width;
     rend.h = height;
     rend.aspect = (float) width / height;
@@ -371,9 +369,7 @@ void SwRenderRefreshWireframeEntities(SwRenderer *r, EntitySystem *es, bool clea
 void SwRenderFrame(SwRenderer *r, EntitySystem *es, Matrix4f *vp, u64 frameno) {
     TimeFunction;
 
-    if (r->keep_buffer == false) {
-        _memzero(r->image_buffer, 4 * r->w * r->h);
-    }
+    _memzero(r->image_buffer, 4 * r->w * r->h);
     r->screen_buffer.len = 0;
 
     // entity loop (POC): vertices -> NDC
