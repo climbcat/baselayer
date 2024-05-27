@@ -427,34 +427,50 @@ void TestLayoutGlyphQuads() {
     printf("TestLayoutGlyphQuads\n");
     MContext *ctx = InitBaselayer();
 
+
     // ASCII
+
 
     // load atlas
     FontAtlas *atlas = FontAtlasLoadBinary128(ctx->a_pers, (char*) "output.atlas");
     atlas->Print();
     atlas->PrintGlyphsQuick();
 
-    // prepare atlas (TODO: should be part of the load / init function)
-    List<Glyph> glyphs = atlas->glyphs;
-    List<u8> advances = InitList<u8>(ctx->a_life, 128);
-    List<GlyphQuad> cooked = InitList<GlyphQuad>(ctx->a_life, 128);
-    for (u32 i = 0; i < 128; ++i) {
-        Glyph g = glyphs.lst[i];
-        GlyphQuad q = GlyphQuadCook(g);
-        cooked.lst[i] = q;
-        advances.lst[i] = glyphs.lst[i].adv_x;
-    }
 
-    // init display
+    // prepare atlas (TODO: should be part of the load / init function)
     EntitySystem *es = InitEntitySystem();
     GameLoopOne *loop = InitGameLoopOne();
-    SwRenderer *r = loop->GetRenderer();
-    r->keep_buffer = true;
-    ImageB tex { atlas->b_width, atlas->b_height, atlas->bitmap };
-    ImageRGBA img = r->GetImageAsRGBA();
+    loop->GetRenderer()->keep_buffer = true;
+    ImageRGBA img = loop->GetRenderer()->GetImageAsRGBA();
+    {
+        List<Glyph> glyphs = atlas->glyphs;
+        List<u8> advances = InitList<u8>(ctx->a_life, 128);
+        List<GlyphQuad> cooked = InitList<GlyphQuad>(ctx->a_life, 128);
+        for (u32 i = 0; i < 128; ++i) {
+            Glyph g = glyphs.lst[i];
+            GlyphQuad q = GlyphQuadCook(g);
+            cooked.lst[i] = q;
+            advances.lst[i] = g.adv_x;
+        }
 
-    // lahout some text
-    BlitTextSequence( (char*)"The quick brown fox jumps over the lazy dog", Vector2f { 50, 100 }, img, tex, advances, cooked);
+        // init display
+        ImageB tex { atlas->b_width, atlas->b_height, atlas->bitmap };
+
+        // lahout some text
+        BlitTextSequence( (char*)"The quick brown fox jumps over the lazy dog", Vector2f { 50, 100 }, img, tex, advances, cooked);
+    }
+
+
+    // layout using the glyph plotter
+    {
+        Str txt = StrLiteral("The other quick brown fox jumps over the other lazy dog");
+        TextBox box = InitTextBox(50, 200, 400, 100);
+
+        GlyphPlotter *plt = InitGlyphPlotter(ctx->a_life, atlas->glyphs, atlas);
+        List<GlyphQuad> layed = LayoutText(ctx->a_tmp, txt, &box, plt);
+        BlitText(layed, img, plt->texture);
+    }
+
 
     // display
     loop->JustRun(es);

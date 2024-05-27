@@ -68,6 +68,17 @@ GlyphQuad GlyphQuadOffset(GlyphQuad *q, Vector2f os) {
     }
     return out;
 }
+inline
+GlyphQuad GlyphQuadOffset(GlyphQuad *q, s16 x, s16 y) {
+    GlyphQuad out;
+    for (u32 i = 0; i < 6; ++i) {
+        GlyphQuadVertex v = *(q->verts + i);
+        v.pos.x += x;
+        v.pos.y += y;
+        out.verts[i] = v;
+    }
+    return out;
+}
 
 
 struct FontAtlas {
@@ -233,6 +244,80 @@ void BlitTextureU8(ImageRGBA img, BlitRect into, ImageB byte_texture, TextureCoo
 
 //
 //  Text layout
+//
+//  GlyphPlotter:   Source for laying out text using cooked quads - Atlas input for initialization.
+//  TextBox:        [box: lrwh] Universal text-containing rectangle including all universally possible configurations.
+//
+
+
+struct GlyphPlotter {
+    s32 ln_height;
+    s32 ln_ascend;
+    // TODO: color
+    List<u8> advance_x;
+    List<GlyphQuad> cooked;
+    ImageB texture;
+};
+GlyphPlotter *InitGlyphPlotter(MArena *a_dest, List<Glyph> glyphs, FontAtlas *atlas) {
+    GlyphPlotter *plt = (GlyphPlotter *) ArenaAlloc(a_dest, sizeof(GlyphPlotter));
+    plt->advance_x = InitList<u8>(a_dest, 128);
+    plt->cooked = InitList<GlyphQuad>(a_dest, 128 * sizeof(GlyphQuad));
+    plt->texture = ImageB { atlas->b_width, atlas->b_height, atlas->bitmap };
+    plt->ln_height = atlas->cell_height;
+    plt->ln_ascend = atlas->max_ascend;
+
+    for (u32 i = 0; i < 128; ++i) {
+        Glyph g = glyphs.lst[i];
+        GlyphQuad q = GlyphQuadCook(g);
+        plt->cooked.lst[i] = q;
+        plt->advance_x.lst[i] = g.adv_x;
+    }
+
+    return plt;
+}
+
+
+struct TextBox {
+    s16 l;
+    s16 t;
+    s16 w;
+    s16 h;
+};
+TextBox InitTextBox(s16 left, s16 top, s16 width, s16 height) {
+    TextBox box { left, top, width, height };
+    return box;
+}
+
+
+List<GlyphQuad> LayoutText(MArena *a_dest, Str txt, TextBox *box, GlyphPlotter *plt) {
+    s16 pt_x = box->l;
+    s16 pt_y = box->t;
+    List<GlyphQuad> layed_out = InitList<GlyphQuad>(a_dest, txt.len * sizeof(GlyphQuad));
+    for (u32 i = 0; i < txt.len; ++i) {
+        char c = txt.str[i];
+        GlyphQuad q = GlyphQuadOffset(plt->cooked.lst + c, pt_x, pt_y);
+        pt_x += plt->advance_x.lst[c];
+        layed_out.Add(q);
+
+        // TODO: check line wrap
+    }
+    assert(layed_out.len == txt.len);
+
+    return layed_out;
+}
+
+
+// TODO: just have a tex_stride parameter, rather than using the technically superfluous ImageB type
+void BlitText(List<GlyphQuad> text, ImageRGBA img, ImageB texture) {
+    for (u32 i = 0; i < text.len; ++i) {
+        GlyphQuad *q = text.lst + i;
+
+        TextureCoord coords = QuadToTextureCoord(q);
+        BlitRect into = QuadToBlitRect(q);
+
+        BlitTextureU8(img, into, texture, coords);
+    }
+}
 
 
 void BlitTextSequence(char *word, Vector2f txtbox, ImageRGBA img, ImageB texture, List<u8> advances, List<GlyphQuad> cooked) {
@@ -248,6 +333,5 @@ void BlitTextSequence(char *word, Vector2f txtbox, ImageRGBA img, ImageB texture
         BlitTextureU8(img, into, texture, coords);
     }
 }
-
 
 #endif
