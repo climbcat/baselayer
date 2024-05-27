@@ -462,7 +462,7 @@ void TestLayoutGlyphQuads() {
     // layout using the glyph plotter
     {
         Str txt = StrLiteral("The other quick brown fox jumps over the other lazy dog");
-        TextBox box = InitTextBox(50, 200, 400, 100);
+        TextBox box = InitTextBox(100, 200, 400, 200);
 
         GlyphPlotter *plt = InitGlyphPlotter(ctx->a_life, atlas->glyphs, atlas);
         List<GlyphQuad> layed = LayoutText(ctx->a_tmp, txt, &box, plt);

@@ -289,19 +289,114 @@ TextBox InitTextBox(s16 left, s16 top, s16 width, s16 height) {
 }
 
 
-List<GlyphQuad> LayoutText(MArena *a_dest, Str txt, TextBox *box, GlyphPlotter *plt) {
-    s16 pt_x = box->l;
-    s16 pt_y = box->t;
-    List<GlyphQuad> layed_out = InitList<GlyphQuad>(a_dest, txt.len * sizeof(GlyphQuad));
-    for (u32 i = 0; i < txt.len; ++i) {
-        char c = txt.str[i];
-        GlyphQuad q = GlyphQuadOffset(plt->cooked.lst + c, pt_x, pt_y);
-        pt_x += plt->advance_x.lst[c];
-        layed_out.Add(q);
+inline
+bool IsWhiteSpace(char c) {
+    bool result = (c == ' ' || c == '\n' || c == '\t');
+    return result;
+}
+inline
+bool IsWhiteSpace(Str s) {
+    assert(s.len > 0);
+    return IsWhiteSpace(s.str[0]);
+}
+inline
+bool IsNewLine(char c) {
+    bool result = (c == '\n');
+    return result;
+}
+inline
+bool IsNewLine(Str s) {
+    assert(s.len > 0);
+    return IsNewLine(s.str[0]);
+}
+inline
+Str StrInc(Str s, u32 inc) {
+    assert(inc <= s.len);
+    s.str += inc;
+    s.len -= inc;
+    return s;
+}
 
-        // TODO: check line wrap
+
+inline
+u32 WorldLen(Str s, List<u8> advance_x, u32 *w_adv) {
+    u32 i = 0;
+    *w_adv = 0;
+    while (i < s.len && IsWhiteSpace(s.str[i]) == false) {
+        *w_adv += advance_x.lst[s.str[i]];
+        ++i;
     }
-    assert(layed_out.len == txt.len);
+    return i;
+}
+inline
+bool CanDoNewline(s32 pt_y, s32 ln_height, s32 ln_ascend, s32 ln_limit_y) {
+    bool result = false;
+    if (pt_y - ln_ascend + 2 * ln_height < ln_limit_y) {
+        result = true;
+    }
+    return result;
+}
+inline
+bool CanDoWhiteSpace(s32 pt_x, s32 w_space, s32 ln_limit_x) {
+    bool result = pt_x + w_space <= ln_limit_x;
+    return result;
+}
+inline
+void DoNewLine(s32 ln_height, s32 left, s32 *pt_x, s32 *pt_y) {
+    *pt_y += ln_height;
+    *pt_x = left;
+}
+void DoWhiteSpace(s32 space_width, s32 *pt_x) {
+    *pt_x += space_width;
+}
+List<GlyphQuad> LayoutText(MArena *a_dest, Str txt, TextBox *box, GlyphPlotter *plt) {
+    s32 pt_x = box->l;
+    s32 pt_y = box->t + plt->ln_ascend;
+    s32 box_r = box->l + box->w;
+    s32 box_b = box->t + box->h;
+    s32 w_space = plt->advance_x.lst[' '];
+
+    u32 i = 0;
+    Str s = txt;
+
+    List<GlyphQuad> layed_out = InitList<GlyphQuad>(a_dest, txt.len * sizeof(GlyphQuad));
+    while (s.len > 0) {
+        // while words
+
+        if (IsNewLine(s) && CanDoNewline(pt_y, plt->ln_height, plt->ln_ascend, box_b)) {
+            DoNewLine(plt->ln_height, box->l, &pt_x, &pt_y);
+            s = StrInc(s, 1);
+        }
+        if (IsWhiteSpace(s) && CanDoWhiteSpace(pt_x, w_space, box_r)) {
+            DoWhiteSpace(w_space, &pt_x);
+            s = StrInc(s, 1);
+        }
+
+        // lookahead word len (including any leading whitespace)
+        u32 w_adv;
+        u32 w_len = WorldLen(s, plt->advance_x, &w_adv);
+
+        // word wrap
+        if (pt_x + w_adv > box_r) {
+            if (CanDoNewline(pt_y, plt->ln_height, plt->ln_ascend, box_b)) {
+                DoNewLine(plt->ln_height, box->l, &pt_x, &pt_y);
+            }
+            else {
+                // ran out of space, exit
+                return layed_out;
+            }
+        }
+
+        // lay out word
+        for (u32 j = 0; j < w_len; ++j) {
+            char c = s.str[j];
+            GlyphQuad q = GlyphQuadOffset(plt->cooked.lst + c, pt_x, pt_y);
+            pt_x += plt->advance_x.lst[c];
+            layed_out.Add(q);
+        }
+        s = StrInc(s, w_len);
+    }
+    assert(layed_out.len <= txt.len);
 
     return layed_out;
 }
