@@ -248,12 +248,18 @@ void TestStringHelpers() {
 }
 
 
+void TestHashMap() {
+    printf("TestHashMap\n");
+}
+
+
 void Test() {
     printf("Running tests ...\n");
 
     //SmallTests();
     //TestSortingAlgs();
-    TestStringHelpers();
+    //TestStringHelpers();
+    TestHashMap();
 }
 
 

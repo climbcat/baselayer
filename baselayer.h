@@ -5,6 +5,7 @@
 #include "profile.h"
 #include "memory.h"
 #include "string.h"
+#include "hash.h"
 #include "utils.h"
 #include "platform.h"
 
