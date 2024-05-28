@@ -90,6 +90,11 @@ u8 *LoadFileMMAP(char *filepath, u64 *size_bytes) {
     return data;
 }
 StrLst *GetFilesInFolderPaths(MArena *a, char *rootpath) {
+
+
+    // TODO: fix according to linux version
+
+
     WIN32_FIND_DATA fd_file;
 
     HANDLE h_find = FindFirstFile(rootpath, &fd_file);
