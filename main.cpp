@@ -235,11 +235,25 @@ void TestSortingAlgs() {
 }
 
 
+void TestStringHelpers() {
+    printf("TestStringHelpers\n");
+
+    printf("\nlook for .h hiles in ../graphics:\n");
+    StrLst *fs = GetFiles("h", "../graphics");
+    StrLstPrint(fs);
+
+    printf("\nlook for .cmake file in .:\n");
+    StrLst *fs2 = GetFiles("cmake", ".");
+    StrLstPrint(fs2);
+}
+
+
 void Test() {
     printf("Running tests ...\n");
 
     //SmallTests();
-    TestSortingAlgs();
+    //TestSortingAlgs();
+    TestStringHelpers();
 }
 
 

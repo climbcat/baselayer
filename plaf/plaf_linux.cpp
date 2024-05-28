@@ -79,34 +79,38 @@ u8 *LoadFileMMAP(char *filepath, u64 *size_bytes) {
     fclose(f);
     return data;
 }
-StrLst *GetFilesInFolderPaths(MArena *a, char *rootpath) {
-    u32 rootpath_len = _strlen(rootpath);
-    bool needslash = rootpath[rootpath_len-1] != '/';
-    StrLst *lst = NULL;
-    StrLst *first = (StrLst*) ArenaAlloc(a, 0);
-    
+StrLst *GetFilesInFolderPaths(MArena *unused, char *rootpath) {
+    StrLst *first = NULL;
+
     struct dirent *dir;
     DIR *d = opendir(rootpath);
     if (d) {
         d = opendir(rootpath);
+
+        Str path = StrLiteral(rootpath);
+        if (path.len == 1 && path.str[0] == '.') {
+            path.len = 0;
+        }
+        else if (path.str[path.len-1] != '/') {
+            path = StrCat(path, "/");
+        }
+
+        StrLst *lst = NULL;
         while ((dir = readdir(d)) != NULL) {
             // omit "." and ".."
             if (!_strcmp(dir->d_name, ".") || !_strcmp(dir->d_name, "..")) {
                 continue;
             }
 
-            // next strlst node
-            lst = StrLstPut(a, rootpath, lst);
-
-            // hot catenation
-            if (needslash) {
-                StrAppendHot(a, '/', lst);
+            Str dname = StrCat( path, StrLiteral(dir->d_name) );
+            lst = StrLstPut(dname, lst);
+            if (first == NULL) {
+                first = lst;
             }
-            StrCatHot(a, dir->d_name, lst);
+            //Str StrCat( lst->GetStr(), StrLiteral(dir->d_name), );
         }
         closedir(d);
     }
-
     return first;
 }
 bool SaveFile(char *filepath, u8 *data, u32 len) {

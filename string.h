@@ -29,6 +29,12 @@ struct StrLst {
     }
 };
 
+char *StrZeroTerm(MArena *a, Str s) {
+    char * result = (char*) ArenaAlloc(a, s.len + 1);
+    _memcpy(result, s.str, s.len);
+    result[s.len] = 0;
+    return result;
+}
 Str StrLiteral(MArena *a, const char *lit) {
     // TODO: make into StrPut
     Str s;
@@ -103,10 +109,10 @@ u32 StrListLen(StrLst *lst, u32 limit = -1) {
     }
     return cnt;
 }
-void StrLstPrint(StrLst *lst) {
+void StrLstPrint(StrLst *lst, const char *sep = "\n") {
     while (lst != NULL) {
         StrPrint(lst); // TODO: fix
-        printf(", ");
+        printf("%s", sep);
         lst = lst->next;
     }
 }
@@ -209,6 +215,7 @@ void StrLstPrint(StrLst lst) {
     while ((iter = iter->next) != NULL);
 }
 
+/*
 // NOTE: "Hot" arena usage infers an assumption of pointer contguity.
 //       E.g. our ptr, here "to", was the most recently allocated on a.
 void StrCatHot(MArena *a, char *str, StrLst *to) {
@@ -230,11 +237,14 @@ void StrAppendHot(MArena *a, char c, StrLst *to) {
 
     to->str[to->len++] = c;
 }
+*/
 
 
 //
 //  Automated arena signatures
 //
+
+
 static MArena _g_a_strings;
 static MArena *g_a_strings;
 MArena *StringCreateArena() {
@@ -255,9 +265,14 @@ MArena *InitStrings() {
 }
 
 
-Str StrAlloc(u32 len) {
-    char *buff = (char*) ArenaAlloc(g_a_strings, len);
-    return Str { buff, len };
+//
+//  Wrappers without any arena arg, these just expand on the current arena
+//
+
+
+inline
+char *StrZeroTerm(Str s) {
+    return StrZeroTerm(g_a_strings, s);
 }
 inline
 Str StrLiteral(const char *literal) {
@@ -266,6 +281,16 @@ Str StrLiteral(const char *literal) {
 inline
 Str StrLiteral(char *literal) {
     return StrLiteral(g_a_strings, (const char*) literal);
+}
+inline
+bool StrEqual(Str a, const char *lit) {
+    Str b = StrLiteral(lit);
+    return StrEqual(a, b);
+}
+inline
+Str StrAlloc(u32 len) {
+    char *buff = (char*) ArenaAlloc(g_a_strings, len);
+    return Str { buff, len };
 }
 inline
 Str StrCat(Str a, Str b) {
@@ -287,9 +312,11 @@ inline
 StrLst *StrSplit(Str base, char split) {
     return StrSplit(g_a_strings, base, split);
 }
+inline
 StrLst *StrSplitLines(Str base) {
     return StrSplit(g_a_strings, base, '\n');
 }
+inline
 StrLst *StrSplitWords(Str base) {
     return StrSplit(g_a_strings, base, ' ');
 }
@@ -305,6 +332,11 @@ inline
 StrLst *StrLstPut(char *str, StrLst *after = NULL) {
     return StrLstPut(g_a_strings, str, after);
 }
+StrLst *StrLstPut(Str str, StrLst *after = NULL) {
+    return StrLstPut(StrZeroTerm(str), after);
+}
+
+/*
 inline
 void StrCatHot(char *str, StrLst *to) {
     return StrCatHot(g_a_strings, str, to);
@@ -313,39 +345,7 @@ inline
 void StrAppendHot(char c, StrLst *to) {
     return StrAppendHot(g_a_strings, c, to);
 }
-
-
-bool StrEqual(Str a, const char *lit) {
-    Str b = StrLiteral(lit);
-    return StrEqual(a, b);
-}
-char *StrZeroTerm(Str s) {
-    char * result = (char*) ArenaAlloc(g_a_strings, s.len + 1);
-    _memcpy(result, s.str, s.len);
-    result[s.len] = 0;
-    return result;
-}
-
-
-//
-// path / filename stuff
-
-Str StrBasename(char *path) {
-    assert(g_a_strings != NULL);
-
-    return StrSplit(StrLiteral(path), '.')->GetStr();
-}
-
-Str StrExtension(char *path) {
-    assert(g_a_strings != NULL);
-
-    Str s { NULL, 0 };
-    StrLst *lst = StrSplit(StrLiteral(path), '.');
-    if (lst->next != NULL) {
-        s = lst->next->GetStr();
-    }
-    return s;
-}
+*/
 
 
 #endif

@@ -5,6 +5,9 @@
 #include <cassert>
 
 
+#include "string.h"
+
+
 //
 // Other
 
@@ -53,6 +56,52 @@ bool ArenaSave(MArena *a, char *filename) {
 }
 bool ArenaSave(MArena *a, const char *filename) {
     return ArenaSave(a, (char *) filename);
+}
+
+
+//
+// path / filename stuff
+
+
+Str StrBasename(char *path) {
+    assert(g_a_strings != NULL && "init strings first");
+
+    return StrSplit(StrLiteral(path), '.')->GetStr();
+}
+Str StrBasename(Str path) {
+    return StrBasename(StrZeroTerm(path));
+}
+Str StrExtension(char *path) {
+    assert(g_a_strings != NULL && "init strings first");
+
+    Str s { NULL, 0 };
+    StrLst *lst = StrSplit(StrLiteral(path), '.');
+    if (lst->next != NULL) {
+        s = lst->next->GetStr();
+    }
+    return s;
+}
+Str StrExtension(Str path) {
+    return StrExtension(StrZeroTerm(path));
+}
+StrLst *GetFiles(const char *extension, const char *path = ".") {
+    StrLst *all = GetFilesInFolderPaths(InitStrings(), path);
+    StrLst *filtered = NULL;
+    StrLst *first = NULL;
+    Str ext = StrLiteral(extension);
+    while (all != NULL) {
+        Str _fpath = all->GetStr();
+        Str _ext = StrExtension(_fpath);
+
+        if (StrEqual(_ext, ext)) {
+            filtered = StrLstPut(_fpath, filtered);
+            if (first == NULL) {
+                first = filtered;
+            }
+        }
+        all = all->next;
+    }
+    return first;
 }
 
 
