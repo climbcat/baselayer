@@ -238,8 +238,10 @@ void StrAppendHot(MArena *a, char c, StrLst *to) {
 static MArena _g_a_strings;
 static MArena *g_a_strings;
 MArena *StringCreateArena() {
-    _g_a_strings = ArenaCreate();
-    g_a_strings = &_g_a_strings;
+    if (g_a_strings == NULL) {
+        _g_a_strings = ArenaCreate();
+        g_a_strings = &_g_a_strings;
+    }
     return g_a_strings;
 }
 void StringSetGlobalArena(MArena *a) {

@@ -475,35 +475,30 @@ void TestLayoutGlyphQuads() {
 }
 
 
-void ScaleTextInline(List<GlyphQuad> text, f32 scale, TextBox *box) {
-    for (u32 i = 0; i < text.len; ++i) {
-        GlyphQuad *q = text.lst + i;
-
-        for (u32 j = 0; j < 6; ++j) {
-            Vector2f *pos = &(q->verts + j)->pos;
-            pos->x = box->l + (pos->x - box->l) * scale;
-            pos->y = box->t + (pos->y - box->t) * scale;
-        }
-    }
+GlyphPlotter *InitFonts() {
+    MContext *ctx = InitBaselayer();
+    FontAtlas *atlas = FontAtlasLoadBinary128(ctx->a_life, (char*) "output.atlas");
+    GlyphPlotter *plt = InitGlyphPlotter(ctx->a_life, atlas->glyphs, atlas);
+    return plt;
 }
 
 
 void TestBrownianGlyphs() {
     printf("TestBrownianGlyphs\n");
 
+    GlyphPlotter *plt = InitFonts();
     MContext *ctx = InitBaselayer();
 
     GameLoopOne *loop = InitGameLoopOne();
     ImageRGBA img = loop->GetRenderer()->GetImageAsRGBA();
-    FontAtlas *atlas = FontAtlasLoadBinary128(ctx->a_pers, (char*) "output.atlas");
-    GlyphPlotter *plt = InitGlyphPlotter(ctx->a_life, atlas->glyphs, atlas);
+
     Str txt = StrLiteral("The quick brown fox jumps over the lazy dog");
-    TextBox box = InitTextBox(420, 320, 400, 300);
-    List<GlyphQuad> layed = LayoutText(ctx->a_pers, txt, &box, plt);
-    List<GlyphQuad> layed_org = LayoutText(ctx->a_life, txt, &box, plt);
+    TextBox box = InitTextBox(470, 340, 400, 300);
     TextBox lbl = InitTextBox(50, 50, 1000, 200);
-    List<GlyphQuad> label = LayoutText(ctx->a_life, StrLiteral("press space to reset:"), &lbl, plt);
-    ScaleTextInline(label, 0.6f, &lbl);
+
+    List<GlyphQuad> layed_org = LayoutText(ctx->a_life, txt, &box, plt);
+    List<GlyphQuad> layed = LayoutText(ctx->a_pers, txt, &box, plt);
+    List<GlyphQuad> label = LayoutText(ctx->a_life, StrLiteral("press space to reset:"), &lbl, plt, 0.6f);
 
     RandInit();
     f32 scale = 0.8;

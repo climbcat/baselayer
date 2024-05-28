@@ -206,8 +206,7 @@ void WriteRandomHexStr(char* dest, int nhexchars, bool put_newline_and_nullchar 
 
 MContext *InitBaselayer() {
     StringCreateArena();
-    MContext *ctx = GetContext();
-    return ctx;
+    return GetContext();
 }
 
 

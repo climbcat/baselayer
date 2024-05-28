@@ -318,6 +318,19 @@ Str StrInc(Str s, u32 inc) {
 }
 
 
+void ScaleTextInline(List<GlyphQuad> text, f32 scale, TextBox *box) {
+    if (scale != 1.0f) {
+        for (u32 i = 0; i < text.len; ++i) {
+            GlyphQuad *q = text.lst + i;
+
+            for (u32 j = 0; j < 6; ++j) {
+                Vector2f *pos = &(q->verts + j)->pos;
+                pos->x = box->l + (pos->x - box->l) * scale;
+                pos->y = box->t + (pos->y - box->t) * scale;
+            }
+        }
+    }
+}
 inline
 u32 WorldLen(Str s, List<u8> advance_x, u32 *w_adv) {
     u32 i = 0;
@@ -349,7 +362,7 @@ void DoNewLine(s32 ln_height, s32 left, s32 *pt_x, s32 *pt_y) {
 void DoWhiteSpace(s32 space_width, s32 *pt_x) {
     *pt_x += space_width;
 }
-List<GlyphQuad> LayoutText(MArena *a_dest, Str txt, TextBox *box, GlyphPlotter *plt) {
+List<GlyphQuad> LayoutText(MArena *a_dest, Str txt, TextBox *box, GlyphPlotter *plt, f32 scale = 1.0f) {
     s32 pt_x = box->l;
     s32 pt_y = box->t + plt->ln_ascend;
     s32 box_r = box->l + box->w;
@@ -397,6 +410,10 @@ List<GlyphQuad> LayoutText(MArena *a_dest, Str txt, TextBox *box, GlyphPlotter *
         s = StrInc(s, w_len);
     }
     assert(layed_out.len <= txt.len);
+
+
+    ScaleTextInline(layed_out, scale, box);
+
 
     return layed_out;
 }
