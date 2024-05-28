@@ -84,7 +84,7 @@ Str StrExtension(char *path) {
 Str StrExtension(Str path) {
     return StrExtension(StrZeroTerm(path));
 }
-StrLst *GetFiles(const char *extension, const char *path = ".") {
+StrLst *GetFilesExt(const char *extension, const char *path = ".") {
     StrLst *all = GetFilesInFolderPaths(InitStrings(), path);
     StrLst *filtered = NULL;
     StrLst *first = NULL;

@@ -427,15 +427,10 @@ void TestLayoutGlyphQuads() {
     printf("TestLayoutGlyphQuads\n");
     MContext *ctx = InitBaselayer();
 
-
-    // ASCII
-
-
-    // load atlas
+    // load --ASCII-- atlas
     FontAtlas *atlas = FontAtlasLoadBinary128(ctx->a_pers, (char*) "output.atlas");
     atlas->Print();
     atlas->PrintGlyphsQuick();
-
 
     // prepare atlas (TODO: should be part of the load / init function)
     GameLoopOne *loop = InitGameLoopOne();
@@ -458,7 +453,6 @@ void TestLayoutGlyphQuads() {
         BlitTextSequence( (char*)"The quick brown fox jumps over the lazy dog", Vector2f { 50, 100 }, img, tex, advances, cooked);
     }
 
-
     // layout using the glyph plotter
     {
         Str txt = StrLiteral("The other quick brown fox jumps over the other lazy dog");
@@ -469,16 +463,23 @@ void TestLayoutGlyphQuads() {
         BlitText(layed, img, plt->texture);
     }
 
-
     // display
     loop->JustShowBuffer();
 }
 
 
 GlyphPlotter *InitFonts() {
+    // TODO: what should we do when we have many atlas files?
+
     MContext *ctx = InitBaselayer();
-    FontAtlas *atlas = FontAtlasLoadBinary128(ctx->a_life, (char*) "output.atlas");
-    GlyphPlotter *plt = InitGlyphPlotter(ctx->a_life, atlas->glyphs, atlas);
+    StrLst *fonts = GetFilesExt("atlas");
+    GlyphPlotter *plt;
+    while (fonts != NULL) {
+        FontAtlas *atlas = FontAtlasLoadBinary128(ctx->a_life, (char*) "output.atlas");
+        plt = InitGlyphPlotter(ctx->a_life, atlas->glyphs, atlas);
+
+        fonts = fonts->next;
+    }
     return plt;
 }
 

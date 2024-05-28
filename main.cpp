@@ -239,11 +239,11 @@ void TestStringHelpers() {
     printf("TestStringHelpers\n");
 
     printf("\nlook for .h hiles in ../graphics:\n");
-    StrLst *fs = GetFiles("h", "../graphics");
+    StrLst *fs = GetFilesExt("h", "../graphics");
     StrLstPrint(fs);
 
     printf("\nlook for .cmake file in .:\n");
-    StrLst *fs2 = GetFiles("cmake", ".");
+    StrLst *fs2 = GetFilesExt("cmake", ".");
     StrLstPrint(fs2);
 }
 

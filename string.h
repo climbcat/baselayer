@@ -5,19 +5,16 @@
 #include <cassert>
 
 
-// NOTE: currently we have no "string list header" struct, which means that strings and str lst are
-//       treated a bit differently: Strings are passed as a struct, but str lists as a pointer.
-// NOTE: the string list is in fact an LList1, maybe use the functions from base.c
-
-
 //
 // Str and StrLst
+//
 
 
 struct Str {
     char *str = NULL;
     u32 len = 0;
 };
+
 
 struct StrLst {
     char *str = NULL;
@@ -29,6 +26,7 @@ struct StrLst {
     }
 };
 
+
 char *StrZeroTerm(MArena *a, Str s) {
     char * result = (char*) ArenaAlloc(a, s.len + 1);
     _memcpy(result, s.str, s.len);
@@ -36,7 +34,6 @@ char *StrZeroTerm(MArena *a, Str s) {
     return result;
 }
 Str StrLiteral(MArena *a, const char *lit) {
-    // TODO: make into StrPut
     Str s;
     s.len = 0;
     while (*(lit + s.len) != '\0') {
@@ -215,30 +212,6 @@ void StrLstPrint(StrLst lst) {
     while ((iter = iter->next) != NULL);
 }
 
-/*
-// NOTE: "Hot" arena usage infers an assumption of pointer contguity.
-//       E.g. our ptr, here "to", was the most recently allocated on a.
-void StrCatHot(MArena *a, char *str, StrLst *to) {
-    u8 *dest = (u8*) ArenaAlloc(a, _strlen(str));
-
-    assert(to != NULL);
-    assert(dest == (u8*) to->str + to->len);
-
-    while (*str != '\0') {
-        to->str[to->len++] = *str;
-        ++str;
-    }
-}
-void StrAppendHot(MArena *a, char c, StrLst *to) {
-    u8 *dest = (u8*) ArenaAlloc(a, 1);
-
-    assert(to != NULL);
-    assert(dest == (u8*) to->str + to->len); // contiguity
-
-    to->str[to->len++] = c;
-}
-*/
-
 
 //
 //  Automated arena signatures
@@ -335,17 +308,6 @@ StrLst *StrLstPut(char *str, StrLst *after = NULL) {
 StrLst *StrLstPut(Str str, StrLst *after = NULL) {
     return StrLstPut(StrZeroTerm(str), after);
 }
-
-/*
-inline
-void StrCatHot(char *str, StrLst *to) {
-    return StrCatHot(g_a_strings, str, to);
-}
-inline
-void StrAppendHot(char c, StrLst *to) {
-    return StrAppendHot(g_a_strings, c, to);
-}
-*/
 
 
 #endif
