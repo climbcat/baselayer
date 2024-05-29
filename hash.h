@@ -57,75 +57,83 @@ Dict InitDict(u32 nslots = 256, u32 sz_val = 0) {
 
 
 u64 DictStoragePush(Dict *dct, Str key, void *val, u32 sz_val, u64 slot_ptr) {
+    u64 return_slot_ptr;
     DictKeyVal *hdr = NULL;
+    DictKeyVal *collider = NULL;
 
-    // reset old value
-    bool collision = false;
-    bool resetval = false;
+    // collision or value reset
+    bool is_collision = false;
+    bool is_resetval = false;
     if (slot_ptr != 0) {
         assert(dct->head != NULL);
         assert(dct->tail != NULL);
 
-        DictKeyVal *old = (DictKeyVal*) slot_ptr;
-        if (StrEqual(key, old->key)) {
-            assert(sz_val == old->sz_val && "TODO: reset value size");
-
-            hdr = old;
-            resetval = true;
+        is_collision = true;
+        collider = (DictKeyVal*) slot_ptr;
+        while (true) {
+            if (StrEqual(key, collider->key)) {
+                hdr = collider;
+                is_resetval = true;
+                is_collision = false;
+            }
+            if (collider->chain == NULL) {
+                break;
+            }
+            else {
+                collider = collider->chain;
+            }
         }
-        else {
-            collision = true;
-            dct->ncollisions++;
-        }
+        dct->ncollisions += is_collision;
     }
-
     if (hdr == NULL) {
+        assert(is_resetval == false);
+
         hdr = (DictKeyVal*) ArenaAlloc(dct->a_storage, sizeof(DictKeyVal));
     }
 
-    if (resetval == true) {
-        // TODO: !?
+    // now, hdr is assigned
+    if (is_resetval) {
+        // don't change anything
     }
     else if (dct->head == NULL) {
         assert(dct->tail == NULL);
-        assert(resetval == false);
+        assert(is_resetval == false);
+        assert(is_collision == false);
 
         dct->head = hdr;
         dct->tail = hdr;
     }
     else {
         assert(dct->tail != NULL);
-        assert(dct->tail->nxt == NULL || resetval);
+        assert(dct->tail->nxt == NULL || is_resetval);
 
         dct->tail->nxt = hdr;
         hdr->prv = dct->tail;
         dct->tail = hdr;
     }
-    u64 ret_slot_ptr = (u64) hdr;
 
-    // collision
-    if (collision) {
-        DictKeyVal *collider = (DictKeyVal*) slot_ptr;
-
-        while (collider->chain != NULL) {
-            collider = collider->chain;
-        }
-
-        if (StrEqual(key, collider->key)) {
-            // TODO: its a reset-val
-        }
-
+    if (is_collision) {
         collider->chain = hdr;
 
-        ret_slot_ptr = slot_ptr;
+        return_slot_ptr = slot_ptr;
+    }
+    else {
+        return_slot_ptr = (u64) hdr;
     }
 
-    hdr->sz_val = sz_val;
-    hdr->key.len = key.len;
-    hdr->key.str = (char*) ArenaPush(dct->a_storage, key.str, key.len);
-    hdr->val = ArenaPush(dct->a_storage, val, sz_val);
+    if (is_resetval) {
+        // memcopy value there
+        assert(sz_val == collider->sz_val && "demand the same size for reset-vals");
+        _memcpy(collider->val, val, sz_val);
+    }
+    else {
+        hdr->sz_val = sz_val;
+        hdr->key.len = key.len;
+        hdr->key.str = (char*) ArenaPush(dct->a_storage, key.str, key.len);
+        hdr->val = ArenaPush(dct->a_storage, val, sz_val);
+    }
 
-    return ret_slot_ptr;
+    return return_slot_ptr;
 }
 void DictStorageWalk(Dict *dct) {
     DictKeyVal *kv = dct->head;
