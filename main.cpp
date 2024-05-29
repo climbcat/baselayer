@@ -255,51 +255,65 @@ void TestHashMap() {
     u32 nslots = 17;
     u32 sz_val = sizeof(u32);
     Dict dct = InitDict(nslots, sz_val);
+    dct.debug_print = true;
     RandInit();
 
+    printf("\n| put values:\n");
     u32 val;
     val = RandIntMax(UINT32_MAX);
-    printf("%u in ", val);
+    printf("hest : %u in ", val);
     DictPut(&dct, "hest", &val);
     val = RandIntMax(UINT32_MAX);
-    printf("%u in ", val);
+    printf("melon : %u in ", val);
     DictPut(&dct, "melon", &val);
     val = RandIntMax(UINT32_MAX);
-    printf("%u in ", val);
+    printf("møg : %u in ", val);
     DictPut(&dct, "møg", &val);
     val = RandIntMax(UINT32_MAX);
-    printf("%u in ", val);
+    printf("blad : %u in ", val);
     DictPut(&dct, "blad", &val);
     val = RandIntMax(UINT32_MAX);
-    printf("%u in ", val);
+    printf("appelsin : %u in ", val);
     DictPut(&dct, "appelsin", &val);
     val = RandIntMax(UINT32_MAX);
-    printf("%u in ", val);
+    printf("æble : %u in ", val);
     DictPut(&dct, "pære", &val);
     val = RandIntMax(UINT32_MAX);
-    printf("%u in ", val);
+    printf("æble : %u in ", val);
     DictPut(&dct, "æble", &val);
     val = RandIntMax(UINT32_MAX);
-    printf("%u in ", val);
+    printf("bold : %u in ", val);
     DictPut(&dct, "bold", &val);
     val = RandIntMax(UINT32_MAX);
-    printf("%u in ", val);
+    printf("sol : %u in ", val);
     DictPut(&dct, "sol", &val);
     val = RandIntMax(UINT32_MAX);
-    printf("%u in ", val);
+    printf("måne : %u in ", val);
     DictPut(&dct, "måne", &val);
     val = RandIntMax(UINT32_MAX);
-    printf("%u in ", val);
+    printf("blad : %u in ", val);
     DictPut(&dct, "blad", &val);
     val = RandIntMax(UINT32_MAX);
-    printf("%u in ", val);
+    printf("gulerod : %u in ", val);
     DictPut(&dct, "gulerod", &val);
     val = RandIntMax(UINT32_MAX);
-    printf("%u in ", val);
+    printf("banan : %u in ", val);
     DictPut(&dct, "banan", &val);
 
     printf("\ncollisions: %u\n", dct.ncollisions);
+    printf("\n| walk the key-vals:\n");
     DictStorageWalk(&dct);
+
+    // get values 
+
+    printf("\n| getting a few values:\n");
+    u32 *ptr_val;
+    ptr_val = (u32*) DictGet(&dct, "gulerod");
+    printf("gulerod get : %u\n", *ptr_val);
+    ptr_val = (u32*) DictGet(&dct, "melon");
+    printf("melon get : %u\n", *ptr_val);
+    ptr_val = (u32*) DictGet(&dct, "hest");
+    printf("hest get : %u\n", *ptr_val);
 }
 
 

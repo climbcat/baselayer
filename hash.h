@@ -14,6 +14,17 @@ u32 Hash(u32 x) {
 }
 
 
+u32 HashStringValue(Str key, u32 mod) {
+    u32 key4 = 0;
+    for (u32 i = 0; i < key.len; ++i) {
+        u32 val = key.str[i] << i % 4;
+        key4 += val;
+    }
+    u32 slot = Hash(key4) % mod;
+    return slot;
+}
+
+
 // TODO: also be a GPA?
 // TODO: if max-len key (200 chars?), storage can be an array with
 //      slot_size = sz(hdr) + 200 + sz(T), and with some tricks we can
@@ -39,6 +50,7 @@ struct Dict {
     DictKeyVal *head;
     DictKeyVal *tail;
     u32 ncollisions;
+    bool debug_print;
 };
 Dict InitDict(u32 nslots = 256, u32 sz_val = 0) {
     Dict dct;
@@ -57,7 +69,6 @@ Dict InitDict(u32 nslots = 256, u32 sz_val = 0) {
 
 
 u64 DictStoragePush(Dict *dct, Str key, void *val, u32 sz_val, u64 slot_ptr) {
-    u64 return_slot_ptr;
     DictKeyVal *hdr = NULL;
     DictKeyVal *collider = NULL;
 
@@ -91,7 +102,7 @@ u64 DictStoragePush(Dict *dct, Str key, void *val, u32 sz_val, u64 slot_ptr) {
         hdr = (DictKeyVal*) ArenaAlloc(dct->a_storage, sizeof(DictKeyVal));
     }
 
-    // now, hdr is assigned
+    // fix the linked list
     if (is_resetval) {
         // don't change anything
     }
@@ -112,17 +123,8 @@ u64 DictStoragePush(Dict *dct, Str key, void *val, u32 sz_val, u64 slot_ptr) {
         dct->tail = hdr;
     }
 
-    if (is_collision) {
-        collider->chain = hdr;
-
-        return_slot_ptr = slot_ptr;
-    }
-    else {
-        return_slot_ptr = (u64) hdr;
-    }
-
+    // save key and value
     if (is_resetval) {
-        // memcopy value there
         assert(sz_val == collider->sz_val && "demand the same size for reset-vals");
         _memcpy(collider->val, val, sz_val);
     }
@@ -133,7 +135,18 @@ u64 DictStoragePush(Dict *dct, Str key, void *val, u32 sz_val, u64 slot_ptr) {
         hdr->val = ArenaPush(dct->a_storage, val, sz_val);
     }
 
-    return return_slot_ptr;
+    // collision chain
+    if (is_collision) {
+        collider->chain = hdr;
+    }
+
+    // return
+    if (slot_ptr == 0) {
+        return (u64) hdr;
+    }
+    else {
+        return slot_ptr;
+    }
 }
 void DictStorageWalk(Dict *dct) {
     DictKeyVal *kv = dct->head;
@@ -150,41 +163,44 @@ void DictPut(Dict *dct, Str key, void *val, u32 sz = 0) {
         sz = dct->sz_val;
     }
 
-    u32 key4 = 0;
-    for (u32 i = 0; i < key.len; ++i) {
-        u32 val = key.str[i] << i % 4;
-        key4 += val;
+    u32 slot = HashStringValue(key, dct->slots.len);
+    if (dct->debug_print) {
+        printf("slot: %u\n", slot);
     }
-    u32 slot = Hash(key4) % dct->slots.len;
-
-
-    // DEBUG observe slot spread somehow
-    printf("slot: %u\n", slot);
-
 
     u64 ptr = dct->slots.lst[slot];
     ptr = DictStoragePush(dct, key, val, sz, ptr);
     dct->slots.lst[slot] = ptr;
 }
+inline
 void DictPut(Dict *dct, char *key, void *val, u32 sz = 0) {
     return DictPut(dct, Str { key, _strlen(key) }, val, sz);
 }
+inline
 void DictPut(Dict *dct, const char *key, void *val, u32 sz = 0) {
     return DictPut(dct, Str { (char*) key, _strlen( (char*) key) }, val, sz);
 }
 
-u32 DictGet(Dict *dct, u32 key) {
-    u32 hashed = Hash(key) % dct->slots.len;
-    u32 val = dct->slots.lst[hashed];
-    return val;
+void *DictGet(Dict *dct, Str key) {
+    u32 slot = HashStringValue(key, dct->slots.len);
+    DictKeyVal *kv = (DictKeyVal *) dct->slots.lst[slot];
+
+    while (kv) {
+        if (StrEqual(key, kv->key)) {
+            return kv->val;
+        }
+        kv = kv->chain;
+    }
+    return NULL;
 }
-/*
-u32 DictGet(Dict *dct, Str key) {
-    u32 hashed = Hash(key) % dct->slots.len;
-    u32 val = dct->slots.lst[hashed];
-    return val;
+inline
+void *DictGet(Dict *dct, char *key) {
+    return DictGet(dct, Str { key, _strlen(key) } );
 }
-*/
+inline
+void *DictGet(Dict *dct, const char *key) {
+    return DictGet(dct, Str { (char*) key, _strlen((char*) key) } );
+}
 
 
 
