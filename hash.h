@@ -14,6 +14,173 @@ u32 Hash(u32 x) {
 }
 
 
+// TODO: also be a GPA?
+// TODO: if max-len key (200 chars?), storage can be an array with
+//      slot_size = sz(hdr) + 200 + sz(T), and with some tricks we can
+//      also do un-ordered delete for removal, compressing it always
+
+
+struct DictKeyVal {
+    DictKeyVal *chain;  // collision chaining
+    DictKeyVal *nxt;    // walk to next
+    DictKeyVal *prv;    // walk to prev
+    Str key;            // the full key
+    void *val;          // the value
+    u32 sz_val;
+};
+
+
+struct Dict {
+    // fixed-size values dict with string keys
+    u32 nslots;
+    u32 sz_val;
+    MArena *a_storage;
+    List<u64> slots;
+    DictKeyVal *head;
+    DictKeyVal *tail;
+    u32 ncollisions;
+};
+Dict InitDict(u32 nslots = 256, u32 sz_val = 0) {
+    Dict dct;
+    _memzero(&dct, sizeof(Dict));
+    dct.nslots = nslots;
+    dct.sz_val = sz_val;
+    dct.a_storage = ArenaCreateBootstrapped();
+    dct.slots = InitList<u64>(dct.a_storage, nslots);
+    dct.slots.len = nslots;
+
+    return dct;
+}
+
+
+// TODO: how do we remove chained values?
+
+
+u64 DictStoragePush(Dict *dct, Str key, void *val, u32 sz_val, u64 slot_ptr) {
+    DictKeyVal *hdr = NULL;
+
+    // reset old value
+    bool collision = false;
+    bool resetval = false;
+    if (slot_ptr != 0) {
+        assert(dct->head != NULL);
+        assert(dct->tail != NULL);
+
+        DictKeyVal *old = (DictKeyVal*) slot_ptr;
+        if (StrEqual(key, old->key)) {
+            assert(sz_val == old->sz_val && "TODO: reset value size");
+
+            hdr = old;
+            resetval = true;
+        }
+        else {
+            collision = true;
+            dct->ncollisions++;
+        }
+    }
+
+    if (hdr == NULL) {
+        hdr = (DictKeyVal*) ArenaAlloc(dct->a_storage, sizeof(DictKeyVal));
+    }
+
+    if (resetval == true) {
+        // TODO: !?
+    }
+    else if (dct->head == NULL) {
+        assert(dct->tail == NULL);
+        assert(resetval == false);
+
+        dct->head = hdr;
+        dct->tail = hdr;
+    }
+    else {
+        assert(dct->tail != NULL);
+        assert(dct->tail->nxt == NULL || resetval);
+
+        dct->tail->nxt = hdr;
+        hdr->prv = dct->tail;
+        dct->tail = hdr;
+    }
+    u64 ret_slot_ptr = (u64) hdr;
+
+    // collision
+    if (collision) {
+        DictKeyVal *collider = (DictKeyVal*) slot_ptr;
+
+        while (collider->chain != NULL) {
+            collider = collider->chain;
+        }
+
+        if (StrEqual(key, collider->key)) {
+            // TODO: its a reset-val
+        }
+
+        collider->chain = hdr;
+
+        ret_slot_ptr = slot_ptr;
+    }
+
+    hdr->sz_val = sz_val;
+    hdr->key.len = key.len;
+    hdr->key.str = (char*) ArenaPush(dct->a_storage, key.str, key.len);
+    hdr->val = ArenaPush(dct->a_storage, val, sz_val);
+
+    return ret_slot_ptr;
+}
+void DictStorageWalk(Dict *dct) {
+    DictKeyVal *kv = dct->head;
+    while (kv != NULL) {
+        printf("%s : %u\n", StrZeroTerm(kv->key), *((u32*) kv->val));
+
+        kv = kv->nxt;
+    }
+}
+
+void DictPut(Dict *dct, Str key, void *val, u32 sz = 0) {
+    assert(sz != 0 || dct->sz_val != 0);
+    if (sz == 0) {
+        sz = dct->sz_val;
+    }
+
+    u32 key4 = 0;
+    for (u32 i = 0; i < key.len; ++i) {
+        u32 val = key.str[i] << i % 4;
+        key4 += val;
+    }
+    u32 slot = Hash(key4) % dct->slots.len;
+
+
+    // DEBUG observe slot spread somehow
+    printf("slot: %u\n", slot);
+
+
+    u64 ptr = dct->slots.lst[slot];
+    ptr = DictStoragePush(dct, key, val, sz, ptr);
+    dct->slots.lst[slot] = ptr;
+}
+void DictPut(Dict *dct, char *key, void *val, u32 sz = 0) {
+    return DictPut(dct, Str { key, _strlen(key) }, val, sz);
+}
+void DictPut(Dict *dct, const char *key, void *val, u32 sz = 0) {
+    return DictPut(dct, Str { (char*) key, _strlen( (char*) key) }, val, sz);
+}
+
+u32 DictGet(Dict *dct, u32 key) {
+    u32 hashed = Hash(key) % dct->slots.len;
+    u32 val = dct->slots.lst[hashed];
+    return val;
+}
+/*
+u32 DictGet(Dict *dct, Str key) {
+    u32 hashed = Hash(key) % dct->slots.len;
+    u32 val = dct->slots.lst[hashed];
+    return val;
+}
+*/
+
+
+
+
 //
 // random
 

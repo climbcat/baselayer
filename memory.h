@@ -75,6 +75,22 @@ void *ArenaPush(MArena *a, void *data, u32 len) {
     _memcpy(dest, data, len);
     return dest;
 }
+MArena *ArenaCreateBootstrapped() {
+    MArena a;
+    a.used = 0;
+
+    a.mem = (u8*) MemoryReserve(ARENA_RESERVE_SIZE);
+    a.mapped = ARENA_RESERVE_SIZE;
+
+    MemoryProtect(a.mem, ARENA_COMMIT_CHUNK);
+    a.committed = ARENA_COMMIT_CHUNK;
+
+    // push an arena header onto the arena and copy the areana onto it
+    MArena *a_bs = (MArena*) ArenaPush(&a, &a, sizeof(MArena));
+    *a_bs = a;
+
+    return a_bs;
+}
 void *ArenaOpen(MArena *a, u32 max_len = SIXTEEN_MB) {
     assert(!a->locked && "ArenaOpen: memory arena is alredy open");
     
@@ -98,6 +114,10 @@ void ArenaPrint(MArena *a) {
 }
 void ArenaClear(MArena *a) {
     a->used = 0;
+}
+void ArenaClearBootstrap(MArena *a) {
+    a->used = 0;
+    ArenaPush(a, a, sizeof(MArena));
 }
 
 

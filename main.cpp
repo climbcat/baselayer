@@ -250,6 +250,43 @@ void TestStringHelpers() {
 
 void TestHashMap() {
     printf("TestHashMap\n");
+    InitBaselayer();
+    
+    u32 nslots = 17;
+    u32 sz_val = sizeof(u32);
+    Dict dct = InitDict(nslots, sz_val);
+    RandInit();
+
+    u32 val;
+    val = RandIntMax(UINT32_MAX);
+    DictPut(&dct, "hest", &val);
+    val = RandIntMax(UINT32_MAX);
+    DictPut(&dct, "melon", &val);
+    val = RandIntMax(UINT32_MAX);
+    DictPut(&dct, "møg", &val);
+    val = RandIntMax(UINT32_MAX);
+    DictPut(&dct, "blad", &val);
+    val = RandIntMax(UINT32_MAX);
+    DictPut(&dct, "appelsin", &val);
+    val = RandIntMax(UINT32_MAX);
+    DictPut(&dct, "pære", &val);
+    val = RandIntMax(UINT32_MAX);
+    DictPut(&dct, "æble", &val);
+    val = RandIntMax(UINT32_MAX);
+    DictPut(&dct, "bold", &val);
+    val = RandIntMax(UINT32_MAX);
+    DictPut(&dct, "sol", &val);
+    val = RandIntMax(UINT32_MAX);
+    DictPut(&dct, "måne", &val);
+    val = RandIntMax(UINT32_MAX);
+    DictPut(&dct, "blad", &val);
+    val = RandIntMax(UINT32_MAX);
+    DictPut(&dct, "gulerod", &val);
+    val = RandIntMax(UINT32_MAX);
+    DictPut(&dct, "banan", &val);
+
+    printf("\ncollisions: %u\n", dct.ncollisions);
+    DictStorageWalk(&dct);
 }
 
 
