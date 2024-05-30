@@ -5,6 +5,57 @@
 #include "geometry.h"
 
 
+struct Quad {
+    f32 x0;
+    f32 y0;
+    f32 x1;
+    f32 y1;
+    f32 u0;
+    f32 v0;
+    f32 u1;
+    f32 v1;
+    Color c;
+};
+struct QuadVertex {  // vertex layout
+    Vector2f pos;
+    Vector2f tex;
+    Color col;
+};
+inline
+QuadVertex InitQuadVertex(Vector2f pos, Vector2f tex, Color col) {
+    QuadVertex v;
+    v.pos = pos;
+    v.tex = tex;
+    v.col = col;
+    return v;
+}
+struct QuadHexaVertex { // grouping of six vertices
+    QuadVertex verts[6];
+};
+QuadHexaVertex QuadCook(Quad q) {
+    QuadHexaVertex qh;
+
+    Vector2f ulc_pos { (f32) q.x0, (f32) q.y0 };
+    Vector2f urc_pos { (f32) q.x1, (f32) q.y0 };
+    Vector2f lrc_pos { (f32) q.x1, (f32) q.y1 };
+    Vector2f llc_pos { (f32) q.x0, (f32) q.y1 };
+
+    Vector2f ulc_tex { (f32) q.u0, (f32) q.v0 };
+    Vector2f urc_tex { (f32) q.u1, (f32) q.v0 };
+    Vector2f lrc_tex { (f32) q.u1, (f32) q.v1 };
+    Vector2f llc_tex { (f32) q.u0, (f32) q.v1 };
+
+    qh.verts[0] = InitQuadVertex( urc_pos, urc_tex, q.c );
+    qh.verts[1] = InitQuadVertex( lrc_pos, lrc_tex, q.c );
+    qh.verts[2] = InitQuadVertex( llc_pos, llc_tex, q.c );
+    qh.verts[3] = InitQuadVertex( llc_pos, llc_tex, q.c );
+    qh.verts[4] = InitQuadVertex( ulc_pos, ulc_tex, q.c );
+    qh.verts[5] = InitQuadVertex( urc_pos, urc_tex, q.c );
+
+    return qh;
+}
+
+
 struct Glyph {
     u32 c; // represents ascii char
 
@@ -19,20 +70,9 @@ struct Glyph {
     float tx1;
     float ty1;
 };
-
-
-struct GlyphQuadVertex {  // vertex layout
-    Vector2f pos;
-    Vector2f tex;
-};
-
-
-struct GlyphQuad { // grouping of six vertices
-    GlyphQuadVertex verts[6];
-};
-GlyphQuad GlyphQuadCook(Glyph g) {
+QuadHexaVertex GlyphQuadCook(Glyph g) {
     // lays down two three-vertex triangles: T1 = [ urc->lrc->llc ] and T2 = [ llc->ulc->urc ]
-    GlyphQuad q;
+    QuadHexaVertex q;
 
     Vector2f ulc_pos { (f32) g.x0, (f32) g.y0 };
     Vector2f ulc_tex { (f32) g.tx0, (f32) g.ty0 };
@@ -46,22 +86,22 @@ GlyphQuad GlyphQuadCook(Glyph g) {
     Vector2f llc_pos { (f32) g.x0, (f32) g.y0 + g.h };
     Vector2f llc_tex { (f32) g.tx0, (f32) g.ty1 };
 
-    q.verts[0] = GlyphQuadVertex { urc_pos, urc_tex };
-    q.verts[1] = GlyphQuadVertex { lrc_pos, lrc_tex };
-    q.verts[2] = GlyphQuadVertex { llc_pos, llc_tex };
-    q.verts[3] = GlyphQuadVertex { llc_pos, llc_tex };
-    q.verts[4] = GlyphQuadVertex { ulc_pos, ulc_tex };
-    q.verts[5] = GlyphQuadVertex { urc_pos, urc_tex };
+    q.verts[0] = QuadVertex { urc_pos, urc_tex };
+    q.verts[1] = QuadVertex { lrc_pos, lrc_tex };
+    q.verts[2] = QuadVertex { llc_pos, llc_tex };
+    q.verts[3] = QuadVertex { llc_pos, llc_tex };
+    q.verts[4] = QuadVertex { ulc_pos, ulc_tex };
+    q.verts[5] = QuadVertex { urc_pos, urc_tex };
 
     return q;
 }
 
 
 inline
-GlyphQuad GlyphQuadOffset(GlyphQuad *q, Vector2f os) {
-    GlyphQuad out;
+QuadHexaVertex GlyphQuadOffset(QuadHexaVertex *q, Vector2f os) {
+    QuadHexaVertex out;
     for (u32 i = 0; i < 6; ++i) {
-        GlyphQuadVertex v = *(q->verts + i);
+        QuadVertex v = *(q->verts + i);
         v.pos.x += os.x;
         v.pos.y += os.y;
         out.verts[i] = v;
@@ -69,10 +109,10 @@ GlyphQuad GlyphQuadOffset(GlyphQuad *q, Vector2f os) {
     return out;
 }
 inline
-GlyphQuad GlyphQuadOffset(GlyphQuad *q, s16 x, s16 y) {
-    GlyphQuad out;
+QuadHexaVertex GlyphQuadOffset(QuadHexaVertex *q, s16 x, s16 y) {
+    QuadHexaVertex out;
     for (u32 i = 0; i < 6; ++i) {
-        GlyphQuadVertex v = *(q->verts + i);
+        QuadVertex v = *(q->verts + i);
         v.pos.x += x;
         v.pos.y += y;
         out.verts[i] = v;
@@ -156,7 +196,7 @@ TextureCoord InitTextureCoord(f32 u0, f32 u1, f32 v0, f32 v1) {
     return { u0, u1, v0, v1 };
 }
 inline
-TextureCoord QuadToTextureCoord(GlyphQuad *q) {
+TextureCoord QuadToTextureCoord(QuadHexaVertex *q) {
     f32 u0 = q->verts[2].tex.x;
     f32 u1 = q->verts[0].tex.x;
     f32 v0 = q->verts[0].tex.y;
@@ -193,7 +233,7 @@ BlitRect InitBlitRect2(s32 left, s32 top, s32 width, s32 height) {
     return { left, left + width, top, top + height };
 }
 inline
-BlitRect QuadToBlitRect(GlyphQuad *q) {
+BlitRect QuadToBlitRect(QuadHexaVertex *q) {
     s32 x0 = (s32) q->verts[2].pos.x;
     s32 x1 = (s32) q->verts[0].pos.x;
     s32 y0 = (s32) q->verts[0].pos.y;
@@ -242,6 +282,37 @@ void BlitTextureU8(ImageRGBA img, BlitRect into, ImageB byte_texture, TextureCoo
 }
 
 
+void BlitSolidU8(ImageRGBA img, BlitRect into, Color color) {
+    assert(img.height >= into.GetHeight());
+    assert(img.width >= into.GetWidth());
+
+    u32 stride_img = img.width;
+
+    // i,j          : target coords
+    // i_img, j_img : img coords
+
+    s32 j_img;
+    u32 i_img;
+    u32 idx;
+    for (u32 j = 0; j < into.GetHeight(); ++j) {
+        j_img = j + into.y0;
+        if (j_img < 0 || j_img > img.height) {
+            continue;
+        }
+
+        for (u32 i = 0; i < into.GetWidth(); ++i) {
+            i_img = into.x0 + i;
+            if (i_img < 0 || i_img > img.width) {
+                continue;
+            }
+
+            idx = j_img * stride_img + i_img;
+            img.img[idx] = color;
+        }
+    }
+}
+
+
 //
 //  Text layout
 //
@@ -255,20 +326,20 @@ struct GlyphPlotter {
     s32 ln_ascend;
     // TODO: color
     List<u8> advance_x;
-    List<GlyphQuad> cooked;
+    List<QuadHexaVertex> cooked;
     ImageB texture;
 };
 GlyphPlotter *InitGlyphPlotter(MArena *a_dest, List<Glyph> glyphs, FontAtlas *atlas) {
     GlyphPlotter *plt = (GlyphPlotter *) ArenaAlloc(a_dest, sizeof(GlyphPlotter));
     plt->advance_x = InitList<u8>(a_dest, 128);
-    plt->cooked = InitList<GlyphQuad>(a_dest, 128 * sizeof(GlyphQuad));
+    plt->cooked = InitList<QuadHexaVertex>(a_dest, 128 * sizeof(QuadHexaVertex));
     plt->texture = ImageB { atlas->b_width, atlas->b_height, atlas->bitmap };
     plt->ln_height = atlas->cell_height;
     plt->ln_ascend = atlas->max_ascend;
 
     for (u32 i = 0; i < 128; ++i) {
         Glyph g = glyphs.lst[i];
-        GlyphQuad q = GlyphQuadCook(g);
+        QuadHexaVertex q = GlyphQuadCook(g);
         plt->cooked.lst[i] = q;
         plt->advance_x.lst[i] = g.adv_x;
     }
@@ -318,10 +389,10 @@ Str StrInc(Str s, u32 inc) {
 }
 
 
-void ScaleTextInline(List<GlyphQuad> text, f32 scale, TextBox *box) {
+void ScaleTextInline(List<QuadHexaVertex> text, f32 scale, TextBox *box) {
     if (scale != 1.0f) {
         for (u32 i = 0; i < text.len; ++i) {
-            GlyphQuad *q = text.lst + i;
+            QuadHexaVertex *q = text.lst + i;
 
             for (u32 j = 0; j < 6; ++j) {
                 Vector2f *pos = &(q->verts + j)->pos;
@@ -362,7 +433,7 @@ void DoNewLine(s32 ln_height, s32 left, s32 *pt_x, s32 *pt_y) {
 void DoWhiteSpace(s32 space_width, s32 *pt_x) {
     *pt_x += space_width;
 }
-List<GlyphQuad> LayoutText(MArena *a_dest, Str txt, TextBox *box, GlyphPlotter *plt, f32 scale = 1.0f) {
+List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, TextBox *box, GlyphPlotter *plt, f32 scale = 1.0f) {
     s32 pt_x = box->l;
     s32 pt_y = box->t + plt->ln_ascend;
     s32 box_r = box->l + box->w;
@@ -372,7 +443,7 @@ List<GlyphQuad> LayoutText(MArena *a_dest, Str txt, TextBox *box, GlyphPlotter *
     u32 i = 0;
     Str s = txt;
 
-    List<GlyphQuad> layed_out = InitList<GlyphQuad>(a_dest, txt.len * sizeof(GlyphQuad));
+    List<QuadHexaVertex> layed_out = InitList<QuadHexaVertex>(a_dest, txt.len * sizeof(QuadHexaVertex));
     while (s.len > 0) {
         // while words
 
@@ -403,7 +474,7 @@ List<GlyphQuad> LayoutText(MArena *a_dest, Str txt, TextBox *box, GlyphPlotter *
         // lay out word
         for (u32 j = 0; j < w_len; ++j) {
             char c = s.str[j];
-            GlyphQuad q = GlyphQuadOffset(plt->cooked.lst + c, pt_x, pt_y);
+            QuadHexaVertex q = GlyphQuadOffset(plt->cooked.lst + c, pt_x, pt_y);
             pt_x += plt->advance_x.lst[c];
             layed_out.Add(q);
         }
@@ -420,9 +491,9 @@ List<GlyphQuad> LayoutText(MArena *a_dest, Str txt, TextBox *box, GlyphPlotter *
 
 
 // TODO: just have a tex_stride parameter, rather than using the technically superfluous ImageB type
-void BlitText(List<GlyphQuad> text, ImageRGBA img, ImageB texture) {
+void BlitText(List<QuadHexaVertex> text, ImageRGBA img, ImageB texture) {
     for (u32 i = 0; i < text.len; ++i) {
-        GlyphQuad *q = text.lst + i;
+        QuadHexaVertex *q = text.lst + i;
 
         TextureCoord coords = QuadToTextureCoord(q);
         BlitRect into = QuadToBlitRect(q);
@@ -432,11 +503,11 @@ void BlitText(List<GlyphQuad> text, ImageRGBA img, ImageB texture) {
 }
 
 
-void BlitTextSequence(char *word, Vector2f txtbox, ImageRGBA img, ImageB texture, List<u8> advances, List<GlyphQuad> cooked) {
+void BlitTextSequence(char *word, Vector2f txtbox, ImageRGBA img, ImageB texture, List<u8> advances, List<QuadHexaVertex> cooked) {
     Vector2f pt = txtbox;
     for (u32 i = 0; i < _strlen(word); ++i) {
         char c = word[i];
-        GlyphQuad q = GlyphQuadOffset(cooked.lst + c, pt);
+        QuadHexaVertex q = GlyphQuadOffset(cooked.lst + c, pt);
         pt.x += advances.lst[c];
 
         TextureCoord coords = QuadToTextureCoord(&q);
@@ -445,5 +516,17 @@ void BlitTextSequence(char *word, Vector2f txtbox, ImageRGBA img, ImageB texture
         BlitTextureU8(img, into, texture, coords);
     }
 }
+
+void BlitSolidQuads(List<QuadHexaVertex> solid, ImageRGBA img) {
+    for (u32 i = 0; i < solid.len; ++i) {
+        QuadHexaVertex *q = solid.lst + i;
+
+        BlitRect into = QuadToBlitRect(q);
+        Color color = q->verts[0].col;
+
+        BlitSolidU8(img, into, color);
+    }
+}
+
 
 #endif

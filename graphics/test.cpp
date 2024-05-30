@@ -438,10 +438,10 @@ void TestLayoutGlyphQuads() {
     {
         List<Glyph> glyphs = atlas->glyphs;
         List<u8> advances = InitList<u8>(ctx->a_life, 128);
-        List<GlyphQuad> cooked = InitList<GlyphQuad>(ctx->a_life, 128);
+        List<QuadHexaVertex> cooked = InitList<QuadHexaVertex>(ctx->a_life, 128);
         for (u32 i = 0; i < 128; ++i) {
             Glyph g = glyphs.lst[i];
-            GlyphQuad q = GlyphQuadCook(g);
+            QuadHexaVertex q = GlyphQuadCook(g);
             cooked.lst[i] = q;
             advances.lst[i] = g.adv_x;
         }
@@ -459,7 +459,7 @@ void TestLayoutGlyphQuads() {
         TextBox box = InitTextBox(100, 200, 400, 200);
 
         GlyphPlotter *plt = InitGlyphPlotter(ctx->a_life, atlas->glyphs, atlas);
-        List<GlyphQuad> layed = LayoutText(ctx->a_tmp, txt, &box, plt);
+        List<QuadHexaVertex> layed = LayoutText(ctx->a_tmp, txt, &box, plt);
         BlitText(layed, img, plt->texture);
     }
 
@@ -497,9 +497,9 @@ void TestBrownianGlyphs() {
     TextBox box = InitTextBox(470, 340, 400, 300);
     TextBox lbl = InitTextBox(50, 50, 1000, 200);
 
-    List<GlyphQuad> layed_org = LayoutText(ctx->a_life, txt, &box, plt);
-    List<GlyphQuad> layed = LayoutText(ctx->a_pers, txt, &box, plt);
-    List<GlyphQuad> label = LayoutText(ctx->a_life, StrLiteral("press space to reset:"), &lbl, plt, 0.6f);
+    List<QuadHexaVertex> layed_org = LayoutText(ctx->a_life, txt, &box, plt);
+    List<QuadHexaVertex> layed = LayoutText(ctx->a_pers, txt, &box, plt);
+    List<QuadHexaVertex> label = LayoutText(ctx->a_life, StrLiteral("press space to reset:"), &lbl, plt, 0.6f);
 
     RandInit();
     f32 scale = 0.8;
@@ -517,17 +517,17 @@ void TestBrownianGlyphs() {
 
             // brownian motion applied to each character, effect
             for (u32 i = 0; i < layed.len; ++i) {
-                GlyphQuad *q = layed.lst + i;
+                QuadHexaVertex *q = layed.lst + i;
                 Vector2f d { scale * RandPM1_f32(), scale * RandPM1_f32() };
                 for (u32 j = 0; j < 6; ++j) {
-                    GlyphQuadVertex *v = q->verts + j;
+                    QuadVertex *v = q->verts + j;
                     v->pos = v->pos + d;
                 }
             }
         }
 
         if (loop->GetMouseTrap()->last_keypress_frame == OUR_GLFW_KEY_SPACE) {
-            _memcpy(layed.lst, layed_org.lst, sizeof(GlyphQuad) * layed.len);
+            _memcpy(layed.lst, layed_org.lst, sizeof(QuadHexaVertex) * layed.len);
         }
 
         // display
@@ -541,6 +541,74 @@ void TestBrownianGlyphs() {
 }
 
 
+struct Panel {
+    s16 l;
+    s16 t;
+    s16 w;
+    s16 h;
+    s16 border;
+};
+Quad PanelToQuadBorder(Panel pnl) {
+    Quad q;
+    _memzero(&q, sizeof(Quad));
+    q.x0 = pnl.l;
+    q.x1 = pnl.l + pnl.w;
+    q.y0 = pnl.t;
+    q.y1 = pnl.t + pnl.h;
+    q.c = { RGBA_GRAY_75 };
+    return q;
+}
+Quad PanelToQuadCanvas(Panel pnl) {
+    Quad q;
+    _memzero(&q, sizeof(Quad));
+
+    // border overflow
+    if (pnl.border >= pnl.w / 2 || pnl.border >= pnl.w / 2) {
+        return q;
+    }
+
+    q.x0 = pnl.l + pnl.border;
+    q.x1 = pnl.l + pnl.w - pnl.border;
+    q.y0 = pnl.t + pnl.border;
+    q.y1 = pnl.t + pnl.h - pnl.border;
+    q.c = { RGBA_WHITE };
+    return q;
+}
+List<QuadHexaVertex> PanelToHexaVertices(MArena *a_dest, Panel pnl) {
+    List<QuadHexaVertex> verts = InitList<QuadHexaVertex>(a_dest, 2);
+
+    verts.Add(QuadCook(PanelToQuadBorder(pnl)));
+    verts.Add(QuadCook(PanelToQuadCanvas(pnl)));
+
+    return verts;
+}
+
+
+void TestUIPanel() {
+    printf("TestUIPanel\n");
+
+    MContext *ctx = InitBaselayer();
+    GameLoopOne *loop = InitGameLoopOne();
+    ImageRGBA img = loop->GetRenderer()->GetImageAsRGBA();
+
+    Panel pnl { 100, 100, 400, 250, 4 };
+    List<QuadHexaVertex> layed = PanelToHexaVertices(ctx->a_pers, pnl);
+
+    while (loop->GameLoopRunning()) {
+        loop->ImageBufferClear();
+        BlitSolidQuads(layed, img);
+
+        loop->ImageBufferDrawAndSwap();
+        XSleep(10);
+    }
+
+    // TODO: draw a boundaried panel - OK
+    // TODO: make it respond to mouse interaction
+    // TODO: make it drag-able
+    // TODO: have it have text layed out in it
+}
+
+
 void Test() {
     //TestRandomPCWithNormals();
     //TestVGROcTree();
@@ -550,5 +618,6 @@ void Test() {
     //TestBlitSomeImage();
     //TestIndexSetOperations();
     //TestLayoutGlyphQuads();
-    TestBrownianGlyphs();
+    //TestBrownianGlyphs();
+    TestUIPanel();
 }

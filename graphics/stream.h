@@ -12,6 +12,7 @@
 
 #define RGBA_BLACK      0, 0, 0, 255
 #define RGBA_WHITE      255, 255, 255, 255
+#define RGBA_GRAY_75    192, 192, 192, 192
 #define RGBA_GRAY_50    128, 128, 128, 255
 #define RGBA_GRAY_25    64, 64, 64, 255
 #define RGBA_RED        255, 0, 0, 255
