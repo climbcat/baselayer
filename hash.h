@@ -203,6 +203,81 @@ void *DictGet(Dict *dct, const char *key) {
 }
 
 
+//
+// pointer-map
+
+
+
+// fixed-size pointer map:
+
+
+struct HashMapKeyVal {
+    u64 key;
+    u64 val;
+    HashMapKeyVal *chain;
+};
+struct HashMap {
+    List<HashMapKeyVal> slots;
+    List<HashMapKeyVal> colls;
+    u32 ncollisions;
+    u32 nresets;
+};
+HashMap InitMap(MArena *a_dest, u32 nslots = 1000) {
+    HashMap map;
+    _memzero(&map, sizeof(HashMap));
+    map.slots = InitList<HashMapKeyVal>(a_dest, nslots);
+    map.slots.len = nslots;
+    map.colls = InitList<HashMapKeyVal>(a_dest, nslots);
+
+    return map;
+}
+
+
+bool MapPut(HashMap *map, u64 key, u64 val) {
+    assert(key != 0 && "null ptr can not be used as a key");
+
+    u32 lower = (u32) key;
+    u32 upper = key << 32;
+    u32 slot = Hash(lower + upper) % map->slots.len;
+    HashMapKeyVal kv_slot = map->slots.lst[slot];
+
+    if (kv_slot.key == 0 || kv_slot.key == key) {
+        if (kv_slot.key == key) {
+            map->nresets++;
+        }
+        // new slot or reset value
+        HashMapKeyVal kv;
+        kv.key = key;
+        kv.val = val;
+        kv.chain = kv_slot.chain;
+        map->slots.lst[slot] = kv;
+    }
+    else {
+        // collision
+        map->ncollisions++;
+
+        HashMapKeyVal *collider = &kv_slot;
+        while (collider->chain != NULL) {
+            collider = collider->chain;
+        }
+        if (map->colls.len == map->slots.len) {
+            return false;
+        }
+
+        // put a new collider onto the list
+        HashMapKeyVal kv_new;
+        _memzero(&kv_new, sizeof(HashMapKeyVal));
+        kv_new.key = key;
+        kv_new.val = val;
+
+        collider->chain = map->colls.Add(kv_new);
+    }
+    return true;
+}
+inline
+bool MapPut(HashMap *map, void *key, void *val) {
+    return MapPut(map, (u64) key, (u64) val);
+}
 
 
 //
@@ -278,6 +353,10 @@ f32 RandPM1_f32() {
     return randnum;
 }
 int RandMinMaxI(int min, int max) {
+    assert(max > min);
+    return McRandom() % (max - min + 1) + min;
+}
+u32 RandMinMaxU(u32 min, u32 max) {
     assert(max > min);
     return McRandom() % (max - min + 1) + min;
 }

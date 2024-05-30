@@ -110,6 +110,7 @@ StrLst *GetFilesExt(const char *extension, const char *path = ".") {
 
 
 MContext *InitBaselayer() {
+    RandInit();
     StringCreateArena();
     return GetContext();
 }
