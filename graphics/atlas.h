@@ -138,7 +138,7 @@ QuadHexaVertex QuadOffset(QuadHexaVertex *q, s16 x, s16 y) {
 
 
 //
-// Glyph & FontAtlas
+// Glyph
 
 
 struct Glyph {
@@ -179,6 +179,10 @@ QuadHexaVertex GlyphQuadCook(Glyph g) {
 
     return q;
 }
+
+
+//
+//  FontAtlas
 
 
 struct FontAtlas {
@@ -238,7 +242,7 @@ void FontAtlasSaveBinary128(MArena *a_tmp, char *filename, FontAtlas atlas) {
 
 
 //
-//  Quad stream & sw/test blitting
+//  sw blitting
 
 
 inline
@@ -249,8 +253,6 @@ u8 SampleTexture(ImageB *tex, f32 x, f32 y) {
     u8 b = tex->img[idx];
     return b;
 }
-
-
 void BlitTextureU8(ImageRGBA img, QuadHexaVertex *q, ImageB *byte_texture = NULL) {
     s32 q_w = q->GetWidth();
     s32 q_h = q->GetHeight();
@@ -314,20 +316,89 @@ void BlitTextureU8(ImageRGBA img, QuadHexaVertex *q, ImageB *byte_texture = NULL
         }
     }
 }
+void BlitQHVs(List<QuadHexaVertex> text, ImageRGBA img, ImageB *texture = NULL) {
+    for (u32 i = 0; i < text.len; ++i) {
+        QuadHexaVertex *q = text.lst + i;
+        BlitTextureU8(img, q, texture);
+    }
+}
+
+
+//
+//  UI elements
+//
+//  UIBox:      Basic rectangular area of the screen
+//  UIPanel:    Configurable panel with a boundary, drawn as two quads on top of each-other
+
+
+struct UIBox {
+    s16 x0;
+    s16 y0;
+    s16 w;
+    s16 h;
+};
+UIBox InitUIBox(s16 left, s16 top, s16 width, s16 height) {
+    UIBox box;
+    box.x0 = left;
+    box.y0 = top;
+    box.w = width;
+    box.h = height;
+    return box;
+}
+
+
+struct Panel {
+    s16 l;
+    s16 t;
+    s16 w;
+    s16 h;
+    s16 border;
+};
+Quad PanelToQuadBorder(Panel pnl) {
+    Quad q;
+    _memzero(&q, sizeof(Quad));
+    q.x0 = pnl.l;
+    q.x1 = pnl.l + pnl.w;
+    q.y0 = pnl.t;
+    q.y1 = pnl.t + pnl.h;
+    q.c = { RGBA_GRAY_75 };
+    return q;
+}
+Quad PanelToQuadCanvas(Panel pnl) {
+    Quad q;
+    _memzero(&q, sizeof(Quad));
+
+    // border overflow
+    if (pnl.border >= pnl.w / 2 || pnl.border >= pnl.w / 2) {
+        return q;
+    }
+
+    q.x0 = pnl.l + pnl.border;
+    q.x1 = pnl.l + pnl.w - pnl.border;
+    q.y0 = pnl.t + pnl.border;
+    q.y1 = pnl.t + pnl.h - pnl.border;
+    q.c = { RGBA_WHITE };
+    return q;
+}
+List<QuadHexaVertex> PanelToHexaVertices(MArena *a_dest, Panel pnl) {
+    List<QuadHexaVertex> verts = InitList<QuadHexaVertex>(a_dest, 2);
+
+    verts.Add(QuadCook(PanelToQuadBorder(pnl)));
+    verts.Add(QuadCook(PanelToQuadCanvas(pnl)));
+
+    return verts;
+}
 
 
 //
 //  Text layout
 //
 //  GlyphPlotter:   Source for laying out text using cooked quads - Atlas input for initialization.
-//  TextBox:        [box: lrwh] Universal text-containing rectangle including all universally possible configurations.
-//
 
 
 struct GlyphPlotter {
     s32 ln_height;
     s32 ln_ascend;
-    // TODO: color
     List<u8> advance_x;
     List<QuadHexaVertex> cooked;
     ImageB texture;
@@ -348,22 +419,6 @@ GlyphPlotter *InitGlyphPlotter(MArena *a_dest, List<Glyph> glyphs, FontAtlas *at
     }
 
     return plt;
-}
-
-
-struct UIBox {
-    s16 x0;
-    s16 y0;
-    s16 w;
-    s16 h;
-};
-UIBox InitUIBox(s16 left, s16 top, s16 width, s16 height) {
-    UIBox box;
-    box.x0 = left;
-    box.y0 = top;
-    box.w = width;
-    box.h = height;
-    return box;
 }
 
 
@@ -492,28 +547,6 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, UIBox *box, GlyphPlotte
     ScaleTextInline(layed_out, scale, box);
 
     return layed_out;
-}
-
-
-
-void BlitTextSequence(char *word, Vector2f txtbox, ImageRGBA img, ImageB texture, List<u8> advances, List<QuadHexaVertex> cooked) {
-    Vector2f pt = txtbox;
-    for (u32 i = 0; i < _strlen(word); ++i) {
-        char c = word[i];
-        QuadHexaVertex q = QuadOffset(cooked.lst + c, pt);
-        pt.x += advances.lst[c];
-
-        BlitTextureU8(img, &q, &texture);
-    }
-}
-
-
-
-void BlitQHVs(List<QuadHexaVertex> text, ImageRGBA img, ImageB *texture = NULL) {
-    for (u32 i = 0; i < text.len; ++i) {
-        QuadHexaVertex *q = text.lst + i;
-        BlitTextureU8(img, q, texture);
-    }
 }
 
 

@@ -320,43 +320,6 @@ void TestPointCloudsBoxesAndSceneGraph() {
 }
 
 
-void TestBlitSomeImage() {
-    printf("TestBlitSomeImage\n");
-
-    EntitySystem *es = InitEntitySystem();
-    GameLoopOne *gl = InitGameLoopOne();
-    Entity *axes = EntityCoordAxes(es, NULL, gl->GetRenderer());
-
-
-    u16 src_w = 500;
-    u16 src_h = 500;
-    const u32 src_len = 500 * 500;
-    assert(src_len == src_w * src_h);
-
-    u16 rect_w = 200;
-    u16 rect_h = 200;
-    Rect blit = InitRectangle(rect_w, rect_h, 0, 0);
-    Color buff[src_len];
-    RandInit();
-    for (u32 i = 0; i < src_len; ++i) {
-        Color c;
-        c.a = 255;
-        //c.r = RandMinMaxI(0, 255);
-        //c.g = RandMinMaxI(0, 255);
-        //c.b = RandMinMaxI(0, 255);
-        c.r = 1;
-        c.g = 255;
-        c.b = 1;
-        buff[i] = c;
-    }
-    ImageRGBX src = InitImageRGBX(&buff[0], src_w, src_h, BYTES_RGBA);
-    Entity *blitbox = EntityBlitBox(es, NULL, blit, src);
-
-    GameLoopJustRun(gl, es);
-}
-
-
-
 void _PrintIndices(const char *prefix, List<u32> idxs) {
     printf("%s", prefix);
     for (u32 i = 0; i < idxs.len; ++i) {
@@ -437,7 +400,6 @@ void TestLayoutGlyphQuads() {
         List<QuadHexaVertex> layed = LayoutText(ctx->a_tmp, txt, &box, plt);
         BlitQHVs(layed, img, &plt->texture);
     }
-
     {
         Str txt = StrLiteral("The other quick brown fox jumps over the other lazy dog");
         UIBox box = InitUIBox( 100, 200, 400, 200 );
@@ -507,49 +469,6 @@ void TestBrownianGlyphs() {
 }
 
 
-struct Panel {
-    s16 l;
-    s16 t;
-    s16 w;
-    s16 h;
-    s16 border;
-};
-Quad PanelToQuadBorder(Panel pnl) {
-    Quad q;
-    _memzero(&q, sizeof(Quad));
-    q.x0 = pnl.l;
-    q.x1 = pnl.l + pnl.w;
-    q.y0 = pnl.t;
-    q.y1 = pnl.t + pnl.h;
-    q.c = { RGBA_GRAY_75 };
-    return q;
-}
-Quad PanelToQuadCanvas(Panel pnl) {
-    Quad q;
-    _memzero(&q, sizeof(Quad));
-
-    // border overflow
-    if (pnl.border >= pnl.w / 2 || pnl.border >= pnl.w / 2) {
-        return q;
-    }
-
-    q.x0 = pnl.l + pnl.border;
-    q.x1 = pnl.l + pnl.w - pnl.border;
-    q.y0 = pnl.t + pnl.border;
-    q.y1 = pnl.t + pnl.h - pnl.border;
-    q.c = { RGBA_WHITE };
-    return q;
-}
-List<QuadHexaVertex> PanelToHexaVertices(MArena *a_dest, Panel pnl) {
-    List<QuadHexaVertex> verts = InitList<QuadHexaVertex>(a_dest, 2);
-
-    verts.Add(QuadCook(PanelToQuadBorder(pnl)));
-    verts.Add(QuadCook(PanelToQuadCanvas(pnl)));
-
-    return verts;
-}
-
-
 void TestUIPanel() {
     printf("TestUIPanel\n");
 
@@ -577,11 +496,10 @@ void TestUIPanel() {
 
 void Test() {
     //TestRandomPCWithNormals();
-    //TestVGROcTree();
-    //TestQuaternionRotMult();
+    //TestVGROcTree(); // TODO: fix
+    //TestQuaternionRotMult(); // TODO: fix
     //TestSlerpAndMat2Quat();
     //TestPointCloudsBoxesAndSceneGraph();
-    //TestBlitSomeImage();
     //TestIndexSetOperations();
     TestLayoutGlyphQuads();
     TestBrownianGlyphs();
