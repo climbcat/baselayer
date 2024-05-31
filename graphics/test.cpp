@@ -426,61 +426,27 @@ void TestIndexSetOperations() {
 void TestLayoutGlyphQuads() {
     printf("TestLayoutGlyphQuads\n");
     MContext *ctx = InitBaselayer();
+    GlyphPlotter *plt = InitFonts();
 
-    // load --ASCII-- atlas
-    FontAtlas *atlas = FontAtlasLoadBinary128(ctx->a_pers, (char*) "output.atlas");
-    atlas->Print();
-    atlas->PrintGlyphsQuick();
-
-    // prepare atlas (TODO: should be part of the load / init function)
     GameLoopOne *loop = InitGameLoopOne();
     ImageRGBA img = loop->GetRenderer()->GetImageAsRGBA();
+
     {
-        List<Glyph> glyphs = atlas->glyphs;
-        List<u8> advances = InitList<u8>(ctx->a_life, 128);
-        List<QuadHexaVertex> cooked = InitList<QuadHexaVertex>(ctx->a_life, 128);
-        for (u32 i = 0; i < 128; ++i) {
-            Glyph g = glyphs.lst[i];
-            QuadHexaVertex q = GlyphQuadCook(g);
-            cooked.lst[i] = q;
-            advances.lst[i] = g.adv_x;
-        }
-
-        // init display
-        ImageB tex { atlas->b_width, atlas->b_height, atlas->bitmap };
-
-        // lahout some text
-        BlitTextSequence( (char*)"The quick brown fox jumps over the lazy dog", Vector2f { 50, 100 }, img, tex, advances, cooked);
+        Str txt = StrLiteral("The quick brown fox jumps over the lazy dog");
+        UIBox box = InitUIBox( 50, 100, 1000, 200 );
+        List<QuadHexaVertex> layed = LayoutText(ctx->a_tmp, txt, &box, plt);
+        BlitQHVs(layed, img, &plt->texture);
     }
 
-    // layout using the glyph plotter
     {
         Str txt = StrLiteral("The other quick brown fox jumps over the other lazy dog");
-        UIBox box = InitUIBox(100, 200, 400, 200);
-
-        GlyphPlotter *plt = InitGlyphPlotter(ctx->a_life, atlas->glyphs, atlas);
+        UIBox box = InitUIBox( 100, 200, 400, 200 );
         List<QuadHexaVertex> layed = LayoutText(ctx->a_tmp, txt, &box, plt);
-        BlitText(layed, img, plt->texture);
+        BlitQHVs(layed, img, &plt->texture);
     }
 
     // display
     loop->JustShowBuffer();
-}
-
-
-GlyphPlotter *InitFonts() {
-    // TODO: what should we do when we have many atlas files?
-
-    MContext *ctx = InitBaselayer();
-    StrLst *fonts = GetFilesExt("atlas");
-    GlyphPlotter *plt;
-    while (fonts != NULL) {
-        FontAtlas *atlas = FontAtlasLoadBinary128(ctx->a_life, (char*) "output.atlas");
-        plt = InitGlyphPlotter(ctx->a_life, atlas->glyphs, atlas);
-
-        fonts = fonts->next;
-    }
-    return plt;
 }
 
 
@@ -508,8 +474,8 @@ void TestBrownianGlyphs() {
         {
             TimeBlock("blitting");
 
-            BlitText(layed, img, plt->texture);
-            BlitText(label, img, plt->texture);
+            BlitQHVs(layed, img, &plt->texture);
+            BlitQHVs(label, img, &plt->texture);
         }
 
         {
@@ -596,7 +562,7 @@ void TestUIPanel() {
 
     while (loop->GameLoopRunning()) {
         loop->ImageBufferClear();
-        BlitSolidQuads(layed, img);
+        BlitQHVs(layed, img);
 
         loop->ImageBufferDrawAndSwap();
         XSleep(10);
@@ -617,7 +583,7 @@ void Test() {
     //TestPointCloudsBoxesAndSceneGraph();
     //TestBlitSomeImage();
     //TestIndexSetOperations();
-    //TestLayoutGlyphQuads();
+    TestLayoutGlyphQuads();
     TestBrownianGlyphs();
     TestUIPanel();
 }

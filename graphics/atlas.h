@@ -36,45 +36,54 @@ QuadVertex InitQuadVertex(Vector2f pos, Vector2f tex, Color col) {
 struct QuadHexaVertex { // renderable six-vertex quad
     QuadVertex verts[6];
 
+    inline
     Color GetColor() {
         return verts[0].col;
     }
+    inline
     s32 GetWidth() {
         s32 x0 = (s32) verts[2].pos.x;
         s32 x1 = (s32) verts[0].pos.x;
         s32 width = x1 - x0;
         return width;
     }
+    inline
     s32 GetHeight() {
         s32 y0 = (s32) verts[0].pos.y;
         s32 y1 = (s32) verts[2].pos.y;
         s32 width = y1 - y0;
         return width;
     }
+    inline
     s32 GetX0() {
         s32 x0 = (s32) verts[2].pos.x;
         return x0;
     }
+    inline
     s32 GetY0() {
         s32 y0 = (s32) verts[0].pos.y;
         return y0;
     }
+    inline
     f32 GetTextureScaleX(s32 dest_width) {
         f32 u0 = verts[2].tex.x;
         f32 u1 = verts[0].tex.x;
         f32 scale_x = (u1 - u0) / dest_width;
         return scale_x;
     }
+    inline
     f32 GetTextureScaleY(s32 dest_height) {
         f32 v0 = verts[0].tex.y;
         f32 v1 = verts[2].tex.y;
         f32 scale_y = (v1 - v0) / dest_height;
         return scale_y;
     }
+    inline
     f32 GetTextureU0() {
         f32 u0 = verts[2].tex.x;
         return u0;
     }
+    inline
     f32 GetTextureV0() {
         f32 v0 = verts[0].tex.y;
         return v0;
@@ -242,110 +251,6 @@ u8 SampleTexture(ImageB *tex, f32 x, f32 y) {
 }
 
 
-////////////////////
-struct TextureCoord {
-    f32 u0;
-    f32 u1;
-    f32 v0;
-    f32 v1;
-
-    f32 GetTextureScaleX(s32 dest_width) {
-        f32 scale_x = (u1 - u0) / dest_width;
-        return scale_x;
-    }
-    f32 GetTextureScaleY(s32 dest_height) {
-        f32 scale_y = (v1 - v0) / dest_height;
-        return scale_y;
-    }
-    f32 GetTextureU0() {
-        return u0;
-    }
-    f32 GetTextureV0() {
-        return v0;
-    }
-};
-inline
-TextureCoord QuadToTextureCoord(QuadHexaVertex *q) {
-    f32 u0 = q->verts[2].tex.x;
-    f32 u1 = q->verts[0].tex.x;
-    f32 v0 = q->verts[0].tex.y;
-    f32 v1 = q->verts[2].tex.y;
-
-    return { u0, u1, v0, v1 };
-}
-
-
-void BlitTextureU8(ImageRGBA img, QuadHexaVertex *q, ImageB *byte_texture = NULL) {
-
-    s32 q_w = q->GetWidth();
-    s32 q_h = q->GetHeight();
-    s32 q_x0 = q->GetX0();
-    s32 q_y0 = q->GetY0();
-    assert(img.height >= q_w);
-    assert(img.width >= q_h);
-
-    TextureCoord coord = QuadToTextureCoord(q);
-
-    u32 stride_img = img.width;
-    if (byte_texture != NULL) {
-
-        f32 scale_x = coord.GetTextureScaleX( q_w );
-        f32 scale_y = coord.GetTextureScaleY( q_h );
-
-        // i,j          : target coords
-        // i_img, j_img : img coords
-
-        for (u32 j = 0; j < q_h; ++j) {
-            s32 j_img = j + q_y0;
-            if (j_img < 0 || j_img > img.height) {
-                continue;
-            }
-
-            for (u32 i = 0; i < q_w; ++i) {
-                u32 i_img = q_x0 + i;
-                if (i_img < 0 || i_img > img.width) {
-                    continue;
-                }
-                f32 x = coord.u0 + i * scale_x;
-                f32 y = coord.v0 + j * scale_y;
-                if (u8 b = SampleTexture(byte_texture, x, y)) {
-                    Color c = { b, b, b, b };
-                    u32 idx = j_img * stride_img + i_img;
-                    img.img[idx] = c;
-                }
-            }
-        }
-    }
-    else {
-        Color color = q->GetColor();
-        s32 j_img;
-        u32 i_img;
-        u32 idx;
-        for (u32 j = 0; j < q_h; ++j) {
-            j_img = j + q_y0;
-            if (j_img < 0 || j_img > img.height) {
-                continue;
-            }
-
-            for (u32 i = 0; i < q_w; ++i) {
-                i_img = q_x0 + i;
-                if (i_img < 0 || i_img > img.width) {
-                    continue;
-                }
-
-                idx = j_img * stride_img + i_img;
-                img.img[idx] = color;
-            }
-        }
-    }
-
-}
-
-////////////////////
-
-
-
-/*
 void BlitTextureU8(ImageRGBA img, QuadHexaVertex *q, ImageB *byte_texture = NULL) {
     s32 q_w = q->GetWidth();
     s32 q_h = q->GetHeight();
@@ -356,12 +261,11 @@ void BlitTextureU8(ImageRGBA img, QuadHexaVertex *q, ImageB *byte_texture = NULL
 
     u32 stride_img = img.width;
     if (byte_texture != NULL) {
-
 
         f32 q_scale_x = q->GetTextureScaleX(q_w);
         f32 q_scale_y = q->GetTextureScaleY(q_h);
         f32 q_u0 = q->GetTextureU0();
-        f32 q_v0 = q->GetTextureU0();
+        f32 q_v0 = q->GetTextureV0();
 
         // i,j          : target coords
         // i_img, j_img : img coords
@@ -409,9 +313,7 @@ void BlitTextureU8(ImageRGBA img, QuadHexaVertex *q, ImageB *byte_texture = NULL
             }
         }
     }
-
 }
-*/
 
 
 //
@@ -593,15 +495,6 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, UIBox *box, GlyphPlotte
 }
 
 
-// TODO: just have a tex_stride parameter, rather than using the technically superfluous ImageB type
-void BlitText(List<QuadHexaVertex> text, ImageRGBA img, ImageB texture) {
-    for (u32 i = 0; i < text.len; ++i) {
-        QuadHexaVertex *q = text.lst + i;
-
-        BlitTextureU8(img, q, &texture);
-    }
-}
-
 
 void BlitTextSequence(char *word, Vector2f txtbox, ImageRGBA img, ImageB texture, List<u8> advances, List<QuadHexaVertex> cooked) {
     Vector2f pt = txtbox;
@@ -613,12 +506,34 @@ void BlitTextSequence(char *word, Vector2f txtbox, ImageRGBA img, ImageB texture
         BlitTextureU8(img, &q, &texture);
     }
 }
-void BlitSolidQuads(List<QuadHexaVertex> solid, ImageRGBA img) {
-    for (u32 i = 0; i < solid.len; ++i) {
-        QuadHexaVertex *q = solid.lst + i;
 
-        BlitTextureU8(img, q);
+
+
+void BlitQHVs(List<QuadHexaVertex> text, ImageRGBA img, ImageB *texture = NULL) {
+    for (u32 i = 0; i < text.len; ++i) {
+        QuadHexaVertex *q = text.lst + i;
+        BlitTextureU8(img, q, texture);
     }
+}
+
+
+//
+// system
+
+
+GlyphPlotter *InitFonts() {
+    // TODO: what should we do when we have many atlas files?
+
+    MContext *ctx = InitBaselayer();
+    StrLst *fonts = GetFilesExt("atlas");
+    GlyphPlotter *plt;
+    while (fonts != NULL) {
+        FontAtlas *atlas = FontAtlasLoadBinary128(ctx->a_life, (char*) "output.atlas");
+        plt = InitGlyphPlotter(ctx->a_life, atlas->glyphs, atlas);
+
+        fonts = fonts->next;
+    }
+    return plt;
 }
 
 
