@@ -456,7 +456,7 @@ void TestLayoutGlyphQuads() {
     // layout using the glyph plotter
     {
         Str txt = StrLiteral("The other quick brown fox jumps over the other lazy dog");
-        TextBox box = InitTextBox(100, 200, 400, 200);
+        UIBox box = InitUIBox(100, 200, 400, 200);
 
         GlyphPlotter *plt = InitGlyphPlotter(ctx->a_life, atlas->glyphs, atlas);
         List<QuadHexaVertex> layed = LayoutText(ctx->a_tmp, txt, &box, plt);
@@ -494,8 +494,8 @@ void TestBrownianGlyphs() {
     ImageRGBA img = loop->GetRenderer()->GetImageAsRGBA();
 
     Str txt = StrLiteral("The quick brown fox jumps over the lazy dog");
-    TextBox box = InitTextBox(470, 340, 400, 300);
-    TextBox lbl = InitTextBox(50, 50, 1000, 200);
+    UIBox box = InitUIBox(470, 340, 400, 300);
+    UIBox lbl = InitUIBox(50, 50, 1000, 200);
 
     List<QuadHexaVertex> layed_org = LayoutText(ctx->a_life, txt, &box, plt);
     List<QuadHexaVertex> layed = LayoutText(ctx->a_pers, txt, &box, plt);
@@ -618,6 +618,6 @@ void Test() {
     //TestBlitSomeImage();
     //TestIndexSetOperations();
     //TestLayoutGlyphQuads();
-    //TestBrownianGlyphs();
+    TestBrownianGlyphs();
     TestUIPanel();
 }
