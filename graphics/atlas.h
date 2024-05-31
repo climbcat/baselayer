@@ -39,6 +39,26 @@ struct QuadHexaVertex { // renderable six-vertex quad
     Color GetColor() {
         return verts[0].col;
     }
+    s32 GetWidth() {
+        s32 x0 = (s32) verts[2].pos.x;
+        s32 x1 = (s32) verts[0].pos.x;
+        s32 width = x1 - x0;
+        return width;
+    }
+    s32 GetHeight() {
+        s32 y0 = (s32) verts[0].pos.y;
+        s32 y1 = (s32) verts[2].pos.y;
+        s32 width = y1 - y0;
+        return width;
+    }
+    s32 GetX0() {
+        s32 x0 = (s32) verts[2].pos.x;
+        return x0;
+    }
+    s32 GetY0() {
+        s32 y0 = (s32) verts[0].pos.y;
+        return y0;
+    }
     f32 GetTextureScaleX(s32 dest_width) {
         f32 u0 = verts[2].tex.x;
         f32 u1 = verts[0].tex.x;
@@ -212,6 +232,17 @@ void FontAtlasSaveBinary128(MArena *a_tmp, char *filename, FontAtlas atlas) {
 //  Quad stream & sw/test blitting
 
 
+inline
+u8 SampleTexture(ImageB *tex, f32 x, f32 y) {
+    u32 i = (s32) round(tex->width * x);
+    u32 j = (s32) round(tex->height * y);
+    u32 idx = tex->width * j + i;
+    u8 b = tex->img[idx];
+    return b;
+}
+
+
+////////////////////
 struct TextureCoord {
     f32 u0;
     f32 u1;
@@ -242,60 +273,36 @@ TextureCoord QuadToTextureCoord(QuadHexaVertex *q) {
 
     return { u0, u1, v0, v1 };
 }
-inline
-u8 SampleTexture(ImageB *tex, f32 x, f32 y) {
-    u32 i = (s32) round(tex->width * x);
-    u32 j = (s32) round(tex->height * y);
-    u32 idx = tex->width * j + i;
-    u8 b = tex->img[idx];
-    return b;
-}
-
-
-struct BlitRect {
-    s32 x0;
-    s32 x1;
-    s32 y0;
-    s32 y1;
-
-    inline s32 GetWidth() { return x1 - x0; }
-    inline s32 GetHeight() { return y1 - y0; }
-};
-inline
-BlitRect QuadToBlitRect(QuadHexaVertex *q) {
-    s32 x0 = (s32) q->verts[2].pos.x;
-    s32 x1 = (s32) q->verts[0].pos.x;
-    s32 y0 = (s32) q->verts[0].pos.y;
-    s32 y1 = (s32) q->verts[2].pos.y;
-
-    return { x0, x1, y0, y1 };
-}
 
 
 void BlitTextureU8(ImageRGBA img, QuadHexaVertex *q, ImageB *byte_texture = NULL) {
-    TextureCoord coord = QuadToTextureCoord(q);
-    BlitRect into = QuadToBlitRect(q);
 
-    assert(img.height >= into.GetHeight());
-    assert(img.width >= into.GetWidth());
+    s32 q_w = q->GetWidth();
+    s32 q_h = q->GetHeight();
+    s32 q_x0 = q->GetX0();
+    s32 q_y0 = q->GetY0();
+    assert(img.height >= q_w);
+    assert(img.width >= q_h);
+
+    TextureCoord coord = QuadToTextureCoord(q);
 
     u32 stride_img = img.width;
     if (byte_texture != NULL) {
 
-        f32 scale_x = coord.GetTextureScaleX( into.GetWidth() );
-        f32 scale_y = coord.GetTextureScaleY( into.GetHeight() );
+        f32 scale_x = coord.GetTextureScaleX( q_w );
+        f32 scale_y = coord.GetTextureScaleY( q_h );
 
         // i,j          : target coords
         // i_img, j_img : img coords
 
-        for (u32 j = 0; j < into.GetHeight(); ++j) {
-            s32 j_img = j + into.y0;
+        for (u32 j = 0; j < q_h; ++j) {
+            s32 j_img = j + q_y0;
             if (j_img < 0 || j_img > img.height) {
                 continue;
             }
 
-            for (u32 i = 0; i < into.GetWidth(); ++i) {
-                u32 i_img = into.x0 + i;
+            for (u32 i = 0; i < q_w; ++i) {
+                u32 i_img = q_x0 + i;
                 if (i_img < 0 || i_img > img.width) {
                     continue;
                 }
@@ -314,14 +321,14 @@ void BlitTextureU8(ImageRGBA img, QuadHexaVertex *q, ImageB *byte_texture = NULL
         s32 j_img;
         u32 i_img;
         u32 idx;
-        for (u32 j = 0; j < into.GetHeight(); ++j) {
-            j_img = j + into.y0;
+        for (u32 j = 0; j < q_h; ++j) {
+            j_img = j + q_y0;
             if (j_img < 0 || j_img > img.height) {
                 continue;
             }
 
-            for (u32 i = 0; i < into.GetWidth(); ++i) {
-                i_img = into.x0 + i;
+            for (u32 i = 0; i < q_w; ++i) {
+                i_img = q_x0 + i;
                 if (i_img < 0 || i_img > img.width) {
                     continue;
                 }
@@ -333,6 +340,78 @@ void BlitTextureU8(ImageRGBA img, QuadHexaVertex *q, ImageB *byte_texture = NULL
     }
 
 }
+
+////////////////////
+
+
+
+/*
+void BlitTextureU8(ImageRGBA img, QuadHexaVertex *q, ImageB *byte_texture = NULL) {
+    s32 q_w = q->GetWidth();
+    s32 q_h = q->GetHeight();
+    s32 q_x0 = q->GetX0();
+    s32 q_y0 = q->GetY0();
+    assert(img.height >= q_w);
+    assert(img.width >= q_h);
+
+    u32 stride_img = img.width;
+    if (byte_texture != NULL) {
+
+
+        f32 q_scale_x = q->GetTextureScaleX(q_w);
+        f32 q_scale_y = q->GetTextureScaleY(q_h);
+        f32 q_u0 = q->GetTextureU0();
+        f32 q_v0 = q->GetTextureU0();
+
+        // i,j          : target coords
+        // i_img, j_img : img coords
+
+        for (u32 j = 0; j < q_h; ++j) {
+            s32 j_img = j + q_y0;
+            if (j_img < 0 || j_img > img.height) {
+                continue;
+            }
+
+            for (u32 i = 0; i < q_w; ++i) {
+                u32 i_img = q_x0 + i;
+                if (i_img < 0 || i_img > img.width) {
+                    continue;
+                }
+                f32 x = q_u0 + i * q_scale_x;
+                f32 y = q_v0 + j * q_scale_y;
+                if (u8 b = SampleTexture(byte_texture, x, y)) {
+                    Color c = { b, b, b, b };
+                    u32 idx = j_img * stride_img + i_img;
+                    img.img[idx] = c;
+                }
+            }
+        }
+    }
+    else {
+        Color color = q->GetColor();
+        s32 j_img;
+        u32 i_img;
+        u32 idx;
+        for (u32 j = 0; j < q_h; ++j) {
+            j_img = j + q_y0;
+            if (j_img < 0 || j_img > img.height) {
+                continue;
+            }
+
+            for (u32 i = 0; i < q_w; ++i) {
+                i_img = q_x0 + i;
+                if (i_img < 0 || i_img > img.width) {
+                    continue;
+                }
+
+                idx = j_img * stride_img + i_img;
+                img.img[idx] = color;
+            }
+        }
+    }
+
+}
+*/
 
 
 //
