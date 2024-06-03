@@ -394,19 +394,23 @@ void TestLayoutGlyphQuads() {
     GameLoopOne *loop = InitGameLoopOne();
     ImageRGBA img = loop->GetRenderer()->GetImageAsRGBA();
 
+    List<QuadHexaVertex> layed;
+    List<QuadHexaVertex> layed_2;
     {
+
         Str txt = StrLiteral("The quick brown fox jumps over the lazy dog");
         UIBox box = InitUIBox( 50, 100, 1000, 200 );
-        List<QuadHexaVertex> layed = LayoutText(ctx->a_tmp, txt, &box, plt);
-        BlitQHVs(layed, img, &plt->texture);
-    }
-    {
-        Str txt = StrLiteral("The other quick brown fox jumps over the other lazy dog");
-        UIBox box = InitUIBox( 100, 200, 400, 200 );
-        List<QuadHexaVertex> layed = LayoutText(ctx->a_tmp, txt, &box, plt);
-        BlitQHVs(layed, img, &plt->texture);
-    }
 
+        Str txt_2 = StrLiteral("The other quick brown fox jumps over the other lazy dog");
+        UIBox box_2 = InitUIBox( 100, 200, 400, 200 );
+        layed = LayoutText(ctx->a_pers, txt, &box, plt);
+        layed_2 = LayoutText(ctx->a_pers, txt_2, &box_2, plt);
+        layed.len += layed_2.len;
+    }
+    assert(layed.lst + layed.len == layed_2.lst);
+
+    BlitQHVs(layed, img, &plt->texture);
+    BlitQHVs(layed, img, &plt->texture);
     // display
     loop->JustShowBuffer();
 }
@@ -475,13 +479,25 @@ void TestUIPanel() {
     MContext *ctx = InitBaselayer();
     GameLoopOne *loop = InitGameLoopOne();
     ImageRGBA img = loop->GetRenderer()->GetImageAsRGBA();
+    GlyphPlotter *plt = InitFonts();
 
     Panel pnl { 100, 100, 400, 250, 4 };
+
+    Str txt = StrLiteral("The quick brown fox jumps over the lazy dog");
+    UIBox box = InitUIBox( 50, 100, 1000, 200 );
+    Str txt_2 = StrLiteral("The other quick brown fox jumps over the other lazy dog");
+    UIBox box_2 = InitUIBox( 100, 200, 400, 200 );
+
     List<QuadHexaVertex> layed = PanelToHexaVertices(ctx->a_pers, pnl);
+    List<QuadHexaVertex> layed_1 = LayoutText(ctx->a_pers, txt, &box, plt);
+    layed.len += layed_1.len;
+    List<QuadHexaVertex> layed_2 = LayoutText(ctx->a_pers, txt_2, &box_2, plt);
+    layed.len += layed_2.len;
 
     while (loop->GameLoopRunning()) {
         loop->ImageBufferClear();
-        BlitQHVs(layed, img);
+
+        BlitQHVs(layed, img, &plt->texture);
 
         loop->ImageBufferDrawAndSwap();
         XSleep(10);
@@ -501,7 +517,7 @@ void Test() {
     //TestSlerpAndMat2Quat();
     //TestPointCloudsBoxesAndSceneGraph();
     //TestIndexSetOperations();
-    TestLayoutGlyphQuads();
-    TestBrownianGlyphs();
+    //TestLayoutGlyphQuads();
+    //TestBrownianGlyphs();
     TestUIPanel();
 }

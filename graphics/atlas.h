@@ -41,6 +41,12 @@ struct QuadHexaVertex { // renderable six-vertex quad
         return verts[0].col;
     }
     inline
+    void SetColor(Color color) {
+        for (u32 i = 0; i < 6; ++i) {
+            verts[i].col = color;
+        }
+    }
+    inline
     s32 GetWidth() {
         s32 x0 = (s32) verts[2].pos.x;
         s32 x1 = (s32) verts[0].pos.x;
@@ -88,6 +94,17 @@ struct QuadHexaVertex { // renderable six-vertex quad
         f32 v0 = verts[0].tex.y;
         return v0;
     }
+    f32 GetTextureWidth() {
+        f32 u0 = verts[2].tex.x;
+        f32 u1 = verts[0].tex.x;
+        return u1 - u0;
+    }
+    inline
+    f32 GetTextureHeight() {
+        f32 v0 = verts[0].tex.y;
+        f32 v1 = verts[2].tex.y;
+        return v1 - v0;
+    }
 };
 QuadHexaVertex QuadCook(Quad q) {
     // lays down two three-vertex triangles: T1 = [ urc->lrc->llc ] and T2 = [ llc->ulc->urc ]
@@ -125,12 +142,13 @@ QuadHexaVertex QuadOffset(QuadHexaVertex *q, Vector2f os) {
     return out;
 }
 inline
-QuadHexaVertex QuadOffset(QuadHexaVertex *q, s16 x, s16 y) {
+QuadHexaVertex QuadOffset(QuadHexaVertex *q, s16 x, s16 y, Color color) {
     QuadHexaVertex out;
     for (u32 i = 0; i < 6; ++i) {
         QuadVertex v = *(q->verts + i);
         v.pos.x += x;
         v.pos.y += y;
+        v.col = color;
         out.verts[i] = v;
     }
     return out;
@@ -245,6 +263,11 @@ void FontAtlasSaveBinary128(MArena *a_tmp, char *filename, FontAtlas atlas) {
 //  sw blitting
 
 
+struct QHVHdr {
+    u32 texture;
+};
+
+
 inline
 u8 SampleTexture(ImageB *tex, f32 x, f32 y) {
     u32 i = (s32) round(tex->width * x);
@@ -253,73 +276,76 @@ u8 SampleTexture(ImageB *tex, f32 x, f32 y) {
     u8 b = tex->img[idx];
     return b;
 }
-void BlitTextureU8(ImageRGBA img, QuadHexaVertex *q, ImageB *byte_texture = NULL) {
-    s32 q_w = q->GetWidth();
-    s32 q_h = q->GetHeight();
-    s32 q_x0 = q->GetX0();
-    s32 q_y0 = q->GetY0();
-    assert(img.height >= q_w);
-    assert(img.width >= q_h);
-
-    u32 stride_img = img.width;
-    if (byte_texture != NULL) {
-
-        f32 q_scale_x = q->GetTextureScaleX(q_w);
-        f32 q_scale_y = q->GetTextureScaleY(q_h);
-        f32 q_u0 = q->GetTextureU0();
-        f32 q_v0 = q->GetTextureV0();
-
-        // i,j          : target coords
-        // i_img, j_img : img coords
-
-        for (u32 j = 0; j < q_h; ++j) {
-            s32 j_img = j + q_y0;
-            if (j_img < 0 || j_img > img.height) {
-                continue;
-            }
-
-            for (u32 i = 0; i < q_w; ++i) {
-                u32 i_img = q_x0 + i;
-                if (i_img < 0 || i_img > img.width) {
-                    continue;
-                }
-                f32 x = q_u0 + i * q_scale_x;
-                f32 y = q_v0 + j * q_scale_y;
-                if (u8 b = SampleTexture(byte_texture, x, y)) {
-                    Color c = { b, b, b, b };
-                    u32 idx = j_img * stride_img + i_img;
-                    img.img[idx] = c;
-                }
-            }
-        }
-    }
-    else {
-        Color color = q->GetColor();
-        s32 j_img;
-        u32 i_img;
-        u32 idx;
-        for (u32 j = 0; j < q_h; ++j) {
-            j_img = j + q_y0;
-            if (j_img < 0 || j_img > img.height) {
-                continue;
-            }
-
-            for (u32 i = 0; i < q_w; ++i) {
-                i_img = q_x0 + i;
-                if (i_img < 0 || i_img > img.width) {
-                    continue;
-                }
-
-                idx = j_img * stride_img + i_img;
-                img.img[idx] = color;
-            }
-        }
-    }
-}
 void BlitQHVs(List<QuadHexaVertex> text, ImageRGBA img, ImageB *texture = NULL) {
     for (u32 i = 0; i < text.len; ++i) {
+        if (i == 34) {
+            printf("hest");
+        }
+
         QuadHexaVertex *q = text.lst + i;
-        BlitTextureU8(img, q, texture);
+        bool has_tex_coords = q->GetTextureWidth() > 0;
+
+        s32 q_w = q->GetWidth();
+        s32 q_h = q->GetHeight();
+        s32 q_x0 = q->GetX0();
+        s32 q_y0 = q->GetY0();
+        assert(img.height >= q_w);
+        assert(img.width >= q_h);
+
+        u32 stride_img = img.width;
+        Color color = q->GetColor();
+        if (texture != NULL && has_tex_coords == true) {
+
+            f32 q_scale_x = q->GetTextureScaleX(q_w);
+            f32 q_scale_y = q->GetTextureScaleY(q_h);
+            f32 q_u0 = q->GetTextureU0();
+            f32 q_v0 = q->GetTextureV0();
+
+            // i,j          : target coords
+            // i_img, j_img : img coords
+
+            for (u32 j = 0; j < q_h; ++j) {
+                s32 j_img = j + q_y0;
+                if (j_img < 0 || j_img > img.height) {
+                    continue;
+                }
+
+                for (u32 i = 0; i < q_w; ++i) {
+                    u32 i_img = q_x0 + i;
+                    if (i_img < 0 || i_img > img.width) {
+                        continue;
+                    }
+                    f32 x = q_u0 + i * q_scale_x;
+                    f32 y = q_v0 + j * q_scale_y;
+                    if (u8 b = SampleTexture(texture, x, y)) {
+                        color.a = b;
+                        u32 idx = j_img * stride_img + i_img;
+                        img.img[idx] = color;
+                    }
+                }
+            }
+        }
+        else {
+            s32 j_img;
+            u32 i_img;
+            u32 idx;
+            for (u32 j = 0; j < q_h; ++j) {
+                j_img = j + q_y0;
+                if (j_img < 0 || j_img > img.height) {
+                    continue;
+                }
+
+                for (u32 i = 0; i < q_w; ++i) {
+                    i_img = q_x0 + i;
+                    if (i_img < 0 || i_img > img.width) {
+                        continue;
+                    }
+
+                    idx = j_img * stride_img + i_img;
+                    img.img[idx] = color;
+                }
+            }
+        }
     }
 }
 
@@ -505,7 +531,7 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, UIBox *box, GlyphPlotte
     u32 i = 0;
     Str s = txt;
 
-    List<QuadHexaVertex> layed_out = InitList<QuadHexaVertex>(a_dest, txt.len * sizeof(QuadHexaVertex));
+    List<QuadHexaVertex> layed_out = InitList<QuadHexaVertex>(a_dest, 0);
     while (s.len > 0) {
         // while words
 
@@ -534,10 +560,12 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, UIBox *box, GlyphPlotte
         }
 
         // lay out word
+        Color color = Color { RGBA_BLACK };
         for (u32 j = 0; j < w_len; ++j) {
             char c = s.str[j];
-            QuadHexaVertex q = QuadOffset(plt->cooked.lst + c, pt_x, pt_y);
+            QuadHexaVertex q = QuadOffset(plt->cooked.lst + c, pt_x, pt_y, color);
             pt_x += plt->advance_x.lst[c];
+            ArenaAlloc(a_dest, sizeof(QuadHexaVertex));
             layed_out.Add(q);
         }
         s = StrInc(s, w_len);
