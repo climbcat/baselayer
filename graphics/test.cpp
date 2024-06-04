@@ -443,8 +443,11 @@ void TestUIPanel() {
     GameLoopOne *loop = InitGraphics();
 
     LayoutPanel(80, 140, 400, 250, 4);
-    LayoutText("The quick brown fox jumps over the lazy dog", 50, 100, 1000, 200, ColorWhite());
-    LayoutText("The other quick brown fox jumps over the other lazy dog", 100, 200, 400, 200, ColorBlack());
+    LayoutText("The quick brown fox jumps over the lazy dog", 50, 80, 1000, 200, ColorWhite());
+
+    // TODO: what is going on with plt->ln_ascend? (It is always zero, we actually need that number)
+    SetFontAndSize(FS_30);
+    LayoutText("The other quick brown fox jumps over the other lazy dog", 80, 140, 400, 250, ColorBlack());
 
     while (loop->GameLoopRunning()) {
         loop->FrameStart2D();
@@ -465,7 +468,7 @@ void Test() {
     //TestSlerpAndMat2Quat();
     //TestPointCloudsBoxesAndSceneGraph();
     //TestIndexSetOperations();
-    TestLayoutGlyphQuads();
-    TestBrownianGlyphs();
+    //TestLayoutGlyphQuads();
+    //TestBrownianGlyphs();
     TestUIPanel();
 }
