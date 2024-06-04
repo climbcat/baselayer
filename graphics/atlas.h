@@ -278,10 +278,6 @@ u8 SampleTexture(ImageB *tex, f32 x, f32 y) {
 }
 void BlitQHVs(List<QuadHexaVertex> text, ImageRGBA img, ImageB *texture = NULL) {
     for (u32 i = 0; i < text.len; ++i) {
-        if (i == 34) {
-            printf("hest");
-        }
-
         QuadHexaVertex *q = text.lst + i;
         bool has_tex_coords = q->GetTextureWidth() > 0;
 
