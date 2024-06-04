@@ -311,6 +311,10 @@ DrawCall InitDrawCall(List<QuadHexaVertex> quads, u32 texture) {
     dc.texture = texture;
     return dc;
 }
+DrawCall InitDrawCallEmpty() {
+    static DrawCall empty;
+    return empty;
+}
 
 
 inline
@@ -416,13 +420,15 @@ Widget InitWidget(s16 x0, s16 y0, s16 w, s16 h) {
 }
 
 
-List<QuadHexaVertex> LayoutPanel(MArena *a_dest, s32 l, s32 t, s32 w, s32 h, s32 border) {
+DrawCall LayoutPanel(MArena *a_dest, s32 l, s32 t, s32 w, s32 h, s32 border) {
     // border overflow
     if (border >= w / 2 || border >= w / 2) {
-        return List<QuadHexaVertex> { NULL, 0 };
+        return InitDrawCallEmpty();
     }
 
-    List<QuadHexaVertex> verts = InitList<QuadHexaVertex>(a_dest, 2);
+    DrawCall dc;
+    dc.texture = 0;
+    dc.quads = InitList<QuadHexaVertex>(a_dest, 2);
     {
         Quad q;
         _memzero(&q, sizeof(Quad));
@@ -431,7 +437,7 @@ List<QuadHexaVertex> LayoutPanel(MArena *a_dest, s32 l, s32 t, s32 w, s32 h, s32
         q.y0 = t;
         q.y1 = t + h;
         q.c = ColorGray(75);
-        verts.Add(QuadCook(q));
+        dc.quads.Add(QuadCook(q));
     }
     {
         Quad q;
@@ -441,10 +447,10 @@ List<QuadHexaVertex> LayoutPanel(MArena *a_dest, s32 l, s32 t, s32 w, s32 h, s32
         q.y0 = t + border;
         q.y1 = t + h - border;
         q.c = ColorWhite();
-        verts.Add(QuadCook(q));
+        dc.quads.Add(QuadCook(q));
     }
 
-    return verts;
+    return dc;
 }
 
 
@@ -524,7 +530,7 @@ void DoNewLine(s32 ln_height, s32 left, s32 *pt_x, s32 *pt_y) {
 void DoWhiteSpace(s32 space_width, s32 *pt_x) {
     *pt_x += space_width;
 }
-List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, s32 x0, s32 y0, s32 w, s32 h, Color color, f32 scale = 1.0f) {
+DrawCall LayoutText(MArena *a_dest, Str txt, s32 x0, s32 y0, s32 w, s32 h, Color color, f32 scale = 1.0f) {
     assert(g_text_plotter != NULL && "init text plotters first");
     GlyphPlotter *plt = g_text_plotter;
 
@@ -561,7 +567,10 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, s32 x0, s32 y0, s32 w, 
             }
             else {
                 // ran out of space, exit
-                return layed_out;
+                DrawCall dc;
+                dc.texture = 0;
+                dc.quads = layed_out;
+                return dc;
             }
         }
 
@@ -579,7 +588,10 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, s32 x0, s32 y0, s32 w, 
 
     ScaleTextInline(layed_out, scale, x0, y0, w, h);
 
-    return layed_out;
+    DrawCall dc;
+    dc.texture = 0;
+    dc.quads = layed_out;
+    return dc;
 }
 
 
