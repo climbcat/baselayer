@@ -257,10 +257,6 @@ void FontAtlasSaveBinary128(MArena *a_tmp, char *filename, FontAtlas atlas) {
 }
 
 
-//
-//  sw blitting
-
-
 struct GlyphPlotter {
     s32 ln_height;
     s32 ln_ascend;
@@ -268,14 +264,7 @@ struct GlyphPlotter {
     List<QuadHexaVertex> cooked;
     ImageB texture;
 };
-static GlyphPlotter *g_text_plotter;
 GlyphPlotter *InitGlyphPlotter(MArena *a_dest, List<Glyph> glyphs, FontAtlas *atlas) {
-    if (g_text_plotter != NULL) {
-        printf("WARN: text plotter re-initialized | TODO: put plotters in a has map\n");
-        return g_text_plotter;
-    }
-
-
     GlyphPlotter *plt = (GlyphPlotter *) ArenaAlloc(a_dest, sizeof(GlyphPlotter));
     plt->advance_x = InitList<u8>(a_dest, 128);
     plt->cooked = InitList<QuadHexaVertex>(a_dest, 128 * sizeof(QuadHexaVertex));
@@ -290,24 +279,75 @@ GlyphPlotter *InitGlyphPlotter(MArena *a_dest, List<Glyph> glyphs, FontAtlas *at
         plt->advance_x.lst[i] = g.adv_x;
     }
 
-    g_text_plotter = plt;
+    return plt;
+}
+
+
+enum FontSize {
+    FS_18,
+    FS_24,
+    FS_30,
+    FS_36,
+    FS_48,
+    FS_60,
+    FS_72,
+    FS_84,
+
+    FS_CNT,
+};
+//  Notes on fonts and sizes: 
+//
+//  ATM, there are 8 different sizes, and only one font. 
+//  When fonts are loaded dynamically, there will be 8 * nfonts entries in the pointer list, and 
+//  a slightly more complicated keying. Maybe we can just add 8*font_idx to the font_size.
+static HashMap g_font_map;
+static GlyphPlotter *g_text_plotter;
+GlyphPlotter *SetFontAndSize(FontSize font_size /*, Font font_name*/) {
+    u64 sz_px = 0;
+    switch (font_size) {
+        case FS_18: sz_px = 18; break;
+        case FS_24: sz_px = 24; break;
+        case FS_30: sz_px = 30; break;
+        case FS_36: sz_px = 36; break;
+        case FS_48: sz_px = 48; break;
+        case FS_60: sz_px = 60; break;
+        case FS_72: sz_px = 72; break;
+        case FS_84: sz_px = 84; break;
+        default: break;
+    }
+    u64 val = MapGet(&g_font_map, sz_px);
+    g_text_plotter = (GlyphPlotter*) val;
     return g_text_plotter;
 }
 void InitFonts() {
     MContext *ctx = InitBaselayer();
 
-    // TODO: init many atlasi / plotters in a storage hash-map
-
     StrLst *fonts = GetFilesExt("atlas");
-    while (fonts != NULL) {
-        //FontAtlas *atlas = FontAtlasLoadBinary128(ctx->a_life, (char*) "output.atlas");
-        FontAtlas *atlas = FontAtlasLoadBinary128(ctx->a_life, StrZeroTerm( fonts->GetStr() ));
-        InitGlyphPlotter(ctx->a_life, atlas->glyphs, atlas);
+    u32 font_cnt = StrListLen(fonts);
+    printf("loading %u (.atlas) font files\n", font_cnt);
 
+    g_font_map = InitMap(ctx->a_life, font_cnt);
+    while (fonts != NULL) {
+        FontAtlas *atlas = FontAtlasLoadBinary128(ctx->a_life, StrZeroTerm( fonts->GetStr() ));
+        GlyphPlotter *plt = InitGlyphPlotter(ctx->a_life, atlas->glyphs, atlas);
+
+        MapPut(&g_font_map, atlas->sz_px, plt);
         fonts = fonts->next;
     }
+
+    // TODO: these font sizes don't work, for some reason ???
+    //SetFontAndSize(FS_72);
+    //SetFontAndSize(FS_48);
+    //SetFontAndSize(FS_36);
+
+    SetFontAndSize(FS_60);
 }
 
+
+//
+//  Blitting / Sprite Rendering
+//
+//  DrawCall
 
 
 struct DrawCall {
@@ -316,7 +356,6 @@ struct DrawCall {
 };
 ImageB *DC_GetTexture(u32 id) {
     assert(g_text_plotter != NULL && "init a glyph plotter first");
-    // TODO: get sprite map texture by id
     return &g_text_plotter->texture;
 }
 DrawCall InitDrawCall(List<QuadHexaVertex> quads, u32 texture) {

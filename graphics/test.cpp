@@ -400,8 +400,8 @@ void TestLayoutGlyphQuads() {
     MContext *ctx = InitBaselayer();
     GameLoopOne *loop = InitGraphics();
 
-    SR_Push( LayoutText(ctx->a_pers, "The quick brown fox jumps over the lazy dog", 50, 100, 1000, 200, ColorRandom()) );
-    SR_Push( LayoutText(ctx->a_pers, "The other quick brown fox jumps over the other lazy dog", 100, 200, 400, 200, ColorRandom() ));
+    SR_Push( LayoutText("The quick brown fox jumps over the lazy dog", 50, 100, 1000, 200, ColorRandom()) );
+    SR_Push( LayoutText("The other quick brown fox jumps over the other lazy dog", 100, 200, 400, 200, ColorRandom() ));
 
     SR_Render();
     loop->JustShowBuffer();

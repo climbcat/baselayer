@@ -66,7 +66,12 @@ bool ArenaSave(MArena *a, const char *filename) {
 Str StrBasename(char *path) {
     assert(g_a_strings != NULL && "init strings first");
 
-    return StrSplit(StrLiteral(path), '.')->GetStr();
+    Str before_ext = StrSplit(StrLiteral(path), '.')->GetStr();
+    StrLst* slashes = StrSplit(before_ext, '/');
+    while (slashes->next) {
+        slashes = slashes->next;
+    }
+    return slashes->GetStr();
 }
 Str StrBasename(Str path) {
     return StrBasename(StrZeroTerm(path));
