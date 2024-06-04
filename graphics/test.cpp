@@ -398,12 +398,9 @@ void TestLayoutGlyphQuads() {
     List<QuadHexaVertex> layed_2;
     {
         Str txt = StrLiteral("The quick brown fox jumps over the lazy dog");
-        UIBox box = InitUIBox( 50, 100, 1000, 200 );
-
         Str txt_2 = StrLiteral("The other quick brown fox jumps over the other lazy dog");
-        UIBox box_2 = InitUIBox( 100, 200, 400, 200 );
-        layed = LayoutText(ctx->a_pers, txt, &box, plt, ColorRandom());
-        layed_2 = LayoutText(ctx->a_pers, txt_2, &box_2, plt, ColorRandom());
+        layed = LayoutText(ctx->a_pers, txt, 50, 100, 1000, 200, plt, ColorRandom());
+        layed_2 = LayoutText(ctx->a_pers, txt_2, 100, 200, 400, 200, plt, ColorRandom());
         assert(layed.lst + layed.len == layed_2.lst);
         layed.len += layed_2.len;
     }
@@ -426,10 +423,7 @@ void TestBrownianGlyphs() {
     ImageRGBA img = loop->GetRenderer()->GetImageAsRGBA();
 
     Str txt = StrLiteral("The quick brown fox jumps over the lazy dog");
-    UIBox box = InitUIBox(470, 340, 400, 300);
-    UIBox lbl = InitUIBox(50, 50, 1000, 200);
-
-    List<QuadHexaVertex> _layed_org = LayoutText(ctx->a_life, txt, &box, plt, ColorRandom());
+    List<QuadHexaVertex> _layed_org = LayoutText(ctx->a_life, txt, 470, 340, 400, 300, plt, ColorRandom());
     // assign random colors to each char quad
     for (u32 i = 0; i < _layed_org.len; ++i) {
         QuadHexaVertex *q = _layed_org.lst + i;
@@ -441,10 +435,10 @@ void TestBrownianGlyphs() {
     }
 
     DrawCall layed_org = InitDrawCall(_layed_org, 0);
-    List<QuadHexaVertex> _layed = LayoutText(ctx->a_pers, txt, &box, plt);
+    List<QuadHexaVertex> _layed = LayoutText(ctx->a_pers, txt, 470, 340, 400, 300, plt, ColorBlack());
     DrawCall layed = InitDrawCall(_layed, 0);
     _memcpy(layed.quads.lst, layed_org.quads.lst, sizeof(QuadHexaVertex) * layed.quads.len);
-    List<QuadHexaVertex> _label = LayoutText(ctx->a_life, StrLiteral("press space to reset:"), &lbl, plt, ColorRandom(), 0.6f);
+    List<QuadHexaVertex> _label = LayoutText(ctx->a_life, StrLiteral("press space to reset:"), 50, 50, 1000, 200, plt, ColorRandom(), 0.6f);
     DrawCall label = InitDrawCall(_label, 0);
 
     RandInit();
@@ -495,17 +489,13 @@ void TestUIPanel() {
     ImageRGBA img = loop->GetRenderer()->GetImageAsRGBA();
     GlyphPlotter *plt = InitFonts();
 
-    Panel pnl { 100, 100, 400, 250, 4 };
-
     Str txt = StrLiteral("The quick brown fox jumps over the lazy dog");
-    UIBox box = InitUIBox( 50, 100, 1000, 200 );
     Str txt_2 = StrLiteral("The other quick brown fox jumps over the other lazy dog");
-    UIBox box_2 = InitUIBox( 100, 200, 400, 200 );
 
-    List<QuadHexaVertex> layed = PanelToHexaVertices(ctx->a_pers, pnl);
-    List<QuadHexaVertex> layed_1 = LayoutText(ctx->a_pers, txt, &box, plt);
+    List<QuadHexaVertex> layed = LayoutPanel(ctx->a_pers, 100, 100, 400, 250, 4);
+    List<QuadHexaVertex> layed_1 = LayoutText(ctx->a_pers, txt, 50, 100, 1000, 200, plt, ColorWhite());
     layed.len += layed_1.len;
-    List<QuadHexaVertex> layed_2 = LayoutText(ctx->a_pers, txt_2, &box_2, plt);
+    List<QuadHexaVertex> layed_2 = LayoutText(ctx->a_pers, txt_2, 100, 200, 400, 200, plt, ColorBlack());
     layed.len += layed_2.len;
 
     DrawCall call = InitDrawCall(layed, 0);
@@ -533,7 +523,7 @@ void Test() {
     //TestSlerpAndMat2Quat();
     //TestPointCloudsBoxesAndSceneGraph();
     //TestIndexSetOperations();
-    //TestLayoutGlyphQuads();
+    TestLayoutGlyphQuads();
     TestBrownianGlyphs();
-    //TestUIPanel();
+    TestUIPanel();
 }

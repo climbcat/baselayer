@@ -43,6 +43,16 @@ Color ColorRandom() {
     c.a = 255;
     return c;
 }
+Color ColorWhite() {
+    return Color { RGBA_WHITE };
+}
+Color ColorBlack() {
+    return Color { RGBA_BLACK };
+}
+Color ColorGray(f32 grayness) {
+    u8 g = round(grayness * 255);
+    return Color { g, g, g, 255 };
+}
 
 struct Rect {
     u16 width;

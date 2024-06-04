@@ -364,64 +364,52 @@ void BlitQuads(DrawCall call, ImageRGBA img) {
 //
 //  UI elements
 //
-//  UIBox:      Basic rectangular area of the screen
 //  UIPanel:    Configurable panel with a boundary, drawn as two quads on top of each-other
 
 
-struct UIBox {
+struct Widget {
     s16 x0;
     s16 y0;
     s16 w;
     s16 h;
 };
-UIBox InitUIBox(s16 left, s16 top, s16 width, s16 height) {
-    UIBox box;
-    box.x0 = left;
-    box.y0 = top;
-    box.w = width;
-    box.h = height;
-    return box;
+Widget InitWidget(s16 x0, s16 y0, s16 w, s16 h) {
+    Widget wid;
+    wid.x0 = x0;
+    wid.y0 = y0;
+    wid.w = w;
+    wid.h = h;
+    return wid;
 }
 
 
-struct Panel {
-    s16 l;
-    s16 t;
-    s16 w;
-    s16 h;
-    s16 border;
-};
-Quad PanelToQuadBorder(Panel pnl) {
-    Quad q;
-    _memzero(&q, sizeof(Quad));
-    q.x0 = pnl.l;
-    q.x1 = pnl.l + pnl.w;
-    q.y0 = pnl.t;
-    q.y1 = pnl.t + pnl.h;
-    q.c = { RGBA_GRAY_75 };
-    return q;
-}
-Quad PanelToQuadCanvas(Panel pnl) {
-    Quad q;
-    _memzero(&q, sizeof(Quad));
-
+List<QuadHexaVertex> LayoutPanel(MArena *a_dest, s32 l, s32 t, s32 w, s32 h, s32 border) {
     // border overflow
-    if (pnl.border >= pnl.w / 2 || pnl.border >= pnl.w / 2) {
-        return q;
+    if (border >= w / 2 || border >= w / 2) {
+        return List<QuadHexaVertex> { NULL, 0 };
     }
 
-    q.x0 = pnl.l + pnl.border;
-    q.x1 = pnl.l + pnl.w - pnl.border;
-    q.y0 = pnl.t + pnl.border;
-    q.y1 = pnl.t + pnl.h - pnl.border;
-    q.c = { RGBA_WHITE };
-    return q;
-}
-List<QuadHexaVertex> PanelToHexaVertices(MArena *a_dest, Panel pnl) {
     List<QuadHexaVertex> verts = InitList<QuadHexaVertex>(a_dest, 2);
-
-    verts.Add(QuadCook(PanelToQuadBorder(pnl)));
-    verts.Add(QuadCook(PanelToQuadCanvas(pnl)));
+    {
+        Quad q;
+        _memzero(&q, sizeof(Quad));
+        q.x0 = l;
+        q.x1 = l + w;
+        q.y0 = t;
+        q.y1 = t + h;
+        q.c = ColorGray(75);
+        verts.Add(QuadCook(q));
+    }
+    {
+        Quad q;
+        _memzero(&q, sizeof(Quad));
+        q.x0 = l + border;
+        q.x1 = l + w - border;
+        q.y0 = t + border;
+        q.y1 = t + h - border;
+        q.c = ColorWhite();
+        verts.Add(QuadCook(q));
+    }
 
     return verts;
 }
@@ -488,15 +476,15 @@ Str StrInc(Str s, u32 inc) {
 }
 
 
-void ScaleTextInline(List<QuadHexaVertex> text, f32 scale, UIBox *box) {
+void ScaleTextInline(List<QuadHexaVertex> text, f32 scale, s32 x0, s32 y0, s32 w, s32 h) {
     if (scale != 1.0f) {
         for (u32 i = 0; i < text.len; ++i) {
             QuadHexaVertex *q = text.lst + i;
 
             for (u32 j = 0; j < 6; ++j) {
                 Vector2f *pos = &(q->verts + j)->pos;
-                pos->x = box->x0 + (pos->x - box->x0) * scale;
-                pos->y = box->y0 + (pos->y - box->y0) * scale;
+                pos->x = x0 + (pos->x - x0) * scale;
+                pos->y = y0 + (pos->y - y0) * scale;
             }
         }
     }
@@ -532,11 +520,11 @@ void DoNewLine(s32 ln_height, s32 left, s32 *pt_x, s32 *pt_y) {
 void DoWhiteSpace(s32 space_width, s32 *pt_x) {
     *pt_x += space_width;
 }
-List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, UIBox *box, GlyphPlotter *plt, Color color = { RGBA_BLACK }, f32 scale = 1.0f) {
-    s32 pt_x = box->x0;
-    s32 pt_y = box->y0 + plt->ln_ascend;
-    s32 box_r = box->x0 + box->w;
-    s32 box_b = box->y0 + box->h;
+List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, s32 x0, s32 y0, s32 w, s32 h, GlyphPlotter *plt, Color color, f32 scale = 1.0f) {
+    s32 pt_x = x0;
+    s32 pt_y = y0 + plt->ln_ascend;
+    s32 box_r = x0 + w;
+    s32 box_b = y0 + h;
     s32 w_space = plt->advance_x.lst[' '];
 
     u32 i = 0;
@@ -547,7 +535,7 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, UIBox *box, GlyphPlotte
         // while words
 
         if (IsNewLine(s) && CanDoNewline(pt_y, plt->ln_height, plt->ln_ascend, box_b)) {
-            DoNewLine(plt->ln_height, box->x0, &pt_x, &pt_y);
+            DoNewLine(plt->ln_height, x0, &pt_x, &pt_y);
             s = StrInc(s, 1);
         }
         if (IsWhiteSpace(s) && CanDoWhiteSpace(pt_x, w_space, box_r)) {
@@ -562,7 +550,7 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, UIBox *box, GlyphPlotte
         // word wrap
         if (pt_x + w_adv > box_r) {
             if (CanDoNewline(pt_y, plt->ln_height, plt->ln_ascend, box_b)) {
-                DoNewLine(plt->ln_height, box->x0, &pt_x, &pt_y);
+                DoNewLine(plt->ln_height, x0, &pt_x, &pt_y);
             }
             else {
                 // ran out of space, exit
@@ -582,7 +570,7 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, UIBox *box, GlyphPlotte
     }
     assert(layed_out.len <= txt.len); // txt len minus whitespaces, which are not layed out as quads
 
-    ScaleTextInline(layed_out, scale, box);
+    ScaleTextInline(layed_out, scale, x0, y0, w, h);
 
     return layed_out;
 }
