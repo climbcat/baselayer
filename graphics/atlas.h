@@ -336,8 +336,12 @@ GlyphPlotter *SetFontAndSize(FontSize font_size /*, Font font_name*/) {
     return g_text_plotter;
 }
 void InitFonts() {
-    MContext *ctx = InitBaselayer();
+    if (g_font_map.slots.len != 0) {
+        printf("WARN: re-init fonts\n");
+        return;
+    }
 
+    MContext *ctx = InitBaselayer();
     StrLst *fonts = GetFilesExt("atlas");
     u32 font_cnt = StrListLen(fonts);
     printf("loading %u (.atlas) font files\n", font_cnt);
