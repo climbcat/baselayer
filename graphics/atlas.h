@@ -168,10 +168,10 @@ struct Glyph {
     s32 h; // glyph height
     s32 adv_x; // advance to next glyph
 
-    float tx0; // texture coords
-    float ty0;
-    float tx1;
-    float ty1;
+    f32 tx0; // texture coords
+    f32 ty0;
+    f32 tx1;
+    f32 ty1;
 };
 QuadHexaVertex GlyphQuadCook(Glyph g) {
     QuadHexaVertex q;
@@ -204,17 +204,15 @@ QuadHexaVertex GlyphQuadCook(Glyph g) {
 
 
 struct FontAtlas {
+    ImageB texture;
     u32 sz_px;
-    u32 b_width;
-    u32 b_height;
     u32 cell_width;
-    u32 cell_height;
-    u32 max_ascend;
+    u32 ln_height;
+    u32 ln_ascend;
     List<Glyph> glyphs;
-    u8 *bitmap;
 
     void Print() {
-        printf("font_sz %u, bitmap_sz %u %u, cell_sz %u %u, glyphs %u, data ptrs %p %p\n", sz_px, b_width, b_height, cell_width, cell_height, glyphs.len, glyphs.lst, bitmap);
+        printf("font_sz %u, bitmap_sz %u %u, cell_sz %u %u, glyphs %u, data ptrs %p %p\n", sz_px, texture.width, texture.height, cell_width, ln_height, glyphs.len, glyphs.lst, texture.img);
     }
     void PrintGlyphsQuick() {
         for (u32 i = 32; i < glyphs.len; ++i) {
@@ -232,28 +230,28 @@ FontAtlas *FontAtlasLoadBinary128(MArena *a_dest, char *filename) {
 
     u32 sz_base = sizeof(FontAtlas);
     u32 sz_glyphs = 128 * sizeof(Glyph);
-    u32 sz_bitmap = atlas->b_width * atlas->b_height;
+    u32 sz_bitmap = atlas->texture.width * atlas->texture.height;
 
     assert(sz_file == sz_base + sz_glyphs + sz_bitmap && "sanity check loaded file size");
 
     // set pointers
     atlas->glyphs.lst = (Glyph*) (base_ptr + sz_base);
-    atlas->bitmap = base_ptr + sz_base + sz_glyphs;
+    atlas->texture.img = base_ptr + sz_base + sz_glyphs;
 
     return atlas;
 };
 void FontAtlasSaveBinary128(MArena *a_tmp, char *filename, FontAtlas atlas) {
     u32 sz_base = sizeof(FontAtlas);
     u32 sz_glyphs = 128 * sizeof(Glyph);
-    u32 sz_bitmap = atlas.b_width * atlas.b_height;
+    u32 sz_bitmap = atlas.texture.width * atlas.texture.height;
 
     FontAtlas *atlas_inlined = (FontAtlas*) ArenaPush(a_tmp, &atlas, sz_base);
     ArenaPush(a_tmp, atlas_inlined->glyphs.lst, sz_glyphs);
-    ArenaPush(a_tmp, atlas_inlined->bitmap, sz_bitmap);
+    ArenaPush(a_tmp, atlas_inlined->texture.img, sz_bitmap);
 
     // invalidate pointers
     atlas_inlined->glyphs.lst = 0;
-    atlas_inlined->bitmap = 0;
+    atlas_inlined->texture.img = 0;
 
     SaveFile(filename, (u8*) atlas_inlined, sz_base + sz_glyphs + sz_bitmap);
 }
@@ -278,14 +276,12 @@ GlyphPlotter *InitGlyphPlotter(MArena *a_dest, List<Glyph> glyphs, FontAtlas *at
     }
 
 
-
-
     GlyphPlotter *plt = (GlyphPlotter *) ArenaAlloc(a_dest, sizeof(GlyphPlotter));
     plt->advance_x = InitList<u8>(a_dest, 128);
     plt->cooked = InitList<QuadHexaVertex>(a_dest, 128 * sizeof(QuadHexaVertex));
-    plt->texture = ImageB { atlas->b_width, atlas->b_height, atlas->bitmap };
-    plt->ln_height = atlas->cell_height;
-    plt->ln_ascend = atlas->max_ascend;
+    plt->texture = atlas->texture;
+    plt->ln_height = atlas->ln_height;
+    plt->ln_ascend = atlas->ln_ascend;
 
     for (u32 i = 0; i < 128; ++i) {
         Glyph g = glyphs.lst[i];

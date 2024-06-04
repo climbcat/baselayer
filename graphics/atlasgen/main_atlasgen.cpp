@@ -1,4 +1,5 @@
 #include "../../baselayer.h"
+#include "../stream.h"
 #include "../atlas.h"
 
 
@@ -69,26 +70,26 @@ FontAtlas CreateCharAtlas(MArena *a_dest, u8 *font, s32 line_height) {
     FontAtlas atlas;
     atlas.sz_px = line_height;
     atlas.cell_width = max_adv;
-    atlas.cell_height = max_ascent + max_descent;
-    atlas.b_width = atlas.cell_width * 16;
-    atlas.b_height = atlas.cell_height * 6;
-    atlas.bitmap = (u8*) ArenaAlloc(a_dest, atlas.b_width * atlas.b_height * sizeof(u8), true);
+    atlas.ln_height = max_ascent + max_descent;
+    atlas.texture.width = atlas.cell_width * 16;
+    atlas.texture.height = atlas.ln_height * 6;
+    atlas.texture.img = (u8*) ArenaAlloc(a_dest, atlas.texture.width * atlas.texture.height * sizeof(u8), true);
     atlas.glyphs = glyphs;
 
-    f32 tex_scale_x = 1.0f / atlas.b_width;
-    f32 tex_scale_y = 1.0f / atlas.b_height;
+    f32 tex_scale_x = 1.0f / atlas.texture.width;
+    f32 tex_scale_y = 1.0f / atlas.texture.height;
     u32 aidx = 0;
     for (u32 ascii = ascii_offset; ascii < ascii_range; ++ascii) {
         Glyph *g = glyphs.lst + ascii;
 
         s32 x = (aidx % 16) * atlas.cell_width;
-        s32 y = (aidx / 16) * atlas.cell_height + atlas.cell_height - max_descent;
+        s32 y = (aidx / 16) * atlas.ln_height + atlas.ln_height - max_descent;
 
         x += g->x0;
         y += g->y0;
 
-        s32 offset = y * atlas.b_width + x;
-        stbtt_MakeCodepointBitmap(&info, atlas.bitmap + offset, g->w, g->h, atlas.b_width, scale, scale, g->c);
+        s32 offset = y * atlas.texture.width + x;
+        stbtt_MakeCodepointBitmap(&info, atlas.texture.img + offset, g->w, g->h, atlas.texture.width, scale, scale, g->c);
 
         // record texture coords
         g->tx0 = (f32) x * tex_scale_x;
@@ -99,7 +100,7 @@ FontAtlas CreateCharAtlas(MArena *a_dest, u8 *font, s32 line_height) {
 
         ++aidx;
     }
-    stbi_write_png("atlas.png", atlas.b_width, atlas.b_height, 1, atlas.bitmap, atlas.b_width);
+    stbi_write_png("atlas.png", atlas.texture.width, atlas.texture.height, 1, atlas.texture.img, atlas.texture.width);
     printf("\n");
     printf("wrote atlas image to atlas.png\n");
     atlas.Print();
