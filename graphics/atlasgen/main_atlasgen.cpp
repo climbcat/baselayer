@@ -129,6 +129,10 @@ int main (int argc, char **argv) {
     
     
     const char *font_filename = "fonts/cmunrm.ttf";
+
+    InitBaselayer();
+    Str name = StrBasename( (char*) font_filename);
+    StrPrint("", name, "\n");
     //char *font_filename = CLAGetFirstArg(argc, argv);
 
     MContext *ctx = InitBaselayer();
@@ -138,27 +142,39 @@ int main (int argc, char **argv) {
         exit(0);
     }
 
-    FontAtlas atlas = CreateCharAtlas(ctx->a_pers, font, 64);
+    s32 line_sizes[8] = { 18, 24, 30, 36, 48, 60, 72, 84 };
+    for (u32 i = 0; i < 8; ++i) {
+        s32 sz_px = line_sizes[i];
 
-    // mini test
-    printf("\n");
-    printf("atlas to save:\n", atlas.glyphs.len);
-    for (u32 i = 32; i < atlas.glyphs.len; ++i) {
-        Glyph g = atlas.glyphs.lst[i];
-        printf("%c ", g.c);
+        FontAtlas atlas = CreateCharAtlas(ctx->a_pers, font, sz_px);
+
+        // mini test
+        printf("\n");
+        printf("atlas to save:\n");
+        for (u32 i = 32; i < atlas.glyphs.len; ++i) {
+            Glyph g = atlas.glyphs.lst[i];
+            printf("%c ", g.c);
+        }
+        printf("\n");
+        printf("\n");
+
+        Str ext = StrLiteral("atlas");
+        ext = StrCat(".", ext);
+
+        char buff[200];
+        sprintf(buff, "_%d", sz_px);
+        Str fname = StrCat(name, buff);
+        fname = StrCat(fname, ext);
+        StrPrint("", fname, "\n");
+
+        // save/load/print again (should not appear jumbled on screen)
+        FontAtlasSaveBinary128(ctx->a_tmp, StrZeroTerm(fname), atlas);
+        FontAtlas *loaded = FontAtlasLoadBinary128(ctx->a_pers, StrZeroTerm(fname));
+        printf("atlas test loading from disk (glyphs chars 32-%u):\n", loaded->glyphs.len);
+        for (u32 i = 32; i < loaded->glyphs.len; ++i) {
+            Glyph g = loaded->glyphs.lst[i];
+            printf("%c ", g.c);
+        }
+        printf("\n");
     }
-    printf("\n");
-    printf("\n");
-
-    FontAtlasSaveBinary128(ctx->a_tmp, (char*) "output.atlas", atlas);
-
-    FontAtlas *loaded = FontAtlasLoadBinary128(ctx->a_pers, (char*) "output.atlas");
-
-    printf("atlas test loading from disk (glyphs chars 32-%u):\n", loaded->glyphs.len);
-    for (u32 i = 32; i < loaded->glyphs.len; ++i) {
-        Glyph g = loaded->glyphs.lst[i];
-        printf("%c ", g.c);
-    }
-    printf("\n");
-
 }
