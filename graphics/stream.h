@@ -35,7 +35,14 @@ struct Color {
 void PrintColorInline(Color c) {
     printf("%hhx %hhx %hhx %hhx", c.r, c.g, c.b, c.a);
 }
-
+Color ColorRandom() {
+    Color c;
+    c.r = RandMinMaxU(100, 255);
+    c.g = RandMinMaxU(100, 255);
+    c.b = RandMinMaxU(100, 255);
+    c.a = 255;
+    return c;
+}
 
 struct Rect {
     u16 width;

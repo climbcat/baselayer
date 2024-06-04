@@ -397,20 +397,20 @@ void TestLayoutGlyphQuads() {
     List<QuadHexaVertex> layed;
     List<QuadHexaVertex> layed_2;
     {
-
         Str txt = StrLiteral("The quick brown fox jumps over the lazy dog");
         UIBox box = InitUIBox( 50, 100, 1000, 200 );
 
         Str txt_2 = StrLiteral("The other quick brown fox jumps over the other lazy dog");
         UIBox box_2 = InitUIBox( 100, 200, 400, 200 );
-        layed = LayoutText(ctx->a_pers, txt, &box, plt);
-        layed_2 = LayoutText(ctx->a_pers, txt_2, &box_2, plt);
+        layed = LayoutText(ctx->a_pers, txt, &box, plt, ColorRandom());
+        layed_2 = LayoutText(ctx->a_pers, txt_2, &box_2, plt, ColorRandom());
+        assert(layed.lst + layed.len == layed_2.lst);
         layed.len += layed_2.len;
     }
-    assert(layed.lst + layed.len == layed_2.lst);
 
-    BlitQHVs(layed, img, &plt->texture);
-    BlitQHVs(layed, img, &plt->texture);
+    DrawCall call = InitDrawCall(layed, 0);
+    BlitQuads(call, img);
+
     // display
     loop->JustShowBuffer();
 }
@@ -429,9 +429,23 @@ void TestBrownianGlyphs() {
     UIBox box = InitUIBox(470, 340, 400, 300);
     UIBox lbl = InitUIBox(50, 50, 1000, 200);
 
-    List<QuadHexaVertex> layed_org = LayoutText(ctx->a_life, txt, &box, plt);
-    List<QuadHexaVertex> layed = LayoutText(ctx->a_pers, txt, &box, plt);
-    List<QuadHexaVertex> label = LayoutText(ctx->a_life, StrLiteral("press space to reset:"), &lbl, plt, 0.6f);
+    List<QuadHexaVertex> _layed_org = LayoutText(ctx->a_life, txt, &box, plt, ColorRandom());
+    // assign random colors to each char quad
+    for (u32 i = 0; i < _layed_org.len; ++i) {
+        QuadHexaVertex *q = _layed_org.lst + i;
+        for (u32 j = 0; j < 6; ++j) {
+            QuadVertex *v = q->verts + j;
+            v->col = ColorRandom();
+        }
+        PrintColorInline(q->GetColor());
+    }
+
+    DrawCall layed_org = InitDrawCall(_layed_org, 0);
+    List<QuadHexaVertex> _layed = LayoutText(ctx->a_pers, txt, &box, plt);
+    DrawCall layed = InitDrawCall(_layed, 0);
+    _memcpy(layed.quads.lst, layed_org.quads.lst, sizeof(QuadHexaVertex) * layed.quads.len);
+    List<QuadHexaVertex> _label = LayoutText(ctx->a_life, StrLiteral("press space to reset:"), &lbl, plt, ColorRandom(), 0.6f);
+    DrawCall label = InitDrawCall(_label, 0);
 
     RandInit();
     f32 scale = 0.8;
@@ -440,16 +454,16 @@ void TestBrownianGlyphs() {
         {
             TimeBlock("blitting");
 
-            BlitQHVs(layed, img, &plt->texture);
-            BlitQHVs(label, img, &plt->texture);
+            BlitQuads(layed, img);
+            BlitQuads(label, img);
         }
 
         {
             TimeBlock("brownian effect");
 
             // brownian motion applied to each character, effect
-            for (u32 i = 0; i < layed.len; ++i) {
-                QuadHexaVertex *q = layed.lst + i;
+            for (u32 i = 0; i < layed.quads.len; ++i) {
+                QuadHexaVertex *q = layed.quads.lst + i;
                 Vector2f d { scale * RandPM1_f32(), scale * RandPM1_f32() };
                 for (u32 j = 0; j < 6; ++j) {
                     QuadVertex *v = q->verts + j;
@@ -459,7 +473,7 @@ void TestBrownianGlyphs() {
         }
 
         if (loop->GetMouseTrap()->last_keypress_frame == OUR_GLFW_KEY_SPACE) {
-            _memcpy(layed.lst, layed_org.lst, sizeof(QuadHexaVertex) * layed.len);
+            _memcpy(layed.quads.lst, layed_org.quads.lst, sizeof(QuadHexaVertex) * layed.quads.len);
         }
 
         // display
@@ -494,10 +508,12 @@ void TestUIPanel() {
     List<QuadHexaVertex> layed_2 = LayoutText(ctx->a_pers, txt_2, &box_2, plt);
     layed.len += layed_2.len;
 
+    DrawCall call = InitDrawCall(layed, 0);
+
     while (loop->GameLoopRunning()) {
         loop->ImageBufferClear();
 
-        BlitQHVs(layed, img, &plt->texture);
+        BlitQuads(call, img);
 
         loop->ImageBufferDrawAndSwap();
         XSleep(10);
@@ -518,6 +534,6 @@ void Test() {
     //TestPointCloudsBoxesAndSceneGraph();
     //TestIndexSetOperations();
     //TestLayoutGlyphQuads();
-    //TestBrownianGlyphs();
-    TestUIPanel();
+    TestBrownianGlyphs();
+    //TestUIPanel();
 }

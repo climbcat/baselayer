@@ -263,9 +263,21 @@ void FontAtlasSaveBinary128(MArena *a_tmp, char *filename, FontAtlas atlas) {
 //  sw blitting
 
 
-struct QHVHdr {
+struct DrawCall {
     u32 texture;
+    List<QuadHexaVertex> quads;
 };
+static ImageB *g_texture;
+ImageB *DC_GetTexture(u32 id) {
+    // TODO: impl. font / sprite mapping by id, here
+    return g_texture;
+}
+DrawCall InitDrawCall(List<QuadHexaVertex> quads, u32 texture) {
+    DrawCall dc;
+    dc.quads = quads;
+    dc.texture = texture;
+    return dc;
+}
 
 
 inline
@@ -276,9 +288,12 @@ u8 SampleTexture(ImageB *tex, f32 x, f32 y) {
     u8 b = tex->img[idx];
     return b;
 }
-void BlitQHVs(List<QuadHexaVertex> text, ImageRGBA img, ImageB *texture = NULL) {
-    for (u32 i = 0; i < text.len; ++i) {
-        QuadHexaVertex *q = text.lst + i;
+void BlitQuads(DrawCall call, ImageRGBA img) {
+    ImageB *texture = DC_GetTexture(call.texture);
+
+
+    for (u32 i = 0; i < call.quads.len; ++i) {
+        QuadHexaVertex *q = call.quads.lst + i;
         bool has_tex_coords = q->GetTextureWidth() > 0;
 
         s32 q_w = q->GetWidth();
@@ -517,7 +532,7 @@ void DoNewLine(s32 ln_height, s32 left, s32 *pt_x, s32 *pt_y) {
 void DoWhiteSpace(s32 space_width, s32 *pt_x) {
     *pt_x += space_width;
 }
-List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, UIBox *box, GlyphPlotter *plt, f32 scale = 1.0f) {
+List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, UIBox *box, GlyphPlotter *plt, Color color = { RGBA_BLACK }, f32 scale = 1.0f) {
     s32 pt_x = box->x0;
     s32 pt_y = box->y0 + plt->ln_ascend;
     s32 box_r = box->x0 + box->w;
@@ -556,7 +571,6 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, UIBox *box, GlyphPlotte
         }
 
         // lay out word
-        Color color = Color { RGBA_BLACK };
         for (u32 j = 0; j < w_len; ++j) {
             char c = s.str[j];
             QuadHexaVertex q = QuadOffset(plt->cooked.lst + c, pt_x, pt_y, color);
@@ -566,7 +580,7 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, UIBox *box, GlyphPlotte
         }
         s = StrInc(s, w_len);
     }
-    assert(layed_out.len <= txt.len);
+    assert(layed_out.len <= txt.len); // txt len minus whitespaces, which are not layed out as quads
 
     ScaleTextInline(layed_out, scale, box);
 
@@ -590,6 +604,8 @@ GlyphPlotter *InitFonts() {
 
         fonts = fonts->next;
     }
+    g_texture = &plt->texture;
+
     return plt;
 }
 
