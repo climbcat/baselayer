@@ -221,6 +221,9 @@ struct HashMap {
     List<HashMapKeyVal> colls;
     u32 ncollisions;
     u32 nresets;
+    u32 GetNumSlots() {
+        return slots.len;
+    }
 };
 HashMap InitMap(MArena *a_dest, u32 nslots = 1000) {
     HashMap map;
@@ -239,28 +242,29 @@ bool MapPut(HashMap *map, u64 key, u64 val) {
     u32 lower = (u32) key;
     u32 upper = key << 32;
     u32 slot = Hash(lower + upper) % map->slots.len;
-    HashMapKeyVal kv_slot = map->slots.lst[slot];
+    HashMapKeyVal *kv_slot = map->slots.lst+ slot;
 
-    if (kv_slot.key == 0 || kv_slot.key == key) {
-        if (kv_slot.key == key) {
+    if (kv_slot->key == 0 || kv_slot->key == key) {
+        if (kv_slot->key == key) {
             map->nresets++;
         }
         // new slot or reset value
         HashMapKeyVal kv;
         kv.key = key;
         kv.val = val;
-        kv.chain = kv_slot.chain;
+        kv.chain = kv_slot->chain;
         map->slots.lst[slot] = kv;
     }
     else {
         // collision
         map->ncollisions++;
 
-        HashMapKeyVal *collider = &kv_slot;
+        HashMapKeyVal *collider = kv_slot;
         while (collider->chain != NULL) {
             collider = collider->chain;
         }
-        if (map->colls.len == map->slots.len) {
+        if (map->colls.len == map->GetNumSlots()) {
+            // no more space
             return false;
         }
 
@@ -277,6 +281,31 @@ bool MapPut(HashMap *map, u64 key, u64 val) {
 inline
 bool MapPut(HashMap *map, void *key, void *val) {
     return MapPut(map, (u64) key, (u64) val);
+}
+inline
+bool MapPut(HashMap *map, u64 key, void *val) {
+    return MapPut(map, key, (u64) val);
+}
+u64 MapGet(HashMap *map, u64 key /*, bool *valid*/ ) {
+    u32 lower = (u32) key;
+    u32 upper = key << 32;
+    u32 slot = Hash(lower + upper) % map->slots.len;
+    HashMapKeyVal kv_slot = map->slots.lst[slot];
+
+    if (kv_slot.key == key) {
+        return kv_slot.val;
+    }
+    else {
+        HashMapKeyVal *kv = &kv_slot;
+        while (kv->chain != NULL) {
+            kv = kv->chain;
+            if (kv->key == key) {
+                return kv->val;
+            }
+        }
+    }
+
+    return 0;
 }
 
 
