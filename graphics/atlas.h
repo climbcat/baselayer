@@ -263,14 +263,47 @@ void FontAtlasSaveBinary128(MArena *a_tmp, char *filename, FontAtlas atlas) {
 //  sw blitting
 
 
+struct GlyphPlotter {
+    s32 ln_height;
+    s32 ln_ascend;
+    List<u8> advance_x;
+    List<QuadHexaVertex> cooked;
+    ImageB texture;
+};
+static GlyphPlotter *g_text_plotter;
+GlyphPlotter *InitGlyphPlotter(MArena *a_dest, List<Glyph> glyphs, FontAtlas *atlas) {
+    if (g_text_plotter != NULL) {
+        printf("WARN: text plotter re-initialized | TODO: put plotters in a has map\n");
+        return g_text_plotter;
+    }
+
+    GlyphPlotter *plt = (GlyphPlotter *) ArenaAlloc(a_dest, sizeof(GlyphPlotter));
+    plt->advance_x = InitList<u8>(a_dest, 128);
+    plt->cooked = InitList<QuadHexaVertex>(a_dest, 128 * sizeof(QuadHexaVertex));
+    plt->texture = ImageB { atlas->b_width, atlas->b_height, atlas->bitmap };
+    plt->ln_height = atlas->cell_height;
+    plt->ln_ascend = atlas->max_ascend;
+
+    for (u32 i = 0; i < 128; ++i) {
+        Glyph g = glyphs.lst[i];
+        QuadHexaVertex q = GlyphQuadCook(g);
+        plt->cooked.lst[i] = q;
+        plt->advance_x.lst[i] = g.adv_x;
+    }
+
+    g_text_plotter = plt;
+    return g_text_plotter;
+}
+
+
 struct DrawCall {
     u32 texture;
     List<QuadHexaVertex> quads;
 };
-static ImageB *g_texture;
 ImageB *DC_GetTexture(u32 id) {
-    // TODO: impl. font / sprite mapping by id, here
-    return g_texture;
+    assert(g_text_plotter != NULL && "init a glyph plotter first");
+    // TODO: get sprite map texture by id
+    return &g_text_plotter->texture;
 }
 DrawCall InitDrawCall(List<QuadHexaVertex> quads, u32 texture) {
     DrawCall dc;
@@ -418,33 +451,6 @@ List<QuadHexaVertex> LayoutPanel(MArena *a_dest, s32 l, s32 t, s32 w, s32 h, s32
 //
 //  Text layout
 //
-//  GlyphPlotter:   Source for laying out text using cooked quads - Atlas input for initialization.
-
-
-struct GlyphPlotter {
-    s32 ln_height;
-    s32 ln_ascend;
-    List<u8> advance_x;
-    List<QuadHexaVertex> cooked;
-    ImageB texture;
-};
-GlyphPlotter *InitGlyphPlotter(MArena *a_dest, List<Glyph> glyphs, FontAtlas *atlas) {
-    GlyphPlotter *plt = (GlyphPlotter *) ArenaAlloc(a_dest, sizeof(GlyphPlotter));
-    plt->advance_x = InitList<u8>(a_dest, 128);
-    plt->cooked = InitList<QuadHexaVertex>(a_dest, 128 * sizeof(QuadHexaVertex));
-    plt->texture = ImageB { atlas->b_width, atlas->b_height, atlas->bitmap };
-    plt->ln_height = atlas->cell_height;
-    plt->ln_ascend = atlas->max_ascend;
-
-    for (u32 i = 0; i < 128; ++i) {
-        Glyph g = glyphs.lst[i];
-        QuadHexaVertex q = GlyphQuadCook(g);
-        plt->cooked.lst[i] = q;
-        plt->advance_x.lst[i] = g.adv_x;
-    }
-
-    return plt;
-}
 
 
 inline
@@ -474,8 +480,6 @@ Str StrInc(Str s, u32 inc) {
     s.len -= inc;
     return s;
 }
-
-
 void ScaleTextInline(List<QuadHexaVertex> text, f32 scale, s32 x0, s32 y0, s32 w, s32 h) {
     if (scale != 1.0f) {
         for (u32 i = 0; i < text.len; ++i) {
@@ -520,7 +524,10 @@ void DoNewLine(s32 ln_height, s32 left, s32 *pt_x, s32 *pt_y) {
 void DoWhiteSpace(s32 space_width, s32 *pt_x) {
     *pt_x += space_width;
 }
-List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, s32 x0, s32 y0, s32 w, s32 h, GlyphPlotter *plt, Color color, f32 scale = 1.0f) {
+List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, s32 x0, s32 y0, s32 w, s32 h, Color color, f32 scale = 1.0f) {
+    assert(g_text_plotter != NULL && "init text plotters first");
+    GlyphPlotter *plt = g_text_plotter;
+
     s32 pt_x = x0;
     s32 pt_y = y0 + plt->ln_ascend;
     s32 box_r = x0 + w;
@@ -580,21 +587,17 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, s32 x0, s32 y0, s32 w, 
 // system
 
 
-GlyphPlotter *InitFonts() {
-    // TODO: what should we do when we have many atlas files?
+void InitFonts() {
+    // TODO: init many atlasi / plotters in a storage hash-map
 
     MContext *ctx = InitBaselayer();
     StrLst *fonts = GetFilesExt("atlas");
-    GlyphPlotter *plt;
     while (fonts != NULL) {
         FontAtlas *atlas = FontAtlasLoadBinary128(ctx->a_life, (char*) "output.atlas");
-        plt = InitGlyphPlotter(ctx->a_life, atlas->glyphs, atlas);
+        InitGlyphPlotter(ctx->a_life, atlas->glyphs, atlas);
 
         fonts = fonts->next;
     }
-    g_texture = &plt->texture;
-
-    return plt;
 }
 
 

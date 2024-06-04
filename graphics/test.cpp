@@ -389,7 +389,7 @@ void TestIndexSetOperations() {
 void TestLayoutGlyphQuads() {
     printf("TestLayoutGlyphQuads\n");
     MContext *ctx = InitBaselayer();
-    GlyphPlotter *plt = InitFonts();
+    InitFonts();
 
     GameLoopOne *loop = InitGameLoopOne();
     ImageRGBA img = loop->GetRenderer()->GetImageAsRGBA();
@@ -399,8 +399,8 @@ void TestLayoutGlyphQuads() {
     {
         Str txt = StrLiteral("The quick brown fox jumps over the lazy dog");
         Str txt_2 = StrLiteral("The other quick brown fox jumps over the other lazy dog");
-        layed = LayoutText(ctx->a_pers, txt, 50, 100, 1000, 200, plt, ColorRandom());
-        layed_2 = LayoutText(ctx->a_pers, txt_2, 100, 200, 400, 200, plt, ColorRandom());
+        layed = LayoutText(ctx->a_pers, txt, 50, 100, 1000, 200, ColorRandom());
+        layed_2 = LayoutText(ctx->a_pers, txt_2, 100, 200, 400, 200, ColorRandom());
         assert(layed.lst + layed.len == layed_2.lst);
         layed.len += layed_2.len;
     }
@@ -416,14 +416,14 @@ void TestLayoutGlyphQuads() {
 void TestBrownianGlyphs() {
     printf("TestBrownianGlyphs\n");
 
-    GlyphPlotter *plt = InitFonts();
     MContext *ctx = InitBaselayer();
+    InitFonts();
 
     GameLoopOne *loop = InitGameLoopOne();
     ImageRGBA img = loop->GetRenderer()->GetImageAsRGBA();
 
     Str txt = StrLiteral("The quick brown fox jumps over the lazy dog");
-    List<QuadHexaVertex> _layed_org = LayoutText(ctx->a_life, txt, 470, 340, 400, 300, plt, ColorRandom());
+    List<QuadHexaVertex> _layed_org = LayoutText(ctx->a_life, txt, 470, 340, 400, 300, ColorRandom());
     // assign random colors to each char quad
     for (u32 i = 0; i < _layed_org.len; ++i) {
         QuadHexaVertex *q = _layed_org.lst + i;
@@ -435,10 +435,10 @@ void TestBrownianGlyphs() {
     }
 
     DrawCall layed_org = InitDrawCall(_layed_org, 0);
-    List<QuadHexaVertex> _layed = LayoutText(ctx->a_pers, txt, 470, 340, 400, 300, plt, ColorBlack());
+    List<QuadHexaVertex> _layed = LayoutText(ctx->a_pers, txt, 470, 340, 400, 300, ColorBlack());
     DrawCall layed = InitDrawCall(_layed, 0);
     _memcpy(layed.quads.lst, layed_org.quads.lst, sizeof(QuadHexaVertex) * layed.quads.len);
-    List<QuadHexaVertex> _label = LayoutText(ctx->a_life, StrLiteral("press space to reset:"), 50, 50, 1000, 200, plt, ColorRandom(), 0.6f);
+    List<QuadHexaVertex> _label = LayoutText(ctx->a_life, StrLiteral("press space to reset:"), 50, 50, 1000, 200, ColorRandom(), 0.6f);
     DrawCall label = InitDrawCall(_label, 0);
 
     RandInit();
@@ -487,15 +487,14 @@ void TestUIPanel() {
     MContext *ctx = InitBaselayer();
     GameLoopOne *loop = InitGameLoopOne();
     ImageRGBA img = loop->GetRenderer()->GetImageAsRGBA();
-    GlyphPlotter *plt = InitFonts();
 
     Str txt = StrLiteral("The quick brown fox jumps over the lazy dog");
     Str txt_2 = StrLiteral("The other quick brown fox jumps over the other lazy dog");
 
     List<QuadHexaVertex> layed = LayoutPanel(ctx->a_pers, 100, 100, 400, 250, 4);
-    List<QuadHexaVertex> layed_1 = LayoutText(ctx->a_pers, txt, 50, 100, 1000, 200, plt, ColorWhite());
+    List<QuadHexaVertex> layed_1 = LayoutText(ctx->a_pers, txt, 50, 100, 1000, 200, ColorWhite());
     layed.len += layed_1.len;
-    List<QuadHexaVertex> layed_2 = LayoutText(ctx->a_pers, txt_2, 100, 200, 400, 200, plt, ColorBlack());
+    List<QuadHexaVertex> layed_2 = LayoutText(ctx->a_pers, txt_2, 100, 200, 400, 200, ColorBlack());
     layed.len += layed_2.len;
 
     DrawCall call = InitDrawCall(layed, 0);
