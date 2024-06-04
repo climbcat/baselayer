@@ -400,8 +400,8 @@ void TestLayoutGlyphQuads() {
     MContext *ctx = InitBaselayer();
     GameLoopOne *loop = InitGraphics();
 
-    SR_Push( LayoutText(ctx->a_pers, StrL("The quick brown fox jumps over the lazy dog"), 50, 100, 1000, 200, ColorRandom()) );
-    SR_Push( LayoutText(ctx->a_pers, StrL("The other quick brown fox jumps over the other lazy dog"), 100, 200, 400, 200, ColorRandom() ));
+    SR_Push( LayoutText(ctx->a_pers, "The quick brown fox jumps over the lazy dog", 50, 100, 1000, 200, ColorRandom()) );
+    SR_Push( LayoutText(ctx->a_pers, "The other quick brown fox jumps over the other lazy dog", 100, 200, 400, 200, ColorRandom() ));
 
     SR_Render();
     loop->JustShowBuffer();
@@ -414,7 +414,7 @@ void TestBrownianGlyphs() {
     MContext *ctx = InitBaselayer();
     GameLoopOne *loop = InitGraphics();
 
-    DrawCall layed_org = LayoutText(ctx->a_life, StrL("The quick brown fox jumps over the lazy dog"), 470, 340, 400, 300, ColorRandom());
+    DrawCall layed_org = LayoutText(ctx->a_life, "The quick brown fox jumps over the lazy dog", 470, 340, 400, 300, ColorRandom());
     List<QuadHexaVertex> _layed_org = layed_org.quads;
     for (u32 i = 0; i < _layed_org.len; ++i) {
         QuadHexaVertex *q = _layed_org.lst + i;
@@ -427,7 +427,7 @@ void TestBrownianGlyphs() {
 
     List<QuadHexaVertex> layed = SR_Push( LayoutText(ctx->a_pers, StrL("The quick brown fox jumps over the lazy dog"), 470, 340, 400, 300, ColorBlack()) );
     _memcpy(layed.lst, layed_org.quads.lst, sizeof(QuadHexaVertex) * layed.len);
-    SR_Push( LayoutText(ctx->a_life, StrLiteral("press space to reset:"), 50, 50, 1000, 200, ColorRandom(), 0.6f) );
+    SR_Push( LayoutText(ctx->a_life, "press space to reset:", 50, 50, 1000, 200, ColorRandom(), 0.6f) );
 
     f32 scale = 0.8;
     while (loop->GameLoopRunning()) {
@@ -475,8 +475,8 @@ void TestUIPanel() {
     GameLoopOne *loop = InitGraphics();
 
     SR_Push( LayoutPanel(ctx->a_pers, 80, 140, 400, 250, 4) );
-    SR_Push( LayoutText(ctx->a_pers, StrL("The quick brown fox jumps over the lazy dog"), 50, 100, 1000, 200, ColorWhite()) );
-    SR_Push( LayoutText(ctx->a_pers, StrL("The other quick brown fox jumps over the other lazy dog"), 100, 200, 400, 200, ColorBlack()) );
+    SR_Push( LayoutText(ctx->a_pers, "The quick brown fox jumps over the lazy dog", 50, 100, 1000, 200, ColorWhite()) );
+    SR_Push( LayoutText(ctx->a_pers, "The other quick brown fox jumps over the other lazy dog", 100, 200, 400, 200, ColorBlack()) );
 
     while (loop->GameLoopRunning()) {
         loop->ImageBufferClear();

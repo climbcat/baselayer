@@ -277,6 +277,9 @@ GlyphPlotter *InitGlyphPlotter(MArena *a_dest, List<Glyph> glyphs, FontAtlas *at
         return g_text_plotter;
     }
 
+
+
+
     GlyphPlotter *plt = (GlyphPlotter *) ArenaAlloc(a_dest, sizeof(GlyphPlotter));
     plt->advance_x = InitList<u8>(a_dest, 128);
     plt->cooked = InitList<QuadHexaVertex>(a_dest, 128 * sizeof(QuadHexaVertex));
@@ -294,6 +297,21 @@ GlyphPlotter *InitGlyphPlotter(MArena *a_dest, List<Glyph> glyphs, FontAtlas *at
     g_text_plotter = plt;
     return g_text_plotter;
 }
+void InitFonts() {
+    MContext *ctx = InitBaselayer();
+
+    // TODO: init many atlasi / plotters in a storage hash-map
+
+    StrLst *fonts = GetFilesExt("atlas");
+    while (fonts != NULL) {
+        //FontAtlas *atlas = FontAtlasLoadBinary128(ctx->a_life, (char*) "output.atlas");
+        FontAtlas *atlas = FontAtlasLoadBinary128(ctx->a_life, StrZeroTerm( fonts->GetStr() ));
+        InitGlyphPlotter(ctx->a_life, atlas->glyphs, atlas);
+
+        fonts = fonts->next;
+    }
+}
+
 
 
 struct DrawCall {
@@ -398,7 +416,7 @@ void BlitQuads(DrawCall call, ImageRGBA *img) {
 
 
 //
-//  UI elements
+//  UI layout / non-text
 //
 
 
@@ -591,33 +609,38 @@ DrawCall LayoutText(MArena *a_dest, Str txt, s32 x0, s32 y0, s32 w, s32 h, Color
     dc.quads = layed_out;
     return dc;
 }
+inline
+DrawCall LayoutText(MArena *a_dest, const char *txt, s32 x0, s32 y0, s32 w, s32 h, Color color, f32 scale = 1.0f) {
+    return LayoutText(a_dest, StrL(txt), x0, y0, w, h, color, scale);
+}
+static MArena *g_a_quadbuffer;
+inline
+DrawCall LayoutText(Str txt, s32 x0, s32 y0, s32 w, s32 h, Color color, f32 scale = 1.0f) {
+    return LayoutText(g_a_quadbuffer, txt, x0, y0, w, h, color, scale);
+}
+inline
+DrawCall LayoutText(const char *txt, s32 x0, s32 y0, s32 w, s32 h, Color color, f32 scale = 1.0f) {
+    return LayoutText(g_a_quadbuffer, StrL(txt), x0, y0, w, h, color, scale);
+}
 
 
 //
 // system
 
 
-void InitFonts() {
-    // TODO: init many atlasi / plotters in a storage hash-map
-
-    MContext *ctx = InitBaselayer();
-    StrLst *fonts = GetFilesExt("atlas");
-    while (fonts != NULL) {
-        FontAtlas *atlas = FontAtlasLoadBinary128(ctx->a_life, (char*) "output.atlas");
-        InitGlyphPlotter(ctx->a_life, atlas->glyphs, atlas);
-
-        fonts = fonts->next;
-    }
-}
-
-
 static ImageRGBA g_render_target;
 static MArena _g_a_drawcalls;
 static MArena *g_a_drawcalls;
 static List<DrawCall> g_drawcalls;
+static MArena _g_a_quadbuffer;
+//static MArena *g_a_quadbuffer;
+static List<DrawCall> g_quadbuffer;
 void SR_Clear() {
     ArenaClear(g_a_drawcalls);
     g_drawcalls = InitList<DrawCall>(g_a_drawcalls, 0);
+
+    ArenaClear(g_a_quadbuffer);
+    g_quadbuffer = InitList<DrawCall>(g_a_quadbuffer, 0);
 }
 void SR_Init(ImageRGBA render_target) {
     assert(render_target.img != NULL);
@@ -627,6 +650,10 @@ void SR_Init(ImageRGBA render_target) {
         _g_a_drawcalls = ArenaCreate();
         g_a_drawcalls = &_g_a_drawcalls;
         g_drawcalls = InitList<DrawCall>(g_a_drawcalls, 0);
+
+        _g_a_quadbuffer = ArenaCreate();
+        g_a_quadbuffer = &_g_a_quadbuffer;
+        g_quadbuffer = InitList<DrawCall>(g_a_quadbuffer, 0);
     }
     else {
         SR_Clear();
