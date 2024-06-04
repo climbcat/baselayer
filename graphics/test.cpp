@@ -1,12 +1,5 @@
-
 #include "../baselayer.h"
-#include "geometry.h"
-#include "indices.h"
-#include "octree.h"
-#include "ui.h"
-#include "swrender.h"
-#include "gameloop.h"
-#include "atlas.h"
+#include "graphics.h"
 
 
 List<Vector3f> CreateRandomPointCloud(MArena *a, u32 npoints, Vector3f center, Vector3f dimensions) {
@@ -385,15 +378,6 @@ void TestIndexSetOperations() {
     _PrintIndices("idxs_rm_out: ", idxs_rm_out);
 }
 
-GameLoopOne *InitGraphics() {
-    GameLoopOne *loop = InitGameLoopOne();
-    ImageRGBA img = loop->GetRenderer()->GetImageAsRGBA();
-    SR_Init(img);
-    InitFonts();
-    return loop;
-}
-
-
 void TestLayoutGlyphQuads() {
     printf("TestLayoutGlyphQuads\n");
 
@@ -429,26 +413,16 @@ void TestBrownianGlyphs() {
     _memcpy(layed.lst, layed_org.quads.lst, sizeof(QuadHexaVertex) * layed.len);
     SR_Push( LayoutText(ctx->a_life, "press space to reset:", 50, 50, 1000, 200, ColorRandom(), 0.6f) );
 
-    f32 scale = 0.8;
+    f32 brn_magn = 0.8;
     while (loop->GameLoopRunning()) {
-        loop->ImageBufferClear();
-        {
-            TimeBlock("blitting");
 
-            SR_Render();
-        }
-
-        {
-            TimeBlock("brownian effect");
-
-            // brownian motion applied to each character, effect
-            for (u32 i = 0; i < layed.len; ++i) {
-                QuadHexaVertex *q = layed.lst + i;
-                Vector2f d { scale * RandPM1_f32(), scale * RandPM1_f32() };
-                for (u32 j = 0; j < 6; ++j) {
-                    QuadVertex *v = q->verts + j;
-                    v->pos = v->pos + d;
-                }
+        // brownian motion applied to each character, effect
+        for (u32 i = 0; i < layed.len; ++i) {
+            QuadHexaVertex *q = layed.lst + i;
+            Vector2f d { brn_magn * RandPM1_f32(), brn_magn * RandPM1_f32() };
+            for (u32 j = 0; j < 6; ++j) {
+                QuadVertex *v = q->verts + j;
+                v->pos = v->pos + d;
             }
         }
 
@@ -457,12 +431,7 @@ void TestBrownianGlyphs() {
             _memcpy(layed.lst, layed_org.quads.lst, sizeof(QuadHexaVertex) * layed.len);
         }
 
-        // display
-        {
-            TimeBlock("upload & swap");
-            loop->ImageBufferDrawAndSwap();
-        }
-        XSleep(10);
+        loop->FrameEnd2D();
     }
 
 }
@@ -479,11 +448,8 @@ void TestUIPanel() {
     SR_Push( LayoutText(ctx->a_pers, "The other quick brown fox jumps over the other lazy dog", 100, 200, 400, 200, ColorBlack()) );
 
     while (loop->GameLoopRunning()) {
-        loop->ImageBufferClear();
 
-        SR_Render();
-        loop->ImageBufferDrawAndSwap();
-        XSleep(10);
+        loop->FrameEnd2D();
     }
 
     // TODO: draw a boundaried panel - OK

@@ -3,6 +3,7 @@
 
 
 #include "geometry.h"
+#include "gtypes.h"
 
 
 //
@@ -331,6 +332,7 @@ GlyphPlotter *SetFontAndSize(FontSize font_size /*, Font font_name*/) {
     }
     u64 val = MapGet(&g_font_map, sz_px);
     g_text_plotter = (GlyphPlotter*) val;
+
     return g_text_plotter;
 }
 void InitFonts() {
@@ -344,9 +346,6 @@ void InitFonts() {
     while (fonts != NULL) {
         FontAtlas *atlas = FontAtlasLoadBinary128(ctx->a_life, StrZeroTerm( fonts->GetStr() ));
         GlyphPlotter *plt = InitGlyphPlotter(ctx->a_life, atlas->glyphs, atlas);
-
-        //atlas->Print();
-        //GlyphPlotterPrint(g_text_plotter);
 
         MapPut(&g_font_map, atlas->sz_px, plt);
         fonts = fonts->next;

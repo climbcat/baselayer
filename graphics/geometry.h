@@ -2,8 +2,6 @@
 #define __GEOMETRY_H__
 
 
-#include <math.h>
-#include <assert.h>
 #include "../baselayer.h"
 
 

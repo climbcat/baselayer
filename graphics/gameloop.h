@@ -7,6 +7,7 @@
 #include <assert.h>
 #include "geometry.h"
 #include "ui.h"
+#include "atlas.h"
 #include "swrender.h"
 
 
@@ -130,6 +131,16 @@ struct GameLoopOne {
         frameno++;
 
         // start of next frame
+        XSleep(10);
+    }
+    void FrameEnd2D() {
+        mouse.FrameEnd();
+
+        ImageBufferClear();
+        SR_Render();
+        ImageBufferDrawAndSwap();
+
+        frameno++;
         XSleep(10);
     }
     void JustRun(EntitySystem *es) {

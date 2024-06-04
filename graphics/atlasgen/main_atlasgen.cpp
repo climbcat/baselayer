@@ -1,5 +1,8 @@
+#include <math.h>
+#include <assert.h>
+
 #include "../../baselayer.h"
-#include "../stream.h"
+#include "../gtypes.h"
 #include "../atlas.h"
 
 
