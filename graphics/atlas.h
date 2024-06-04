@@ -212,7 +212,7 @@ struct FontAtlas {
     List<Glyph> glyphs;
 
     void Print() {
-        printf("font_sz %u, bitmap_sz %u %u, cell_sz %u %u, glyphs %u, data ptrs %p %p\n", sz_px, texture.width, texture.height, cell_width, ln_height, glyphs.len, glyphs.lst, texture.img);
+        printf("font_sz %u, bitmap_sz %u %u, cell_w %u, ln_height %u, ln_ascend %u, glyphs %u, data ptrs %p %p\n", sz_px, texture.width, texture.height, cell_width, ln_height, ln_ascend, glyphs.len, glyphs.lst, texture.img);
     }
     void PrintGlyphsQuick() {
         for (u32 i = 32; i < glyphs.len; ++i) {
@@ -267,7 +267,9 @@ struct GlyphPlotter {
 GlyphPlotter *InitGlyphPlotter(MArena *a_dest, List<Glyph> glyphs, FontAtlas *atlas) {
     GlyphPlotter *plt = (GlyphPlotter *) ArenaAlloc(a_dest, sizeof(GlyphPlotter));
     plt->advance_x = InitList<u8>(a_dest, 128);
+    plt->advance_x.len = 128;
     plt->cooked = InitList<QuadHexaVertex>(a_dest, 128 * sizeof(QuadHexaVertex));
+    plt->cooked.len = 128;
     plt->texture = atlas->texture;
     plt->ln_height = atlas->ln_height;
     plt->ln_ascend = atlas->ln_ascend;
@@ -280,6 +282,18 @@ GlyphPlotter *InitGlyphPlotter(MArena *a_dest, List<Glyph> glyphs, FontAtlas *at
     }
 
     return plt;
+}
+void GlyphPlotterPrint(GlyphPlotter *plt) {
+    printf("ln_height: %d\n", plt->ln_height);
+    printf("ln_ascend: %d\n", plt->ln_ascend);
+    for (u32 i = 0; i - plt->advance_x.len; ++i) {
+        u8 adv_x = plt->advance_x.lst[i];
+        printf("%d ", adv_x);
+    }
+    printf("tex_w: %d\n", plt->texture.width);
+    printf("tex_h: %d\n", plt->texture.height);
+    printf("tex_ptr: %lu\n", (u64) plt->texture.img);
+    printf("\n");
 }
 
 
@@ -331,16 +345,13 @@ void InitFonts() {
         FontAtlas *atlas = FontAtlasLoadBinary128(ctx->a_life, StrZeroTerm( fonts->GetStr() ));
         GlyphPlotter *plt = InitGlyphPlotter(ctx->a_life, atlas->glyphs, atlas);
 
+        //atlas->Print();
+        //GlyphPlotterPrint(g_text_plotter);
+
         MapPut(&g_font_map, atlas->sz_px, plt);
         fonts = fonts->next;
     }
-
-    // TODO: these font sizes don't work, for some reason ???
-    //SetFontAndSize(FS_72);
-    //SetFontAndSize(FS_48);
-    //SetFontAndSize(FS_36);
-
-    SetFontAndSize(FS_60);
+    SetFontAndSize(FS_48);
 }
 
 
@@ -598,17 +609,21 @@ DrawCall LayoutText(MArena *a_dest, Str txt, s32 x0, s32 y0, s32 w, s32 h, Color
     while (s.len > 0) {
         // while words
 
-        if (IsNewLine(s) && CanDoNewline(pt_y, plt->ln_height, plt->ln_ascend, box_b)) {
-            DoNewLine(plt->ln_height, x0, &pt_x, &pt_y);
+        if (IsNewLine(s)) {
+            if (CanDoNewline(pt_y, plt->ln_height, plt->ln_ascend, box_b)) {
+                DoNewLine(plt->ln_height, x0, &pt_x, &pt_y);
+            }
             s = StrInc(s, 1);
         }
-        if (IsWhiteSpace(s) && CanDoWhiteSpace(pt_x, w_space, box_r)) {
-            DoWhiteSpace(w_space, &pt_x);
+        if (IsWhiteSpace(s)) {
+            if (CanDoWhiteSpace(pt_x, w_space, box_r)) {
+                DoWhiteSpace(w_space, &pt_x);
+            }
             s = StrInc(s, 1);
         }
 
         // lookahead word len (including any leading whitespace)
-        u32 w_adv;
+        u32 w_adv = 0;
         u32 w_len = WorldLen(s, plt->advance_x, &w_adv);
 
         // word wrap

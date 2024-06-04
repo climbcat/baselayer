@@ -11,8 +11,8 @@
 //
 // Other
 
-void XSleep(u32 ms);
 
+void XSleep(u32 ms);
 
 
 //
