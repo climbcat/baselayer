@@ -141,6 +141,43 @@ StrLst *GetFilesExt(const char *extension, const char *path = ".") {
 }
 
 
+struct FInfo {
+    Str name;
+    Str ext;
+    Str basename;
+    Str path;
+    Str dirname;
+
+    Str BuildName(const char *prefix, const char *suffix, const char *ext) {
+        Str bn_new = StrL(prefix);
+        bn_new = StrCat(bn_new, basename);
+        bn_new = StrCat(bn_new, suffix);
+        Str rebuilt = StrPathBuild(dirname, bn_new, StrL(ext));
+        return rebuilt;
+    }
+    void Print() {
+        StrPrint("file : ", name, "\n");
+        StrPrint("ext  : ", ext, "\n");
+        StrPrint("bnme : ", basename, "\n");
+        StrPrint("dir  : ", dirname, "\n");
+        Str rebuilt = StrPathBuild(dirname, basename, ext);
+        StrPrint("rebt : ", rebuilt, "\n");
+    }
+};
+FInfo FInfoGet(Str pathname) {
+    FInfo info;
+    info.name = pathname;
+    info.ext = StrExtension(pathname);
+    info.basename = StrBasename(pathname);
+    info.dirname = StrDirPath(pathname);
+    return info;
+}
+inline
+FInfo FInfoGet(const char*pathname) {
+    return FInfoGet(StrL(pathname));
+}
+
+
 //
 // Baselayer initialization
 
