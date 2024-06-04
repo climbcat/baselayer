@@ -133,10 +133,12 @@ struct GameLoopOne {
         // start of next frame
         XSleep(10);
     }
+    void FrameStart2D() {
+        ImageBufferClear();
+    }
     void FrameEnd2D() {
         mouse.FrameEnd();
 
-        ImageBufferClear();
         SR_Render();
         ImageBufferDrawAndSwap();
 

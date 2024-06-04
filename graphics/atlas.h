@@ -461,6 +461,56 @@ void BlitQuads(DrawCall call, ImageRGBA *img) {
 
 
 //
+// sprite renderer memory system
+
+
+static ImageRGBA g_render_target;
+static MArena _g_a_drawcalls;
+static MArena *g_a_drawcalls;
+static List<DrawCall> g_drawcalls;
+static MArena _g_a_quadbuffer;
+static MArena *g_a_quadbuffer;
+static List<DrawCall> g_quadbuffer;
+void SR_Clear() {
+    ArenaClear(g_a_drawcalls);
+    g_drawcalls = InitList<DrawCall>(g_a_drawcalls, 0);
+
+    ArenaClear(g_a_quadbuffer);
+    g_quadbuffer = InitList<DrawCall>(g_a_quadbuffer, 0);
+}
+void SR_Init(ImageRGBA render_target) {
+    assert(render_target.img != NULL);
+    g_render_target = render_target;
+
+    if (g_a_drawcalls == NULL) {
+        _g_a_drawcalls = ArenaCreate();
+        g_a_drawcalls = &_g_a_drawcalls;
+        g_drawcalls = InitList<DrawCall>(g_a_drawcalls, 0);
+
+        _g_a_quadbuffer = ArenaCreate();
+        g_a_quadbuffer = &_g_a_quadbuffer;
+        g_quadbuffer = InitList<DrawCall>(g_a_quadbuffer, 0);
+    }
+    else {
+        SR_Clear();
+        printf("WARN: re-initialized sprite rendering\n");
+    }
+}
+List<QuadHexaVertex> SR_Push(DrawCall dc) {
+    ArenaAlloc(g_a_drawcalls, sizeof(DrawCall));
+    g_drawcalls.Add(dc);
+    return dc.quads;
+}
+void SR_Render() {
+    assert(g_render_target.img != NULL && "init render target first");
+
+    for (u32 i = 0; i < g_drawcalls.len; ++i) {
+        BlitQuads(g_drawcalls.lst[i], &g_render_target);
+    }
+}
+
+
+//
 //  UI layout / non-text
 //
 
@@ -481,10 +531,9 @@ Widget InitWidget(s16 x0, s16 y0, s16 w, s16 h) {
 }
 
 
-DrawCall LayoutPanel(MArena *a_dest, s32 l, s32 t, s32 w, s32 h, s32 border) {
-    // border overflow
+List<QuadHexaVertex> LayoutPanel(MArena *a_dest, s32 l, s32 t, s32 w, s32 h, s32 border) {
     if (border >= w / 2 || border >= w / 2) {
-        return InitDrawCallEmpty();
+        return List<QuadHexaVertex> { NULL, 0 };
     }
 
     DrawCall dc;
@@ -511,7 +560,12 @@ DrawCall LayoutPanel(MArena *a_dest, s32 l, s32 t, s32 w, s32 h, s32 border) {
         dc.quads.Add(QuadCook(q));
     }
 
-    return dc;
+    List<QuadHexaVertex> quads = SR_Push(dc);
+    return quads;
+}
+inline
+List<QuadHexaVertex> LayoutPanel(s32 l, s32 t, s32 w, s32 h, s32 border) {
+    return LayoutPanel(g_a_quadbuffer, l, t, w, h, border);
 }
 
 
@@ -591,7 +645,7 @@ void DoNewLine(s32 ln_height, s32 left, s32 *pt_x, s32 *pt_y) {
 void DoWhiteSpace(s32 space_width, s32 *pt_x) {
     *pt_x += space_width;
 }
-DrawCall LayoutText(MArena *a_dest, Str txt, s32 x0, s32 y0, s32 w, s32 h, Color color, f32 scale = 1.0f) {
+List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, s32 x0, s32 y0, s32 w, s32 h, Color color, f32 scale = 1.0f) {
     assert(g_text_plotter != NULL && "init text plotters first");
     GlyphPlotter *plt = g_text_plotter;
 
@@ -635,7 +689,8 @@ DrawCall LayoutText(MArena *a_dest, Str txt, s32 x0, s32 y0, s32 w, s32 h, Color
                 DrawCall dc;
                 dc.texture = 0;
                 dc.quads = layed_out;
-                return dc;
+                SR_Push(dc);
+                return layed_out;
             }
         }
 
@@ -656,70 +711,21 @@ DrawCall LayoutText(MArena *a_dest, Str txt, s32 x0, s32 y0, s32 w, s32 h, Color
     DrawCall dc;
     dc.texture = 0;
     dc.quads = layed_out;
-    return dc;
+    SR_Push(dc);
+
+    return layed_out;
 }
 inline
-DrawCall LayoutText(MArena *a_dest, const char *txt, s32 x0, s32 y0, s32 w, s32 h, Color color, f32 scale = 1.0f) {
+List<QuadHexaVertex> LayoutText(MArena *a_dest, const char *txt, s32 x0, s32 y0, s32 w, s32 h, Color color, f32 scale = 1.0f) {
     return LayoutText(a_dest, StrL(txt), x0, y0, w, h, color, scale);
 }
-static MArena *g_a_quadbuffer;
 inline
-DrawCall LayoutText(Str txt, s32 x0, s32 y0, s32 w, s32 h, Color color, f32 scale = 1.0f) {
+List<QuadHexaVertex> LayoutText(Str txt, s32 x0, s32 y0, s32 w, s32 h, Color color, f32 scale = 1.0f) {
     return LayoutText(g_a_quadbuffer, txt, x0, y0, w, h, color, scale);
 }
 inline
-DrawCall LayoutText(const char *txt, s32 x0, s32 y0, s32 w, s32 h, Color color, f32 scale = 1.0f) {
+List<QuadHexaVertex> LayoutText(const char *txt, s32 x0, s32 y0, s32 w, s32 h, Color color, f32 scale = 1.0f) {
     return LayoutText(g_a_quadbuffer, StrL(txt), x0, y0, w, h, color, scale);
-}
-
-
-//
-// system
-
-
-static ImageRGBA g_render_target;
-static MArena _g_a_drawcalls;
-static MArena *g_a_drawcalls;
-static List<DrawCall> g_drawcalls;
-static MArena _g_a_quadbuffer;
-//static MArena *g_a_quadbuffer;
-static List<DrawCall> g_quadbuffer;
-void SR_Clear() {
-    ArenaClear(g_a_drawcalls);
-    g_drawcalls = InitList<DrawCall>(g_a_drawcalls, 0);
-
-    ArenaClear(g_a_quadbuffer);
-    g_quadbuffer = InitList<DrawCall>(g_a_quadbuffer, 0);
-}
-void SR_Init(ImageRGBA render_target) {
-    assert(render_target.img != NULL);
-    g_render_target = render_target;
-
-    if (g_a_drawcalls == NULL) {
-        _g_a_drawcalls = ArenaCreate();
-        g_a_drawcalls = &_g_a_drawcalls;
-        g_drawcalls = InitList<DrawCall>(g_a_drawcalls, 0);
-
-        _g_a_quadbuffer = ArenaCreate();
-        g_a_quadbuffer = &_g_a_quadbuffer;
-        g_quadbuffer = InitList<DrawCall>(g_a_quadbuffer, 0);
-    }
-    else {
-        SR_Clear();
-        printf("WARN: re-initialized sprite rendering\n");
-    }
-}
-List<QuadHexaVertex> SR_Push(DrawCall dc) {
-    ArenaAlloc(g_a_drawcalls, sizeof(DrawCall));
-    g_drawcalls.Add(dc);
-    return dc.quads;
-}
-void SR_Render() {
-    assert(g_render_target.img != NULL && "init render target first");
-
-    for (u32 i = 0; i < g_drawcalls.len; ++i) {
-        BlitQuads(g_drawcalls.lst[i], &g_render_target);
-    }
 }
 
 

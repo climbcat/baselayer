@@ -378,14 +378,15 @@ void TestIndexSetOperations() {
     _PrintIndices("idxs_rm_out: ", idxs_rm_out);
 }
 
+
 void TestLayoutGlyphQuads() {
     printf("TestLayoutGlyphQuads\n");
 
     MContext *ctx = InitBaselayer();
     GameLoopOne *loop = InitGraphics();
 
-    SR_Push( LayoutText("The quick brown fox jumps over the lazy dog", 50, 100, 1000, 200, ColorRandom()) );
-    SR_Push( LayoutText("The other quick brown fox jumps over the other lazy dog", 100, 200, 400, 200, ColorRandom() ));
+    LayoutText("The quick brown fox jumps over the lazy dog", 50, 100, 1000, 200, ColorRandom());
+    LayoutText("The other quick brown fox jumps over the other lazy dog", 100, 200, 400, 200, ColorRandom());
 
     SR_Render();
     loop->JustShowBuffer();
@@ -398,27 +399,26 @@ void TestBrownianGlyphs() {
     MContext *ctx = InitBaselayer();
     GameLoopOne *loop = InitGraphics();
 
-    DrawCall layed_org = LayoutText(ctx->a_life, "The quick brown fox jumps over the lazy dog", 470, 340, 400, 300, ColorRandom());
-    List<QuadHexaVertex> _layed_org = layed_org.quads;
-    for (u32 i = 0; i < _layed_org.len; ++i) {
-        QuadHexaVertex *q = _layed_org.lst + i;
+    LayoutText("press space to reset:", 50, 50, 1000, 200, ColorRandom(), 0.6f);
+    List<QuadHexaVertex> quads = LayoutText("The quick brown fox jumps over the lazy dog", 470, 340, 400, 300, ColorRandom());
+    for (u32 i = 0; i < quads.len; ++i) {
+        QuadHexaVertex *q = quads.lst + i;
         for (u32 j = 0; j < 6; ++j) {
             QuadVertex *v = q->verts + j;
             v->col = ColorRandom();
         }
-        PrintColorInline(q->GetColor());
     }
-
-    List<QuadHexaVertex> layed = SR_Push( LayoutText(ctx->a_pers, StrL("The quick brown fox jumps over the lazy dog"), 470, 340, 400, 300, ColorBlack()) );
-    _memcpy(layed.lst, layed_org.quads.lst, sizeof(QuadHexaVertex) * layed.len);
-    SR_Push( LayoutText(ctx->a_life, "press space to reset:", 50, 50, 1000, 200, ColorRandom(), 0.6f) );
+    List<QuadHexaVertex> quads_initial = InitList<QuadHexaVertex>(ctx->a_pers, quads.len);
+    quads_initial.len = quads.len;
+    _memcpy(quads_initial.lst, quads.lst, sizeof(QuadHexaVertex) * quads_initial.len);
 
     f32 brn_magn = 0.8;
     while (loop->GameLoopRunning()) {
+        loop->FrameStart2D();
 
         // brownian motion applied to each character, effect
-        for (u32 i = 0; i < layed.len; ++i) {
-            QuadHexaVertex *q = layed.lst + i;
+        for (u32 i = 0; i < quads.len; ++i) {
+            QuadHexaVertex *q = quads.lst + i;
             Vector2f d { brn_magn * RandPM1_f32(), brn_magn * RandPM1_f32() };
             for (u32 j = 0; j < 6; ++j) {
                 QuadVertex *v = q->verts + j;
@@ -428,12 +428,11 @@ void TestBrownianGlyphs() {
 
         // reset on key_space
         if (loop->GetMouseTrap()->last_keypress_frame == OUR_GLFW_KEY_SPACE) {
-            _memcpy(layed.lst, layed_org.quads.lst, sizeof(QuadHexaVertex) * layed.len);
+            _memcpy(quads.lst, quads_initial.lst, sizeof(QuadHexaVertex) * quads_initial.len);
         }
 
         loop->FrameEnd2D();
     }
-
 }
 
 
@@ -443,12 +442,12 @@ void TestUIPanel() {
     MContext *ctx = InitBaselayer();
     GameLoopOne *loop = InitGraphics();
 
-    SR_Push( LayoutPanel(ctx->a_pers, 80, 140, 400, 250, 4) );
-    SR_Push( LayoutText(ctx->a_pers, "The quick brown fox jumps over the lazy dog", 50, 100, 1000, 200, ColorWhite()) );
-    SR_Push( LayoutText(ctx->a_pers, "The other quick brown fox jumps over the other lazy dog", 100, 200, 400, 200, ColorBlack()) );
+    LayoutPanel(80, 140, 400, 250, 4);
+    LayoutText("The quick brown fox jumps over the lazy dog", 50, 100, 1000, 200, ColorWhite());
+    LayoutText("The other quick brown fox jumps over the other lazy dog", 100, 200, 400, 200, ColorBlack());
 
     while (loop->GameLoopRunning()) {
-
+        loop->FrameStart2D();
         loop->FrameEnd2D();
     }
 
