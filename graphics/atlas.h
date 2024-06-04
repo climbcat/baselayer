@@ -633,9 +633,10 @@ void SR_Init(ImageRGBA render_target) {
         printf("WARN: re-initialized sprite rendering\n");
     }
 }
-void SR_Push(DrawCall dc) {
+List<QuadHexaVertex> SR_Push(DrawCall dc) {
     ArenaAlloc(g_a_drawcalls, sizeof(DrawCall));
     g_drawcalls.Add(dc);
+    return dc.quads;
 }
 void SR_Render() {
     assert(g_render_target.img != NULL && "init render target first");

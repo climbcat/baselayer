@@ -255,6 +255,7 @@ inline
 Str StrLiteral(char *literal) {
     return StrLiteral(g_a_strings, (const char*) literal);
 }
+#define StrL StrLiteral
 inline
 bool StrEqual(Str a, const char *lit) {
     Str b = StrLiteral(lit);

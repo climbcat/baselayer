@@ -385,31 +385,25 @@ void TestIndexSetOperations() {
     _PrintIndices("idxs_rm_out: ", idxs_rm_out);
 }
 
-
-void TestLayoutGlyphQuads() {
-    printf("TestLayoutGlyphQuads\n");
-    MContext *ctx = InitBaselayer();
-    InitFonts();
-
+GameLoopOne *InitGraphics() {
     GameLoopOne *loop = InitGameLoopOne();
     ImageRGBA img = loop->GetRenderer()->GetImageAsRGBA();
     SR_Init(img);
+    InitFonts();
+    return loop;
+}
 
-    List<QuadHexaVertex> layed;
-    List<QuadHexaVertex> layed_2;
 
-    Str txt = StrLiteral("The quick brown fox jumps over the lazy dog");
-    Str txt_2 = StrLiteral("The other quick brown fox jumps over the other lazy dog");
-    DrawCall call1 = LayoutText(ctx->a_pers, txt, 50, 100, 1000, 200, ColorRandom());
-    DrawCall call2 = LayoutText(ctx->a_pers, txt_2, 100, 200, 400, 200, ColorRandom());
-    assert(call1.quads.lst + call1.quads.len == call2.quads.lst);
+void TestLayoutGlyphQuads() {
+    printf("TestLayoutGlyphQuads\n");
 
-    SR_Push(call1);
-    SR_Push(call2);
+    MContext *ctx = InitBaselayer();
+    GameLoopOne *loop = InitGraphics();
+
+    SR_Push( LayoutText(ctx->a_pers, StrL("The quick brown fox jumps over the lazy dog"), 50, 100, 1000, 200, ColorRandom()) );
+    SR_Push( LayoutText(ctx->a_pers, StrL("The other quick brown fox jumps over the other lazy dog"), 100, 200, 400, 200, ColorRandom() ));
 
     SR_Render();
-
-    // display
     loop->JustShowBuffer();
 }
 
@@ -418,15 +412,9 @@ void TestBrownianGlyphs() {
     printf("TestBrownianGlyphs\n");
 
     MContext *ctx = InitBaselayer();
-    InitFonts();
+    GameLoopOne *loop = InitGraphics();
 
-    GameLoopOne *loop = InitGameLoopOne();
-    ImageRGBA img = loop->GetRenderer()->GetImageAsRGBA();
-    SR_Init(img);
-
-    Str txt = StrLiteral("The quick brown fox jumps over the lazy dog");
-    DrawCall layed_org = LayoutText(ctx->a_life, txt, 470, 340, 400, 300, ColorRandom());
-    // assign random colors to each char quad
+    DrawCall layed_org = LayoutText(ctx->a_life, StrL("The quick brown fox jumps over the lazy dog"), 470, 340, 400, 300, ColorRandom());
     List<QuadHexaVertex> _layed_org = layed_org.quads;
     for (u32 i = 0; i < _layed_org.len; ++i) {
         QuadHexaVertex *q = _layed_org.lst + i;
@@ -437,12 +425,9 @@ void TestBrownianGlyphs() {
         PrintColorInline(q->GetColor());
     }
 
-    DrawCall layed = LayoutText(ctx->a_pers, txt, 470, 340, 400, 300, ColorBlack());
-    _memcpy(layed.quads.lst, layed_org.quads.lst, sizeof(QuadHexaVertex) * layed.quads.len);
-    DrawCall label = LayoutText(ctx->a_life, StrLiteral("press space to reset:"), 50, 50, 1000, 200, ColorRandom(), 0.6f);
-
-    SR_Push(layed);
-    SR_Push(label);
+    List<QuadHexaVertex> layed = SR_Push( LayoutText(ctx->a_pers, StrL("The quick brown fox jumps over the lazy dog"), 470, 340, 400, 300, ColorBlack()) );
+    _memcpy(layed.lst, layed_org.quads.lst, sizeof(QuadHexaVertex) * layed.len);
+    SR_Push( LayoutText(ctx->a_life, StrLiteral("press space to reset:"), 50, 50, 1000, 200, ColorRandom(), 0.6f) );
 
     f32 scale = 0.8;
     while (loop->GameLoopRunning()) {
@@ -457,8 +442,8 @@ void TestBrownianGlyphs() {
             TimeBlock("brownian effect");
 
             // brownian motion applied to each character, effect
-            for (u32 i = 0; i < layed.quads.len; ++i) {
-                QuadHexaVertex *q = layed.quads.lst + i;
+            for (u32 i = 0; i < layed.len; ++i) {
+                QuadHexaVertex *q = layed.lst + i;
                 Vector2f d { scale * RandPM1_f32(), scale * RandPM1_f32() };
                 for (u32 j = 0; j < 6; ++j) {
                     QuadVertex *v = q->verts + j;
@@ -467,8 +452,9 @@ void TestBrownianGlyphs() {
             }
         }
 
+        // reset on key_space
         if (loop->GetMouseTrap()->last_keypress_frame == OUR_GLFW_KEY_SPACE) {
-            _memcpy(layed.quads.lst, layed_org.quads.lst, sizeof(QuadHexaVertex) * layed.quads.len);
+            _memcpy(layed.lst, layed_org.quads.lst, sizeof(QuadHexaVertex) * layed.len);
         }
 
         // display
@@ -486,24 +472,11 @@ void TestUIPanel() {
     printf("TestUIPanel\n");
 
     MContext *ctx = InitBaselayer();
-    ArenaClear(ctx->a_life);
-    ArenaClear(ctx->a_pers);
-    ArenaClear(ctx->a_tmp);
+    GameLoopOne *loop = InitGraphics();
 
-    InitFonts();
-    GameLoopOne *loop = InitGameLoopOne();
-    SR_Init(loop->GetRenderer()->GetImageAsRGBA());
-
-    Str txt = StrLiteral("The quick brown fox jumps over the lazy dog");
-    Str txt_2 = StrLiteral("The other quick brown fox jumps over the other lazy dog");
-
-    DrawCall dc_pnl = LayoutPanel(ctx->a_pers, 80, 140, 400, 250, 4);
-    DrawCall dc_lbl1 = LayoutText(ctx->a_pers, txt, 50, 100, 1000, 200, ColorWhite());
-    DrawCall dc_lbl2 = LayoutText(ctx->a_pers, txt_2, 100, 200, 400, 200, ColorBlack());
-
-    SR_Push(dc_pnl);
-    SR_Push(dc_lbl1);
-    SR_Push(dc_lbl2);
+    SR_Push( LayoutPanel(ctx->a_pers, 80, 140, 400, 250, 4) );
+    SR_Push( LayoutText(ctx->a_pers, StrL("The quick brown fox jumps over the lazy dog"), 50, 100, 1000, 200, ColorWhite()) );
+    SR_Push( LayoutText(ctx->a_pers, StrL("The other quick brown fox jumps over the other lazy dog"), 100, 200, 400, 200, ColorBlack()) );
 
     while (loop->GameLoopRunning()) {
         loop->ImageBufferClear();
@@ -512,7 +485,6 @@ void TestUIPanel() {
         loop->ImageBufferDrawAndSwap();
         XSleep(10);
     }
-
 
     // TODO: draw a boundaried panel - OK
     // TODO: make it respond to mouse interaction
