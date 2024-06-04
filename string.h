@@ -184,6 +184,16 @@ Str StrJoinInsertChar(MArena *a, StrLst *strs, char insert) {
     ArenaClose(a, join.len);
     return join;
 }
+Str StrTrim(MArena *a, Str s, char t) {
+    if (s.str[0] == t) {
+        s.str++;
+        s.len -=1;
+    }
+    if (s.str[s.len-1] == t) {
+        s.len -=1;
+    }
+    return s;
+}
 
 
 //
@@ -297,6 +307,10 @@ StrLst *StrSplitWords(Str base) {
 inline
 Str StrJoin(StrLst *strs) {
     return StrJoin(g_a_strings, strs);
+}
+inline
+Str StrTrim(Str s, char t) {
+    return StrTrim(g_a_strings, s, t);
 }
 inline
 Str StrJoinInsertChar(StrLst *strs, char insert) {

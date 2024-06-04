@@ -66,6 +66,8 @@ bool ArenaSave(MArena *a, const char *filename) {
 Str StrBasename(char *path) {
     assert(g_a_strings != NULL && "init strings first");
 
+    // TODO: shouldn't this fail?
+
     Str before_ext = StrSplit(StrLiteral(path), '.')->GetStr();
     StrLst* slashes = StrSplit(before_ext, '/');
     while (slashes->next) {
@@ -88,6 +90,35 @@ Str StrExtension(char *path) {
 }
 Str StrExtension(Str path) {
     return StrExtension(StrZeroTerm(path));
+}
+Str StrDirPath(Str path) {
+    assert(g_a_strings != NULL && "init strings first");
+
+    StrLst *slash = StrSplit(path, '/');
+    u32 len = StrListLen(slash);
+
+    Str cat = StrL("");
+    for (u32 i = 0; i < len - 1; ++i) {
+        cat = StrCat(cat, slash->GetStr());
+        cat = StrCat(cat, "/");
+        slash = slash->next;
+    }
+    return cat;
+}
+Str StrPathBuild(Str dirname, Str basename, Str ext) {
+    dirname = StrTrim(dirname, '/');
+    basename = StrTrim(basename, '/');
+
+    Str path = StrCat(dirname, "/");
+    path = StrCat(path, basename);
+    path = StrCat(path, ".");
+    path = StrCat(path, ext);
+    return path;
+}
+Str StrPathJoin(Str path_1, Str path_2) {
+    Str path = StrCat(path_1, "/");
+    path = StrCat(path, path_2);
+    return path;
 }
 StrLst *GetFilesExt(const char *extension, const char *path = ".") {
     StrLst *all = GetFilesInFolderPaths(InitStrings(), path);

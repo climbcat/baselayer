@@ -354,6 +354,58 @@ void TestPointerHashMap() {
 }
 
 
+struct FInfo {
+    Str name;
+    Str ext;
+    Str basename;
+    Str path;
+    Str dirname;
+};
+FInfo FInfoGet(Str pathname) {
+    FInfo info;
+    info.name = pathname;
+    info.ext = StrExtension(pathname);
+    info.basename = StrBasename(pathname);
+    info.dirname = StrDirPath(pathname);
+    return info;
+}
+inline
+FInfo FInfoGet(const char*pathname) {
+    return FInfoGet(StrL(pathname));
+}
+void FInfoPrint(FInfo info) {
+    StrPrint("file : ", info.name, "\n");
+    StrPrint("ext  : ", info.ext, "\n");
+    StrPrint("bnme : ", info.basename, "\n");
+    StrPrint("dir  : ", info.dirname, "\n");
+    Str rebuilt = StrPathBuild(info.dirname, info.basename, info.ext);
+    StrPrint("rebt : ", rebuilt, "\n");
+}
+void TestScritinizeFilename() {
+    printf("TestScritinizeFilename\n");
+    InitBaselayer();
+    printf("\n");
+
+    {
+        Str fname = StrL( "./data/123456_sumfile.ext" );
+        FInfo info = FInfoGet(fname);
+        FInfoPrint(info);
+    }
+    printf("\n");
+    {
+        Str fname = StrL( "/home/user/data/123456_sumfile.ext" );
+        FInfo info = FInfoGet(fname);
+        FInfoPrint(info);
+    }
+    printf("\n");
+    {
+        Str fname = StrL( "12345/6789/user/data/123456_sumfile.longfileextention" );
+        FInfo info = FInfoGet(fname);
+        FInfoPrint(info);
+    }
+}
+
+
 void Test() {
     printf("Running tests ...\n");
 
@@ -361,7 +413,8 @@ void Test() {
     //TestSortingAlgs();
     //TestStringHelpers();
     //TestDict();
-    TestPointerHashMap();
+    //TestPointerHashMap();
+    TestScritinizeFilename();
 }
 
 
