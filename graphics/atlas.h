@@ -325,9 +325,8 @@ u8 SampleTexture(ImageB *tex, f32 x, f32 y) {
     u8 b = tex->img[idx];
     return b;
 }
-void BlitQuads(DrawCall call, ImageRGBA img) {
+void BlitQuads(DrawCall call, ImageRGBA *img) {
     ImageB *texture = DC_GetTexture(call.texture);
-
 
     for (u32 i = 0; i < call.quads.len; ++i) {
         QuadHexaVertex *q = call.quads.lst + i;
@@ -337,10 +336,10 @@ void BlitQuads(DrawCall call, ImageRGBA img) {
         s32 q_h = q->GetHeight();
         s32 q_x0 = q->GetX0();
         s32 q_y0 = q->GetY0();
-        assert(img.height >= q_w);
-        assert(img.width >= q_h);
+        assert(img->height >= q_w);
+        assert(img->width >= q_h);
 
-        u32 stride_img = img.width;
+        u32 stride_img = img->width;
         Color color = q->GetColor();
         if (texture != NULL && has_tex_coords == true) {
 
@@ -354,13 +353,13 @@ void BlitQuads(DrawCall call, ImageRGBA img) {
 
             for (u32 j = 0; j < q_h; ++j) {
                 s32 j_img = j + q_y0;
-                if (j_img < 0 || j_img > img.height) {
+                if (j_img < 0 || j_img > img->height) {
                     continue;
                 }
 
                 for (u32 i = 0; i < q_w; ++i) {
                     u32 i_img = q_x0 + i;
-                    if (i_img < 0 || i_img > img.width) {
+                    if (i_img < 0 || i_img > img->width) {
                         continue;
                     }
                     f32 x = q_u0 + i * q_scale_x;
@@ -368,7 +367,7 @@ void BlitQuads(DrawCall call, ImageRGBA img) {
                     if (u8 b = SampleTexture(texture, x, y)) {
                         color.a = b;
                         u32 idx = j_img * stride_img + i_img;
-                        img.img[idx] = color;
+                        img->img[idx] = color;
                     }
                 }
             }
@@ -379,18 +378,18 @@ void BlitQuads(DrawCall call, ImageRGBA img) {
             u32 idx;
             for (u32 j = 0; j < q_h; ++j) {
                 j_img = j + q_y0;
-                if (j_img < 0 || j_img > img.height) {
+                if (j_img < 0 || j_img > img->height) {
                     continue;
                 }
 
                 for (u32 i = 0; i < q_w; ++i) {
                     i_img = q_x0 + i;
-                    if (i_img < 0 || i_img > img.width) {
+                    if (i_img < 0 || i_img > img->width) {
                         continue;
                     }
 
                     idx = j_img * stride_img + i_img;
-                    img.img[idx] = color;
+                    img->img[idx] = color;
                 }
             }
         }
@@ -401,7 +400,6 @@ void BlitQuads(DrawCall call, ImageRGBA img) {
 //
 //  UI elements
 //
-//  UIPanel:    Configurable panel with a boundary, drawn as two quads on top of each-other
 
 
 struct Widget {
@@ -609,6 +607,41 @@ void InitFonts() {
         InitGlyphPlotter(ctx->a_life, atlas->glyphs, atlas);
 
         fonts = fonts->next;
+    }
+}
+
+
+static ImageRGBA g_render_target;
+static MArena _g_a_drawcalls;
+static MArena *g_a_drawcalls;
+static List<DrawCall> g_drawcalls;
+void SR_Clear() {
+    ArenaClear(g_a_drawcalls);
+    g_drawcalls = InitList<DrawCall>(g_a_drawcalls, 0);
+}
+void SR_Init(ImageRGBA render_target) {
+    assert(render_target.img != NULL);
+    g_render_target = render_target;
+
+    if (g_a_drawcalls == NULL) {
+        _g_a_drawcalls = ArenaCreate();
+        g_a_drawcalls = &_g_a_drawcalls;
+        g_drawcalls = InitList<DrawCall>(g_a_drawcalls, 0);
+    }
+    else {
+        SR_Clear();
+        printf("WARN: re-initialized sprite rendering\n");
+    }
+}
+void SR_Push(DrawCall dc) {
+    ArenaAlloc(g_a_drawcalls, sizeof(DrawCall));
+    g_drawcalls.Add(dc);
+}
+void SR_Render() {
+    assert(g_render_target.img != NULL && "init render target first");
+
+    for (u32 i = 0; i < g_drawcalls.len; ++i) {
+        BlitQuads(g_drawcalls.lst[i], &g_render_target);
     }
 }
 

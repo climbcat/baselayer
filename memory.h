@@ -270,7 +270,6 @@ MContext *GetContext() {
         g_mctx->_a_life = ArenaCreate();
         g_mctx->a_life = &g_mctx->_a_life;
     }
-
     return g_mctx;
 }
 

@@ -393,6 +393,7 @@ void TestLayoutGlyphQuads() {
 
     GameLoopOne *loop = InitGameLoopOne();
     ImageRGBA img = loop->GetRenderer()->GetImageAsRGBA();
+    SR_Init(img);
 
     List<QuadHexaVertex> layed;
     List<QuadHexaVertex> layed_2;
@@ -403,8 +404,10 @@ void TestLayoutGlyphQuads() {
     DrawCall call2 = LayoutText(ctx->a_pers, txt_2, 100, 200, 400, 200, ColorRandom());
     assert(call1.quads.lst + call1.quads.len == call2.quads.lst);
 
-    BlitQuads(call1, img);
-    BlitQuads(call2, img);
+    SR_Push(call1);
+    SR_Push(call2);
+
+    SR_Render();
 
     // display
     loop->JustShowBuffer();
@@ -419,6 +422,7 @@ void TestBrownianGlyphs() {
 
     GameLoopOne *loop = InitGameLoopOne();
     ImageRGBA img = loop->GetRenderer()->GetImageAsRGBA();
+    SR_Init(img);
 
     Str txt = StrLiteral("The quick brown fox jumps over the lazy dog");
     DrawCall layed_org = LayoutText(ctx->a_life, txt, 470, 340, 400, 300, ColorRandom());
@@ -437,15 +441,16 @@ void TestBrownianGlyphs() {
     _memcpy(layed.quads.lst, layed_org.quads.lst, sizeof(QuadHexaVertex) * layed.quads.len);
     DrawCall label = LayoutText(ctx->a_life, StrLiteral("press space to reset:"), 50, 50, 1000, 200, ColorRandom(), 0.6f);
 
-    RandInit();
+    SR_Push(layed);
+    SR_Push(label);
+
     f32 scale = 0.8;
     while (loop->GameLoopRunning()) {
         loop->ImageBufferClear();
         {
             TimeBlock("blitting");
 
-            BlitQuads(layed, img);
-            BlitQuads(label, img);
+            SR_Render();
         }
 
         {
@@ -481,26 +486,33 @@ void TestUIPanel() {
     printf("TestUIPanel\n");
 
     MContext *ctx = InitBaselayer();
+    ArenaClear(ctx->a_life);
+    ArenaClear(ctx->a_pers);
+    ArenaClear(ctx->a_tmp);
+
+    InitFonts();
     GameLoopOne *loop = InitGameLoopOne();
-    ImageRGBA img = loop->GetRenderer()->GetImageAsRGBA();
+    SR_Init(loop->GetRenderer()->GetImageAsRGBA());
 
     Str txt = StrLiteral("The quick brown fox jumps over the lazy dog");
     Str txt_2 = StrLiteral("The other quick brown fox jumps over the other lazy dog");
 
-    DrawCall dc_pnl = LayoutPanel(ctx->a_pers, 100, 100, 400, 250, 4);
+    DrawCall dc_pnl = LayoutPanel(ctx->a_pers, 80, 140, 400, 250, 4);
     DrawCall dc_lbl1 = LayoutText(ctx->a_pers, txt, 50, 100, 1000, 200, ColorWhite());
     DrawCall dc_lbl2 = LayoutText(ctx->a_pers, txt_2, 100, 200, 400, 200, ColorBlack());
+
+    SR_Push(dc_pnl);
+    SR_Push(dc_lbl1);
+    SR_Push(dc_lbl2);
 
     while (loop->GameLoopRunning()) {
         loop->ImageBufferClear();
 
-        BlitQuads(dc_pnl, img);
-        BlitQuads(dc_lbl1, img);
-        BlitQuads(dc_lbl2, img);
-
+        SR_Render();
         loop->ImageBufferDrawAndSwap();
         XSleep(10);
     }
+
 
     // TODO: draw a boundaried panel - OK
     // TODO: make it respond to mouse interaction
