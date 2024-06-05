@@ -644,7 +644,7 @@ void ScaleTextInline(List<QuadHexaVertex> text, f32 scale, s32 x0, s32 y0, s32 w
     }
 }
 inline
-u32 WorldLen(Str s, List<u8> advance_x, u32 *w_adv) {
+u32 WorldLen(Str s, List<u8> advance_x, s32 *w_adv) {
     u32 i = 0;
     *w_adv = 0;
     while (i < s.len && IsWhiteSpace(s.str[i]) == false) {
@@ -674,9 +674,8 @@ void DoNewLine(s32 ln_height, s32 left, s32 *pt_x, s32 *pt_y) {
 void DoWhiteSpace(s32 space_width, s32 *pt_x) {
     *pt_x += space_width;
 }
-List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, s32 x0, s32 y0, s32 w, s32 h, Color color) {
+List<QuadHexaVertex> LayoutText(MArena *a_dest, GlyphPlotter *plt, Str txt, s32 x0, s32 y0, s32 w, s32 h, Color color) {
     assert(g_text_plotter != NULL && "init text plotters first");
-    GlyphPlotter *plt = g_text_plotter;
 
     s32 pt_x = x0;
     s32 pt_y = y0 + plt->ln_height;
@@ -687,7 +686,7 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, s32 x0, s32 y0, s32 w, 
     u32 i = 0;
     Str s = txt;
 
-    List<QuadHexaVertex> layed_out = InitList<QuadHexaVertex>(a_dest, 0);
+    List<QuadHexaVertex> quads = InitList<QuadHexaVertex>(a_dest, 0);
     while (s.len > 0) {
         // while words
 
@@ -704,8 +703,8 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, s32 x0, s32 y0, s32 w, 
             s = StrInc(s, 1);
         }
 
-        // lookahead word len (including any leading whitespace)
-        u32 w_adv = 0;
+        // lookahead word len (include leading whitespace)
+        s32 w_adv = 0;
         u32 w_len = WorldLen(s, plt->advance_x, &w_adv);
 
         // word wrap
@@ -716,13 +715,6 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, s32 x0, s32 y0, s32 w, 
             else {
                 // ran out of space, exit
                 break;
-                /*
-                DrawCall dc;
-                dc.texture = 0;
-                dc.quads = layed_out;
-                SR_Push(dc);
-                return layed_out;
-                */
             }
         }
 
@@ -732,37 +724,41 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, s32 x0, s32 y0, s32 w, 
             QuadHexaVertex q = QuadOffset(plt->cooked.lst + c, pt_x, pt_y, color);
             pt_x += plt->advance_x.lst[c];
             ArenaAlloc(a_dest, sizeof(QuadHexaVertex));
-            layed_out.Add(q);
+            quads.Add(q);
         }
         s = StrInc(s, w_len);
+
+        // dbg count
+        ++i;
     }
-    assert(layed_out.len <= txt.len); // txt len minus whitespaces, which are not layed out as quads
+    assert(quads.len <= txt.len); // quad len equals char count minus whitespaces
 
     // only scale if absolutely necessary
     f32 scale = 1.0f;
-    ScaleTextInline(layed_out, scale, x0, y0, w, h);
+    ScaleTextInline(quads, scale, x0, y0, w, h);
 
     DrawCall dc;
     dc.texture = 0;
-    dc.quads = layed_out;
+    dc.quads = quads;
     SR_Push(dc);
 
-    return layed_out;
+    return quads;
 }
 inline
 List<QuadHexaVertex> LayoutText(MArena *a_dest, const char *txt, s32 x0, s32 y0, s32 w, s32 h, Color color = { RGBA_BLACK }) {
-    return LayoutText(a_dest, StrL(txt), x0, y0, w, h, color);
+    return LayoutText(a_dest, g_text_plotter, StrL(txt), x0, y0, w, h, color);
 }
 inline
 List<QuadHexaVertex> LayoutText(Str txt, s32 x0, s32 y0, s32 w, s32 h, Color color = { RGBA_BLACK }) {
-    return LayoutText(g_a_quadbuffer, txt, x0, y0, w, h, color);
+    return LayoutText(g_a_quadbuffer, g_text_plotter, txt, x0, y0, w, h, color);
 }
 inline
 List<QuadHexaVertex> LayoutText(const char *txt, s32 x0, s32 y0, s32 w, s32 h, Color color = { RGBA_BLACK }, FontSize fs = FS_36) {
     FontSize org = GetFontSize();
     SetFontAndSize(fs);
-    return LayoutText(g_a_quadbuffer, StrL(txt), x0, y0, w, h, color);
+    List<QuadHexaVertex> quads = LayoutText(g_a_quadbuffer, g_text_plotter, StrL(txt), x0, y0, w, h, color);
     SetFontAndSize(org);
+    return quads;
 }
 
 
