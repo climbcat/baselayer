@@ -372,7 +372,13 @@ void ArenaShedTail(MArena *a, List<T> lst, u32 diff_T) {
 
     a->mem -= diff_T * sizeof(T);
 }
-
+template<class T>
+List<T> ListCopy(MArena *a_dest, List<T> src) {
+    List<T> dest = InitList<T>(a_dest, src.len);
+    dest.len = src.len;
+    _memcpy(dest.lst, src.lst, sizeof(T) * src.len);
+    return dest;
+}
 
 template<typename T>
 struct Stack {

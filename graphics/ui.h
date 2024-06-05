@@ -176,13 +176,23 @@ UiEvent InitUiEvent(Key key, KeyAction action, KeyMods mods, double mwheel_y_del
 
 struct MouseTrap {
     u64 frameno;
+
+    // current state (since latest mevent)
+    bool l;
+    bool r;
+    bool m;
     s32 x;
     s32 y;
+    u64 ldo_fn;
+    u64 lup_fn;
+
+    // current diff (since last mevent)
+    s32 dl;
+    s32 dr;
+    s32 dm;
     s32 dx;
     s32 dy;
-    bool mouse_left_held;
-    bool mouse_middle_held;
-    bool mouse_right_held;
+
     double mwheel_y_delta;
     Key last_keypress_frame;
 
@@ -218,14 +228,33 @@ struct MouseTrap {
             (event.key == OUR_GLFW_MOUSE_BUTTON_MIDDLE) &&
             (event.action == OUR_GLFW_RELEASE);
 
-        mouse_left_held = (ldown || mouse_left_held) && !(lup);
-        mouse_right_held = (rdown || mouse_right_held) && !(rup);
-        mouse_middle_held = (mdown || mouse_middle_held) && !(mup);
+        ldo_fn += ldown * (frameno - ldo_fn);
+        lup_fn += lup * (frameno - lup_fn);
+
+        dl = (s32) lup - (s32) ldown;
+        dr = (s32) rup - (s32) rdown;
+        dm = (s32) mup - (s32) mdown;
+
+        l |= (dl == -1); // transition down
+        l &= (dl !=  1); // transition up
+
+        r |= (dr == -1);
+        r &= (dr !=  1);
+
+        m |= (dm == -1);
+        m &= (dm !=  1);
 
         last_keypress_frame = event.key * (event.action == OUR_GLFW_PRESS);
-
         mwheel_y_delta = event.mwheel_y_delta;
     }
+
+    bool ClickedThisFrame() {
+        bool b1 = frameno - lup_fn <= 1;
+        bool b2 = frameno - ldo_fn < 20;
+
+        return b1 && b2;
+    }
+
 
     bool LimsLWYH(s32 x0, s32 sz_x, s32 y0, s32 sz_y) {
         bool b1 = (x >= x0) && (x <= x0 + sz_x);
@@ -237,7 +266,6 @@ struct MouseTrap {
         bool b2 = (y >= y0) && (y <= y0 + sz_y);
         return b1 && b2;
     }
-
 };
 MouseTrap InitMouseTrap(int mouse_x, int mouse_y) {
     MouseTrap m;
@@ -283,7 +311,7 @@ struct OrbitCamera {
             sign_x = - 1;
         }
 
-        if (m.mouse_left_held) {
+        if (m.l) {
             // orbit
             theta = OrbitCamera::ClampTheta(theta - m.dy * mouse2rot);
             phi += sign_x * m.dx * mouse2rot;
@@ -298,7 +326,7 @@ struct OrbitCamera {
             float mult = PositiveSqrtMultiplier(m.mwheel_y_delta);
             radius /= 1.1 * mult;
         }
-        else if (m.mouse_right_held) {
+        else if (m.r) {
             // pan
             Vector3f forward = - SphericalCoordsY(theta*deg2rad, phi*deg2rad, radius);
             forward.Normalize();

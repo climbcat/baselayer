@@ -399,31 +399,33 @@ void TestBrownianGlyphs() {
     MContext *ctx = InitBaselayer();
     GameLoopOne *loop = InitGraphics();
 
-    FontSize fs_org = GetFontSize();
-    SetFontAndSize(FS_30);
-    LayoutText("press space to reset:", 50, 50, 1000, 200, ColorRandom());
-    SetFontAndSize(fs_org);
 
-    List<QuadHexaVertex> quads = LayoutText("The quick brown fox jumps over the lazy dog", 470, 340, 400, 300, ColorRandom());
+    Color clbl = ColorRandom();
+    u32 ncols = 100;
+    List<Color> cols = InitList<Color>(ctx->a_pers, ncols);
+    for (u32 i = 0; i < ncols; ++i) {
+        cols.Add( ColorRandom() );
+    }
+
+    List<QuadHexaVertex> quads = LayoutText(ctx->a_pers, "The quick brown fox jumps over the lazy dog", 470, 340, 400, 300);
+    DrawCall dc { 0, quads };
     for (u32 i = 0; i < quads.len; ++i) {
         QuadHexaVertex *q = quads.lst + i;
         for (u32 j = 0; j < 6; ++j) {
             QuadVertex *v = q->verts + j;
-            v->col = ColorRandom();
+            v->col = cols.lst[i % cols.len];
         }
     }
-    List<QuadHexaVertex> quads_initial = InitList<QuadHexaVertex>(ctx->a_pers, quads.len);
-    quads_initial.len = quads.len;
-    _memcpy(quads_initial.lst, quads.lst, sizeof(QuadHexaVertex) * quads_initial.len);
+    List<QuadHexaVertex> quads_initial = ListCopy(ctx->a_life, quads);
 
-    f32 brn_magn = 0.8;
+    f32 magnitude = 0.8;
     while (loop->GameLoopRunning()) {
         loop->FrameStart2D();
 
         // brownian motion applied to each character, effect
         for (u32 i = 0; i < quads.len; ++i) {
             QuadHexaVertex *q = quads.lst + i;
-            Vector2f d { brn_magn * RandPM1_f32(), brn_magn * RandPM1_f32() };
+            Vector2f d { magnitude * RandPM1_f32(), magnitude * RandPM1_f32() };
             for (u32 j = 0; j < 6; ++j) {
                 QuadVertex *v = q->verts + j;
                 v->pos = v->pos + d;
@@ -431,13 +433,25 @@ void TestBrownianGlyphs() {
         }
 
         // reset on key_space
-        if (loop->GetMouseTrap()->last_keypress_frame == OUR_GLFW_KEY_SPACE) {
+        Key k = loop->GetMouseTrap()->last_keypress_frame;
+        if (k == OUR_GLFW_KEY_SPACE) {
             _memcpy(quads.lst, quads_initial.lst, sizeof(QuadHexaVertex) * quads_initial.len);
         }
+        else if (k == OUR_GLFW_KEY_UP) {
+            magnitude *= 1.5f;
+        }
+        else if (k == OUR_GLFW_KEY_DOWN) {
+            magnitude /= 1.5f;
+        }
+
+        // render
+        LayoutText("press space/up/down", 50, 50, 1000, 200, clbl, FS_30);
+        SR_Push(dc);
 
         loop->FrameEnd2D();
     }
 }
+
 
 void TestUIPanel() {
     printf("TestUIPanel\n");
@@ -447,6 +461,7 @@ void TestUIPanel() {
 
 
     // TODO: what is going on with plt->ln_ascend? (It is always zero, we actually need that number)
+
 
     s32 l = 80;
     s32 t = 140;
@@ -467,21 +482,20 @@ void TestUIPanel() {
             if (loop->mouse.LimsLTWH(l, t, w, h)) {
                 graynexx = 0.7f;
 
-                if (loop->mouse.mouse_left_held) {
+                if (loop->mouse.l) {
                     graynexx = 0.6f;
                     border = 2;
                     l += loop->mouse.dx;
                     t += loop->mouse.dy;
                 }
-                bool clicked = false;
+                bool clicked = loop->mouse.ClickedThisFrame();
                 if (clicked) {
                     printf("click\n");
-                    show_pnl = false;
+                    //show_pnl = false;
                 }
             }
             LayoutPanel(l, t, w, h, border, ColorBlack(), ColorGray(graynexx));
             LayoutText("The other quick brown fox jumps over the other lazy dog", l, t, w, h, ColorBlack(), FS_30);
-
         }
         if (loop->GetMouseTrap()->last_keypress_frame == OUR_GLFW_KEY_SPACE) {
             show_pnl = true;
@@ -505,6 +519,6 @@ void Test() {
     //TestPointCloudsBoxesAndSceneGraph();
     //TestIndexSetOperations();
     //TestLayoutGlyphQuads();
-    //TestBrownianGlyphs();
+    TestBrownianGlyphs();
     TestUIPanel();
 }
