@@ -175,28 +175,19 @@ UiEvent InitUiEvent(Key key, KeyAction action, KeyMods mods, double mwheel_y_del
 
 
 struct MouseTrap {
-    s32 x = 0;
-    s32 y = 0;
-    s32 dx = 0;
-    s32 dy = 0;
+    u64 frameno;
+    s32 x;
+    s32 y;
+    s32 dx;
+    s32 dy;
     bool mouse_left_held;
     bool mouse_middle_held;
     bool mouse_right_held;
     double mwheel_y_delta;
     Key last_keypress_frame;
 
-    void Reset(s32 xpos, s32 ypos) {
-        x = xpos;
-        y = ypos;
-        dx = 0;
-        dy = 0;
-        mouse_left_held = false;
-        mouse_middle_held = false;
-        mouse_right_held = false;
-        mwheel_y_delta = 0;
-        last_keypress_frame = 0;
-    }
-    void FrameEnd() {
+    void FrameEnd(u64 frameno) {
+        this->frameno = frameno;
         mwheel_y_delta = 0;
         last_keypress_frame = 0;
     }
@@ -235,10 +226,22 @@ struct MouseTrap {
 
         mwheel_y_delta = event.mwheel_y_delta;
     }
+
+    bool LimsLWYH(s32 x0, s32 sz_x, s32 y0, s32 sz_y) {
+        bool b1 = (x >= x0) && (x <= x0 + sz_x);
+        bool b2 = (y >= y0) && (y <= y0 + sz_y);
+        return b1 && b2;
+    }
+    bool LimsLTWH(s32 x0, s32 y0, s32 sz_x, s32 sz_y) {
+        bool b1 = (x >= x0) && (x <= x0 + sz_x);
+        bool b2 = (y >= y0) && (y <= y0 + sz_y);
+        return b1 && b2;
+    }
+
 };
 MouseTrap InitMouseTrap(int mouse_x, int mouse_y) {
     MouseTrap m;
-    m.Reset(mouse_x, mouse_y);
+    _memzero(&m, sizeof(MouseTrap));
     return m;
 }
 

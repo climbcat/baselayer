@@ -439,7 +439,6 @@ void TestBrownianGlyphs() {
     }
 }
 
-
 void TestUIPanel() {
     printf("TestUIPanel\n");
 
@@ -449,12 +448,44 @@ void TestUIPanel() {
 
     // TODO: what is going on with plt->ln_ascend? (It is always zero, we actually need that number)
 
-    while (loop->GameLoopRunning()) {
-        loop->FrameStart2D(ColorGray(0.8f));
+    s32 l = 80;
+    s32 t = 140;
+    s32 w = 400;
+    s32 h = 250;
+    s32 border = 1;
+    f32 graynexx;
+    bool show_pnl = true;
 
-        LayoutPanel(80, 140, 400, 250, 1, ColorBlack(), ColorGray(0.75f));
+    while (loop->GameLoopRunning()) {
+        loop->FrameStart2D(ColorGray(0.9f));
+
         LayoutText("The quick brown fox jumps over the lazy dog", 50, 80, 1000, 200, ColorBlack());
-        LayoutText("The other quick brown fox jumps over the other lazy dog", 80, 140, 400, 250, ColorBlack(), FS_30);
+
+        if (show_pnl) {
+            graynexx = 0.8f;
+            border = 1;
+            if (loop->mouse.LimsLTWH(l, t, w, h)) {
+                graynexx = 0.7f;
+
+                if (loop->mouse.mouse_left_held) {
+                    graynexx = 0.6f;
+                    border = 2;
+                    l += loop->mouse.dx;
+                    t += loop->mouse.dy;
+                }
+                bool clicked = false;
+                if (clicked) {
+                    printf("click\n");
+                    show_pnl = false;
+                }
+            }
+            LayoutPanel(l, t, w, h, border, ColorBlack(), ColorGray(graynexx));
+            LayoutText("The other quick brown fox jumps over the other lazy dog", l, t, w, h, ColorBlack(), FS_30);
+
+        }
+        if (loop->GetMouseTrap()->last_keypress_frame == OUR_GLFW_KEY_SPACE) {
+            show_pnl = true;
+        }
 
         loop->FrameEnd2D();
     }
