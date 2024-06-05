@@ -678,7 +678,7 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, GlyphPlotter *plt, Str txt, s32 
     assert(g_text_plotter != NULL && "init text plotters first");
 
     s32 pt_x = x0;
-    s32 pt_y = y0 + plt->ln_height;
+    s32 pt_y = y0 + plt->ln_height - plt->ln_ascend;
     s32 box_r = x0 + w;
     s32 box_b = y0 + h;
     s32 w_space = plt->advance_x.lst[' '];

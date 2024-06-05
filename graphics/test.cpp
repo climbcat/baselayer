@@ -459,10 +459,6 @@ void TestUIPanel() {
     MContext *ctx = InitBaselayer();
     GameLoopOne *loop = InitGraphics();
 
-
-    // TODO: what is going on with plt->ln_ascend? (It is always zero, we actually need that number)
-
-
     s32 l = -180;
     s32 t = 140;
     s32 w = 400;
@@ -474,7 +470,7 @@ void TestUIPanel() {
     while (loop->GameLoopRunning()) {
         loop->FrameStart2D(ColorGray(0.9f));
 
-        //LayoutText("The quick brown fox jumps over the lazy dog", 50, 80, 1000, 200, ColorBlack());
+        LayoutText("The quick brown fox jumps over the lazy dog", 50, 80, 1000, 200, ColorBlack());
 
         if (show_pnl) {
             graynexx = 0.8f;

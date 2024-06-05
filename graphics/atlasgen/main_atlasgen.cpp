@@ -58,7 +58,7 @@ FontAtlas CreateCharAtlas(MArena *a_dest, u8 *font, s32 line_height) {
         glyphs.Add(gl);
 
         max_adv = MaxS32(advance_x, max_adv);
-        max_ascent = MaxS32(-y0, max_ascent);
+        max_ascent = MaxS32(y0, max_ascent);
         max_descent = MaxS32(y1, max_descent);
 
         if (c >= 32) {
@@ -71,9 +71,11 @@ FontAtlas CreateCharAtlas(MArena *a_dest, u8 *font, s32 line_height) {
     printf("\n");
 
     FontAtlas atlas;
+    _memzero(&atlas, sizeof(FontAtlas));
     atlas.sz_px = line_height;
     atlas.cell_width = max_adv;
-    atlas.ln_height = max_ascent + max_descent;
+    atlas.ln_height = line_height;
+    atlas.ln_ascend = max_ascent;
     atlas.texture.width = atlas.cell_width * 16;
     atlas.texture.height = atlas.ln_height * 6;
     atlas.texture.img = (u8*) ArenaAlloc(a_dest, atlas.texture.width * atlas.texture.height * sizeof(u8), true);
