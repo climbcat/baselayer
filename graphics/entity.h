@@ -3,6 +3,7 @@
 
 
 #include "../baselayer.h"
+#include "gtypes.h"
 #include "stream.h"
 #include "geometry.h"
 
