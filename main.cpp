@@ -380,6 +380,8 @@ void TestScritinizeFilename() {
     printf("\nmod  : ");
     StrPrint(mod);
     printf("\n");
+
+    GetYYMMDD();
 }
 
 

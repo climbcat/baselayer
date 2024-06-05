@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 #include <cassert>
+#include <time.h>
 
 
 #include "string.h"
@@ -175,6 +176,22 @@ FInfo FInfoGet(Str pathname) {
 inline
 FInfo FInfoGet(const char*pathname) {
     return FInfoGet(StrL(pathname));
+}
+
+
+Str GetYYMMDD() {
+    Str s;
+
+    time_t t = time(NULL);
+    struct tm loc = *localtime(&t);
+    char buff[7];
+    sprintf(buff, "%02d%02d%02d",
+        loc.tm_year - 100,
+        loc.tm_mon + 1,
+        loc.tm_mday);
+    printf("%s\n", buff);
+
+    return s;
 }
 
 
