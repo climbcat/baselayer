@@ -399,7 +399,11 @@ void TestBrownianGlyphs() {
     MContext *ctx = InitBaselayer();
     GameLoopOne *loop = InitGraphics();
 
-    LayoutText("press space to reset:", 50, 50, 1000, 200, ColorRandom(), 0.6f);
+    FontSize fs_org = GetFontSize();
+    SetFontAndSize(FS_30);
+    LayoutText("press space to reset:", 50, 50, 1000, 200, ColorRandom());
+    SetFontAndSize(fs_org);
+
     List<QuadHexaVertex> quads = LayoutText("The quick brown fox jumps over the lazy dog", 470, 340, 400, 300, ColorRandom());
     for (u32 i = 0; i < quads.len; ++i) {
         QuadHexaVertex *q = quads.lst + i;
@@ -442,15 +446,16 @@ void TestUIPanel() {
     MContext *ctx = InitBaselayer();
     GameLoopOne *loop = InitGraphics();
 
-    LayoutPanel(80, 140, 400, 250, 4);
-    LayoutText("The quick brown fox jumps over the lazy dog", 50, 80, 1000, 200, ColorWhite());
+    LayoutPanel(80, 140, 400, 250, 1);
+    LayoutText("The quick brown fox jumps over the lazy dog", 50, 80, 1000, 200, ColorBlack());
 
     // TODO: what is going on with plt->ln_ascend? (It is always zero, we actually need that number)
     SetFontAndSize(FS_30);
     LayoutText("The other quick brown fox jumps over the other lazy dog", 80, 140, 400, 250, ColorBlack());
 
     while (loop->GameLoopRunning()) {
-        loop->FrameStart2D();
+        loop->FrameStart2D(ColorWhite());
+
         loop->FrameEnd2D();
     }
 
@@ -469,6 +474,6 @@ void Test() {
     //TestPointCloudsBoxesAndSceneGraph();
     //TestIndexSetOperations();
     //TestLayoutGlyphQuads();
-    //TestBrownianGlyphs();
-    TestUIPanel();
+    TestBrownianGlyphs();
+    //TestUIPanel();
 }

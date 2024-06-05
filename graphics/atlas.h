@@ -259,6 +259,7 @@ void FontAtlasSaveBinary128(MArena *a_tmp, char *filename, FontAtlas atlas) {
 
 
 struct GlyphPlotter {
+    s32 sz_px;
     s32 ln_height;
     s32 ln_ascend;
     List<u8> advance_x;
@@ -272,6 +273,7 @@ GlyphPlotter *InitGlyphPlotter(MArena *a_dest, List<Glyph> glyphs, FontAtlas *at
     plt->cooked = InitList<QuadHexaVertex>(a_dest, 128 * sizeof(QuadHexaVertex));
     plt->cooked.len = 128;
     plt->texture = atlas->texture;
+    plt->sz_px = atlas->sz_px;
     plt->ln_height = atlas->ln_height;
     plt->ln_ascend = atlas->ln_ascend;
 
@@ -334,6 +336,21 @@ GlyphPlotter *SetFontAndSize(FontSize font_size /*, Font font_name*/) {
     g_text_plotter = (GlyphPlotter*) val;
 
     return g_text_plotter;
+}
+FontSize GetFontSize() {
+    s32 sz_px = g_text_plotter->sz_px;
+    printf("ln_height: %d\n", sz_px);
+    switch (sz_px) {
+        case 18: return FS_18; break;
+        case 24: return FS_24; break;
+        case 30: return FS_30; break;
+        case 36: return FS_36; break;
+        case 48: return FS_48; break;
+        case 60: return FS_60; break;
+        case 72: return FS_72; break;
+        case 84: return FS_84; break;
+        default: return FS_CNT;
+    }
 }
 void InitFonts() {
     if (g_font_map.slots.len != 0) {
@@ -535,7 +552,12 @@ Widget InitWidget(s16 x0, s16 y0, s16 w, s16 h) {
 }
 
 
-List<QuadHexaVertex> LayoutPanel(MArena *a_dest, s32 l, s32 t, s32 w, s32 h, s32 border) {
+List<QuadHexaVertex> LayoutPanel(
+        MArena *a_dest,
+        s32 l, s32 t, s32 w, s32 h,
+        s32 border,
+        Color col_border = { RGBA_GRAY_75 }, Color col_pnl = { RGBA_WHITE } )
+{
     if (border >= w / 2 || border >= w / 2) {
         return List<QuadHexaVertex> { NULL, 0 };
     }
@@ -550,7 +572,7 @@ List<QuadHexaVertex> LayoutPanel(MArena *a_dest, s32 l, s32 t, s32 w, s32 h, s32
         q.x1 = l + w;
         q.y0 = t;
         q.y1 = t + h;
-        q.c = ColorGray(75);
+        q.c = col_border;
         dc.quads.Add(QuadCook(q));
     }
     {
@@ -560,7 +582,7 @@ List<QuadHexaVertex> LayoutPanel(MArena *a_dest, s32 l, s32 t, s32 w, s32 h, s32
         q.x1 = l + w - border;
         q.y0 = t + border;
         q.y1 = t + h - border;
-        q.c = ColorWhite();
+        q.c = col_pnl;
         dc.quads.Add(QuadCook(q));
     }
 
@@ -568,8 +590,12 @@ List<QuadHexaVertex> LayoutPanel(MArena *a_dest, s32 l, s32 t, s32 w, s32 h, s32
     return quads;
 }
 inline
-List<QuadHexaVertex> LayoutPanel(s32 l, s32 t, s32 w, s32 h, s32 border) {
-    return LayoutPanel(g_a_quadbuffer, l, t, w, h, border);
+List<QuadHexaVertex> LayoutPanel(
+        s32 l, s32 t, s32 w, s32 h,
+        s32 border,
+        Color col_border = { RGBA_GRAY_75 }, Color col_pnl = { RGBA_WHITE } )
+{
+    return LayoutPanel(g_a_quadbuffer, l, t, w, h, border, col_border, col_pnl);
 }
 
 
@@ -649,7 +675,7 @@ void DoNewLine(s32 ln_height, s32 left, s32 *pt_x, s32 *pt_y) {
 void DoWhiteSpace(s32 space_width, s32 *pt_x) {
     *pt_x += space_width;
 }
-List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, s32 x0, s32 y0, s32 w, s32 h, Color color, f32 scale = 1.0f) {
+List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, s32 x0, s32 y0, s32 w, s32 h, Color color) {
     assert(g_text_plotter != NULL && "init text plotters first");
     GlyphPlotter *plt = g_text_plotter;
 
@@ -690,11 +716,14 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, s32 x0, s32 y0, s32 w, 
             }
             else {
                 // ran out of space, exit
+                break;
+                /*
                 DrawCall dc;
                 dc.texture = 0;
                 dc.quads = layed_out;
                 SR_Push(dc);
                 return layed_out;
+                */
             }
         }
 
@@ -710,6 +739,8 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, s32 x0, s32 y0, s32 w, 
     }
     assert(layed_out.len <= txt.len); // txt len minus whitespaces, which are not layed out as quads
 
+    // only scale if absolutely necessary
+    f32 scale = 1.0f;
     ScaleTextInline(layed_out, scale, x0, y0, w, h);
 
     DrawCall dc;
@@ -720,16 +751,16 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, Str txt, s32 x0, s32 y0, s32 w, 
     return layed_out;
 }
 inline
-List<QuadHexaVertex> LayoutText(MArena *a_dest, const char *txt, s32 x0, s32 y0, s32 w, s32 h, Color color, f32 scale = 1.0f) {
-    return LayoutText(a_dest, StrL(txt), x0, y0, w, h, color, scale);
+List<QuadHexaVertex> LayoutText(MArena *a_dest, const char *txt, s32 x0, s32 y0, s32 w, s32 h, Color color = { RGBA_BLACK }) {
+    return LayoutText(a_dest, StrL(txt), x0, y0, w, h, color);
 }
 inline
-List<QuadHexaVertex> LayoutText(Str txt, s32 x0, s32 y0, s32 w, s32 h, Color color, f32 scale = 1.0f) {
-    return LayoutText(g_a_quadbuffer, txt, x0, y0, w, h, color, scale);
+List<QuadHexaVertex> LayoutText(Str txt, s32 x0, s32 y0, s32 w, s32 h, Color color = { RGBA_BLACK }) {
+    return LayoutText(g_a_quadbuffer, txt, x0, y0, w, h, color);
 }
 inline
-List<QuadHexaVertex> LayoutText(const char *txt, s32 x0, s32 y0, s32 w, s32 h, Color color, f32 scale = 1.0f) {
-    return LayoutText(g_a_quadbuffer, StrL(txt), x0, y0, w, h, color, scale);
+List<QuadHexaVertex> LayoutText(const char *txt, s32 x0, s32 y0, s32 w, s32 h, Color color = { RGBA_BLACK }) {
+    return LayoutText(g_a_quadbuffer, StrL(txt), x0, y0, w, h, color);
 }
 
 

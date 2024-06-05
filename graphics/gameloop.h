@@ -133,8 +133,11 @@ struct GameLoopOne {
         // start of next frame
         XSleep(10);
     }
-    void FrameStart2D() {
-        ImageBufferClear();
+    void FrameStart2D(Color clear = { RGBA_BLACK }) {
+        Color *img = (Color *) renderer.image_buffer;
+        for (u32 i = 0; i < renderer.w * renderer.h; ++i) {
+            img[i] = clear;
+        }
     }
     void FrameEnd2D() {
         mouse.FrameEnd();
