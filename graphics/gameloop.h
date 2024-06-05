@@ -138,6 +138,7 @@ struct GameLoopOne {
         for (u32 i = 0; i < renderer.w * renderer.h; ++i) {
             img[i] = clear;
         }
+        SR_Clear();
     }
     void FrameEnd2D() {
         mouse.FrameEnd();

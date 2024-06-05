@@ -339,7 +339,6 @@ GlyphPlotter *SetFontAndSize(FontSize font_size /*, Font font_name*/) {
 }
 FontSize GetFontSize() {
     s32 sz_px = g_text_plotter->sz_px;
-    printf("ln_height: %d\n", sz_px);
     switch (sz_px) {
         case 18: return FS_18; break;
         case 24: return FS_24; break;
@@ -759,8 +758,11 @@ List<QuadHexaVertex> LayoutText(Str txt, s32 x0, s32 y0, s32 w, s32 h, Color col
     return LayoutText(g_a_quadbuffer, txt, x0, y0, w, h, color);
 }
 inline
-List<QuadHexaVertex> LayoutText(const char *txt, s32 x0, s32 y0, s32 w, s32 h, Color color = { RGBA_BLACK }) {
+List<QuadHexaVertex> LayoutText(const char *txt, s32 x0, s32 y0, s32 w, s32 h, Color color = { RGBA_BLACK }, FontSize fs = FS_36) {
+    FontSize org = GetFontSize();
+    SetFontAndSize(fs);
     return LayoutText(g_a_quadbuffer, StrL(txt), x0, y0, w, h, color);
+    SetFontAndSize(org);
 }
 
 

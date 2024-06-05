@@ -446,15 +446,15 @@ void TestUIPanel() {
     MContext *ctx = InitBaselayer();
     GameLoopOne *loop = InitGraphics();
 
-    LayoutPanel(80, 140, 400, 250, 1);
-    LayoutText("The quick brown fox jumps over the lazy dog", 50, 80, 1000, 200, ColorBlack());
 
     // TODO: what is going on with plt->ln_ascend? (It is always zero, we actually need that number)
-    SetFontAndSize(FS_30);
-    LayoutText("The other quick brown fox jumps over the other lazy dog", 80, 140, 400, 250, ColorBlack());
 
     while (loop->GameLoopRunning()) {
-        loop->FrameStart2D(ColorWhite());
+        loop->FrameStart2D(ColorGray(0.8f));
+
+        LayoutPanel(80, 140, 400, 250, 1, ColorBlack(), ColorGray(0.75f));
+        LayoutText("The quick brown fox jumps over the lazy dog", 50, 80, 1000, 200, ColorBlack());
+        LayoutText("The other quick brown fox jumps over the other lazy dog", 80, 140, 400, 250, ColorBlack(), FS_30);
 
         loop->FrameEnd2D();
     }
@@ -474,6 +474,6 @@ void Test() {
     //TestPointCloudsBoxesAndSceneGraph();
     //TestIndexSetOperations();
     //TestLayoutGlyphQuads();
-    TestBrownianGlyphs();
-    //TestUIPanel();
+    //TestBrownianGlyphs();
+    TestUIPanel();
 }
