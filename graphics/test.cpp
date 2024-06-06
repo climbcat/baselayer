@@ -512,48 +512,94 @@ void TestUIPanel() {
 }
 
 
+enum LayoutKind {
+    LK_INDEICISIVE,
+    LK_VERTICAL,
+    LK_HORIZONTAL,
+
+    LK_CNT,
+};
+struct Widget {
+    s32 x0;
+    s32 y0;
+    s32 w;
+    s32 h;
+    LayoutKind lay;
+
+    void IncLayout(s32 w, s32 h) {
+        if (lay == LK_HORIZONTAL) {
+            x0 += w;
+        }
+        else if (lay == LK_VERTICAL) {
+            y0 += h;
+        }
+    }
+};
+Widget InitWidget(s32 x0, s32 y0, s32 w, s32 h) {
+    Widget wid;
+    wid.lay = LK_HORIZONTAL;
+    wid.x0 = x0;
+    wid.y0 = y0;
+    wid.w = w;
+    wid.h = h;
+    return wid;
+}
+
+
+bool UI_Button(Widget *wgt, const char *lbl) {
+    bool clicked = false;
+
+    s32 btn_w = 100;
+    s32 btn_h = 50;
+    s32 btn_brd = 4;
+    f32 btn_gray = 1.0f;
+
+    if (g_mouse->LimsLTWHLastFrame(wgt->x0, wgt->y0, btn_w, btn_h)) {
+
+        btn_gray = 0.9f;
+        if (g_mouse->l) {
+            btn_brd = 6;
+        }
+        clicked = g_mouse->ClickedThisFrame();
+    }
+    else {
+        btn_gray = 1.0f;
+    }
+
+    LayoutPanel(wgt->x0, wgt->y0, btn_w, btn_h, btn_brd, ColorBlack(), ColorGray(btn_gray));
+    List<QuadHexaVertex> quads = LayoutText(lbl, wgt->x0, wgt->y0, btn_w, btn_h, ColorBlack(), FS_24, TA_CENTER);
+    s32 offset_y = btn_h / 2 + GetLineCenterVOffset();
+    for (u32 i = 0; i < quads.len; ++i) {
+        QuadOffset(quads.lst + i, 0, offset_y);
+    }
+
+    wgt->IncLayout(btn_w, btn_h);
+
+    return clicked;
+}
+
+
 void TestUIBtn() {
     printf("TestUIPanel\n");
 
     MContext *ctx = InitBaselayer();
     GameLoopOne *loop = InitGraphics();
 
-    s32 btn_l = 500;
-    s32 btn_t = 300;
-    s32 btn_w = 100;
-    s32 btn_h = 50;
-    s32 btn_brd = 4;
-    f32 grayness = 1.0f;
-
     while (loop->GameLoopRunning()) {
         loop->FrameStart2D(ColorGray(0.95f));
 
         // the if-button function
         {
-            btn_brd = 4;
-            if (loop->mouse.LimsLTWHLastFrame(btn_l, btn_t, btn_w, btn_h)) {
-
-                grayness = 0.9f;
-                if (loop->mouse.l) {
-                    btn_brd = 6;
-                }
-            }
-            else {
-                grayness = 1.0f;
-            }
-            LayoutPanel(btn_l, btn_t, btn_w, btn_h, btn_brd, ColorBlack(), ColorGray(grayness));
-
-            s32 lbl_l = btn_l;
-            s32 lbl_t = btn_t;
-            s32 lbl_w = btn_w;
-            s32 lbl_h = btn_h;
-            List<QuadHexaVertex> quads = LayoutText("OK", btn_l, btn_t, btn_w, btn_h, ColorBlack(), FS_24, TA_CENTER);
-
-            s32 offset_y = btn_h / 2 + GetLineCenterVOffset();
-            for (u32 i = 0; i < quads.len; ++i) {
-                QuadOffset(quads.lst + i, 0, offset_y);
-            }
-
+            Widget wgt = InitWidget(500, 300, 0, 0);
+            UI_Button(&wgt, "OK");
+            UI_Button(&wgt, "KO");
+            UI_Button(&wgt, "OO");
+            UI_Button(&wgt, "KK");
+            wgt.lay = LK_VERTICAL;
+            UI_Button(&wgt, "OK");
+            UI_Button(&wgt, "KO");
+            UI_Button(&wgt, "OO");
+            UI_Button(&wgt, "KK");
         }
         loop->FrameEnd2D();
     }

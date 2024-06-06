@@ -553,22 +553,6 @@ void SR_Render() {
 //
 
 
-struct Widget {
-    s16 x0;
-    s16 y0;
-    s16 w;
-    s16 h;
-};
-Widget InitWidget(s16 x0, s16 y0, s16 w, s16 h) {
-    Widget wid;
-    wid.x0 = x0;
-    wid.y0 = y0;
-    wid.w = w;
-    wid.h = h;
-    return wid;
-}
-
-
 List<QuadHexaVertex> LayoutPanel(
         MArena *a_dest,
         s32 l, s32 t, s32 w, s32 h,

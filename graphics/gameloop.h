@@ -205,6 +205,7 @@ void GameLoopJustRun(GameLoopOne *loop, EntitySystem *es) {
 
 static GameLoopOne _g_gameloop;
 static GameLoopOne *g_gameloop;
+static MouseTrap *g_mouse;
 GameLoopOne *InitGameLoopOne(u32 width = 1280, u32 height = 800) {
     if (g_gameloop != NULL) {
         FreeRenderer(&g_gameloop->renderer);
@@ -230,7 +231,13 @@ GameLoopOne *InitGameLoopOne(u32 width = 1280, u32 height = 800) {
     glfwSetScrollCallback(g_gameloop->window, MouseScrollCallBack);
     glfwSetWindowUserPointer(g_gameloop->window, g_gameloop);
 
+    g_mouse = g_gameloop->GetMouseTrap();
+
     return g_gameloop;
+}
+MouseTrap *GetMouse() {
+    assert(g_mouse != NULL);
+    return g_mouse;
 }
 
 
