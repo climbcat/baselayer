@@ -262,6 +262,10 @@ Str StrLiteral(const char *literal) {
     return StrLiteral(g_a_strings, literal);
 }
 inline
+Str StrInline(const char *literal) {
+    return Str { (char*) literal, _strlen((char*) literal) };
+}
+inline
 Str StrLiteral(char *literal) {
     return StrLiteral(g_a_strings, (const char*) literal);
 }

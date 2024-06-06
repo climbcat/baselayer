@@ -450,6 +450,7 @@ void TestBrownianGlyphs() {
 
         loop->FrameEnd2D();
     }
+    loop->Terminate();
 }
 
 
@@ -459,7 +460,7 @@ void TestUIPanel() {
     MContext *ctx = InitBaselayer();
     GameLoopOne *loop = InitGraphics();
 
-    s32 l = -180;
+    s32 l = 180;
     s32 t = 140;
     s32 w = 400;
     s32 h = 250;
@@ -467,11 +468,13 @@ void TestUIPanel() {
     f32 graynexx;
     bool show_pnl = true;
 
+
     while (loop->GameLoopRunning()) {
         loop->FrameStart2D(ColorGray(0.9f));
 
         LayoutText("The quick brown fox jumps over the lazy dog", 50, 80, 1000, 200, ColorBlack());
 
+        // bordered drag-panel
         if (show_pnl) {
             graynexx = 0.8f;
             border = 1;
@@ -491,19 +494,63 @@ void TestUIPanel() {
                 }
             }
             LayoutPanel(l, t, w, h, border, ColorBlack(), ColorGray(graynexx));
-            LayoutText("The other quick brown fox jumps over the other lazy dog", l, t, w, h, ColorBlack(), FS_30);
+            LayoutText("The other quick brown fox jumps over the other lazy dog", l, t, w, h, ColorBlack(), FS_30, true);
         }
+
         if (loop->GetMouseTrap()->last_keypress_frame == OUR_GLFW_KEY_SPACE) {
             show_pnl = true;
         }
 
         loop->FrameEnd2D();
     }
+    loop->Terminate();
 
     // TODO: draw a boundaried panel - OK
-    // TODO: make it respond to mouse interaction
-    // TODO: make it drag-able
-    // TODO: have it have text layed out in it
+    // TODO: make it respond to mouse interaction - OK
+    // TODO: make it drag-able - OK
+    // TODO: have it have text layed out in it - OK
+}
+
+
+void TestUIBtn() {
+    printf("TestUIPanel\n");
+
+    MContext *ctx = InitBaselayer();
+    GameLoopOne *loop = InitGraphics();
+
+    s32 btn_l = 500;
+    s32 btn_t = 300;
+    s32 btn_w = 100;
+    s32 btn_h = 50;
+    s32 btn_brd = 4;
+    f32 grayness = 1.0f;
+
+    while (loop->GameLoopRunning()) {
+        loop->FrameStart2D(ColorGray(0.95f));
+
+        // the if-button function
+        {
+            btn_brd = 4;
+            if (loop->mouse.LimsLTWHLastFrame(btn_l, btn_t, btn_w, btn_h)) {
+
+                grayness = 0.9f;
+                if (loop->mouse.l) {
+                    btn_brd = 6;
+                }
+            }
+            else {
+                grayness = 1.0f;
+            }
+            LayoutPanel(btn_l, btn_t, btn_w, btn_h, btn_brd, ColorBlack(), ColorGray(grayness));
+
+            s32 lbl_l = btn_l;
+            s32 lbl_t = btn_t;
+            s32 lbl_w = btn_w;
+            s32 lbl_h = btn_h;
+            LayoutText("OK", btn_l, btn_t, btn_w, btn_h, ColorBlack(), FS_24);
+        }
+        loop->FrameEnd2D();
+    }
 }
 
 
@@ -517,4 +564,5 @@ void Test() {
     //TestLayoutGlyphQuads();
     //TestBrownianGlyphs();
     TestUIPanel();
+    //TestUIBtn();
 }
