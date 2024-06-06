@@ -547,7 +547,13 @@ void TestUIBtn() {
             s32 lbl_t = btn_t;
             s32 lbl_w = btn_w;
             s32 lbl_h = btn_h;
-            LayoutText("OK", btn_l, btn_t, btn_w, btn_h, ColorBlack(), FS_24, TA_CENTER);
+            List<QuadHexaVertex> quads = LayoutText("OK", btn_l, btn_t, btn_w, btn_h, ColorBlack(), FS_24, TA_CENTER);
+
+            s32 offset_y = btn_h / 2 + GetLineCenterVOffset();
+            for (u32 i = 0; i < quads.len; ++i) {
+                QuadOffset(quads.lst + i, 0, offset_y);
+            }
+
         }
         loop->FrameEnd2D();
     }
@@ -562,7 +568,7 @@ void Test() {
     //TestPointCloudsBoxesAndSceneGraph();
     //TestIndexSetOperations();
     //TestLayoutGlyphQuads();
-    TestBrownianGlyphs();
+    //TestBrownianGlyphs();
     //TestUIPanel();
-    //TestUIBtn();
+    TestUIBtn();
 }

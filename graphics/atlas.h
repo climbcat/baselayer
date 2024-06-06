@@ -723,11 +723,16 @@ void AlignQuadsH(List<QuadHexaVertex> line_quads, s32 cx, TextAlign ta) {
         }
     }
 }
+s32 GetLineCenterVOffset() {
+    s32 result = -1 * (g_text_plotter->ln_height - g_text_plotter->ln_ascend) / 2;
+    return result;
+}
+
 List<QuadHexaVertex> LayoutText(MArena *a_dest, GlyphPlotter *plt, Str txt, s32 x0, s32 y0, s32 w, s32 h, Color color, TextAlign ta) {
     assert(g_text_plotter != NULL && "init text plotters first");
 
     s32 pt_x = x0;
-    s32 pt_y = y0 + plt->ln_height - plt->ln_ascend;
+    s32 pt_y = y0 + plt->ln_ascend;
     s32 box_r = x0 + w;
     s32 box_b = y0 + h;
     s32 w_space = plt->advance_x.lst[' '];
