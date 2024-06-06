@@ -58,7 +58,7 @@ FontAtlas CreateCharAtlas(MArena *a_dest, u8 *font, s32 line_height) {
         glyphs.Add(gl);
 
         max_adv = MaxS32(advance_x, max_adv);
-        max_ascent = MaxS32(y0, max_ascent);
+        max_ascent = MaxS32(-1*y0, max_ascent); // yeilds a positive number
         max_descent = MaxS32(y1, max_descent);
 
         if (c >= 32) {
