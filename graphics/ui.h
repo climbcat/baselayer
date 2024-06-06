@@ -177,21 +177,21 @@ UiEvent InitUiEvent(Key key, KeyAction action, KeyMods mods, double mwheel_y_del
 struct MouseTrap {
     u64 frameno;
 
-    // current state (since latest mevent)
+    // state since last frame
+    s32 x;
+    s32 y;
+    s32 dx;
+    s32 dy;
+
+    // state since last event
     bool l;
     bool r;
     bool m;
-    s32 x;
-    s32 y;
     u64 ldo_fn;
     u64 lup_fn;
-
-    // current diff (since last mevent)
     s32 dl;
     s32 dr;
     s32 dm;
-    s32 dx;
-    s32 dy;
 
     double mwheel_y_delta;
     Key last_keypress_frame;
@@ -254,16 +254,22 @@ struct MouseTrap {
 
         return b1 && b2;
     }
+    bool LimsLWYHLastFrame(s32 x0, s32 sz_x, s32 y0, s32 sz_y) {
+        s32 x_lf = x - dx;
+        s32 y_lf = y - dy;
 
+        bool b1 = (x_lf >= x0) && (x_lf <= x0 + sz_x);
+        bool b2 = (y_lf >= y0) && (y_lf <= y0 + sz_y);
 
-    bool LimsLWYH(s32 x0, s32 sz_x, s32 y0, s32 sz_y) {
-        bool b1 = (x >= x0) && (x <= x0 + sz_x);
-        bool b2 = (y >= y0) && (y <= y0 + sz_y);
         return b1 && b2;
     }
-    bool LimsLTWH(s32 x0, s32 y0, s32 sz_x, s32 sz_y) {
-        bool b1 = (x >= x0) && (x <= x0 + sz_x);
-        bool b2 = (y >= y0) && (y <= y0 + sz_y);
+    bool LimsLTWHLastFrame(s32 x0, s32 y0, s32 sz_x, s32 sz_y) {
+        s32 x_lf = x - dx;
+        s32 y_lf = y - dy;
+
+        bool b1 = (x_lf >= x0) && (x_lf <= x0 + sz_x);
+        bool b2 = (y_lf >= y0) && (y_lf <= y0 + sz_y);
+
         return b1 && b2;
     }
 };

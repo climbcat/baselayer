@@ -475,7 +475,7 @@ void TestUIPanel() {
         if (show_pnl) {
             graynexx = 0.8f;
             border = 1;
-            if (loop->mouse.LimsLTWH(l, t, w, h)) {
+            if (loop->mouse.LimsLTWHLastFrame(l, t, w, h)) {
                 graynexx = 0.7f;
 
                 if (loop->mouse.l) {
