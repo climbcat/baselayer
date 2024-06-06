@@ -621,6 +621,15 @@ List<QuadHexaVertex> LayoutPanel(
 //
 
 
+enum TextAlign {
+    TA_LEFT,
+    TA_CENTER,
+    TA_RIGHT,
+
+    TA_CNT,
+};
+
+
 inline
 bool IsWhiteSpace(char c) {
     bool result = (c == ' ' || c == '\n' || c == '\t');
@@ -648,6 +657,7 @@ Str StrInc(Str s, u32 inc) {
     s.len -= inc;
     return s;
 }
+inline
 void ScaleTextInline(List<QuadHexaVertex> text, f32 scale, s32 x0, s32 y0, s32 w, s32 h) {
     if (scale != 1.0f) {
         for (u32 i = 0; i < text.len; ++i) {
@@ -689,10 +699,31 @@ void DoNewLine(s32 ln_height, s32 left, s32 *pt_x, s32 *pt_y) {
     *pt_y += ln_height;
     *pt_x = left;
 }
+inline
 void DoWhiteSpace(s32 space_width, s32 *pt_x) {
     *pt_x += space_width;
 }
-List<QuadHexaVertex> LayoutText(MArena *a_dest, GlyphPlotter *plt, Str txt, s32 x0, s32 y0, s32 w, s32 h, Color color, bool centering) {
+inline
+void AlignQuadsH(List<QuadHexaVertex> line_quads, s32 cx, TextAlign ta) {
+    if (ta != TA_LEFT) {
+        QuadHexaVertex *ql = line_quads.lst;
+        QuadHexaVertex *qr = line_quads.LastPtr();
+        s32 line_c = (qr->GetX1() + ql->GetX0()) / 2;
+
+        s32 offset_x = cx - line_c;
+        if (ta == TA_RIGHT) {
+            offset_x *= 2;
+        }
+        else {
+            assert(ta == TA_CENTER);
+        }
+
+        for (u32 i = 0; i < line_quads.len; ++i) {
+            QuadOffset(line_quads.lst + i, offset_x, 0);
+        }
+    }
+}
+List<QuadHexaVertex> LayoutText(MArena *a_dest, GlyphPlotter *plt, Str txt, s32 x0, s32 y0, s32 w, s32 h, Color color, TextAlign ta) {
     assert(g_text_plotter != NULL && "init text plotters first");
 
     s32 pt_x = x0;
@@ -714,24 +745,9 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, GlyphPlotter *plt, Str txt, s32 
             if (CanDoNewline(pt_y, plt->ln_height, plt->ln_ascend, box_b)) {
                 DoNewLine(plt->ln_height, x0, &pt_x, &pt_y);
 
-
-
-
-                QuadHexaVertex *ql = quads.lst + line_first_idx;
-                QuadHexaVertex *qr = quads.lst + line_first_idx + line_len - 1;
-                s32 line_l = x0; // ql->GetX0();
-                s32 line_r = qr->GetX1();
-                s32 line_c = (line_r + line_l) / 2;
-                s32 box_c = x0 + w / 2;
-                s32 offset_x = box_c - line_c;
-                for (u32 i = line_first_idx; i < line_first_idx + line_len; ++i) {
-                    QuadOffset(quads.lst + i, offset_x, 0);
-                }
+                AlignQuadsH(List<QuadHexaVertex> { quads.lst + line_first_idx, line_len }, x0 + w / 2, ta);
                 line_len = 0;
                 line_first_idx = quads.len;
-
-
-
             }
             s = StrInc(s, 1);
         }
@@ -751,24 +767,9 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, GlyphPlotter *plt, Str txt, s32 
             if (CanDoNewline(pt_y, plt->ln_height, plt->ln_ascend, box_b)) {
                 DoNewLine(plt->ln_height, x0, &pt_x, &pt_y);
             
-
-                if (centering) {
-
-                    QuadHexaVertex *ql = quads.lst + line_first_idx;
-                    QuadHexaVertex *qr = quads.lst + line_first_idx + line_len - 1;
-                    s32 line_l = x0; // ql->GetX0();
-                    s32 line_r = qr->GetX1();
-                    s32 line_c = (line_r + line_l) / 2;
-                    s32 box_c = x0 + w / 2;
-                    s32 offset_x = box_c - line_c;
-                    for (u32 i = line_first_idx; i < line_first_idx + line_len; ++i) {
-                        QuadOffset(quads.lst + i, offset_x, 0);
-                    }
-                    line_len = 0;
-                    line_first_idx = quads.len;
-                }
-
-
+                AlignQuadsH(List<QuadHexaVertex> { quads.lst + line_first_idx, line_len }, x0 + w / 2, ta);
+                line_len = 0;
+                line_first_idx = quads.len;
             }
             else {
                 // ran out of space, exit
@@ -793,23 +794,8 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, GlyphPlotter *plt, Str txt, s32 
     }
     assert(quads.len <= txt.len); // quad len equals char count minus whitespaces
 
-
-    if (centering) {
-
-        QuadHexaVertex *ql = quads.lst + line_first_idx;
-        QuadHexaVertex *qr = quads.lst + line_first_idx + line_len - 1;
-        s32 line_l = x0; // ql->GetX0();
-        s32 line_r = qr->GetX1();
-        s32 line_c = (line_r + line_l) / 2;
-        s32 box_c = x0 + w / 2;
-
-        s32 offset_x = box_c - line_c;
-        for (u32 i = line_first_idx; i < line_first_idx + line_len; ++i) {
-            QuadOffset(quads.lst + i, offset_x, 0);
-        }
-    }
-
-
+    // align the last line of the batch
+    AlignQuadsH(List<QuadHexaVertex> { quads.lst + line_first_idx, line_len }, x0 + w / 2, ta);
 
     // only scale if absolutely necessary
     f32 scale = 1.0f;
@@ -823,20 +809,30 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, GlyphPlotter *plt, Str txt, s32 
     return quads;
 }
 inline
-List<QuadHexaVertex> LayoutText(MArena *a_dest, const char *txt, s32 x0, s32 y0, s32 w, s32 h, Color color = { RGBA_BLACK }) {
-    return LayoutText(a_dest, g_text_plotter, StrInline(txt), x0, y0, w, h, color, false);
+List<QuadHexaVertex> LayoutText(MArena *a_dest, const char *txt, s32 x0, s32 y0, s32 w, s32 h, Color color = { RGBA_BLACK }, TextAlign align = TA_LEFT) {
+    return LayoutText(a_dest, g_text_plotter, StrInline(txt), x0, y0, w, h, color, align);
 }
 inline
-List<QuadHexaVertex> LayoutText(Str txt, s32 x0, s32 y0, s32 w, s32 h, Color color = { RGBA_BLACK }) {
-    return LayoutText(g_a_quadbuffer, g_text_plotter, txt, x0, y0, w, h, color, false);
+List<QuadHexaVertex> LayoutText(MArena *a_dest, const char *txt, s32 x0, s32 y0, s32 w, s32 h, TextAlign align = TA_LEFT) {
+    return LayoutText(a_dest, g_text_plotter, StrInline(txt), x0, y0, w, h, { RGBA_BLACK }, align);
 }
-
-
 inline
-List<QuadHexaVertex> LayoutText(const char *txt, s32 x0, s32 y0, s32 w, s32 h, Color color = { RGBA_BLACK }, FontSize fs = FS_36, bool centering = false) {
+List<QuadHexaVertex> LayoutText(MArena *a_dest, const char *txt, s32 x0, s32 y0, s32 w, s32 h, FontSize fs = FS_36, TextAlign align = TA_LEFT) {
     FontSize org = GetFontSize();
     SetFontAndSize(fs);
-    List<QuadHexaVertex> quads = LayoutText(g_a_quadbuffer, g_text_plotter, StrL(txt), x0, y0, w, h, color, centering);
+    List<QuadHexaVertex> quads =  LayoutText(a_dest, g_text_plotter, StrInline(txt), x0, y0, w, h, { RGBA_BLACK }, align);
+    SetFontAndSize(org);
+    return quads;
+}
+inline
+List<QuadHexaVertex> LayoutText(Str txt, s32 x0, s32 y0, s32 w, s32 h, Color color = { RGBA_BLACK }, TextAlign align = TA_LEFT) {
+    return LayoutText(g_a_quadbuffer, g_text_plotter, txt, x0, y0, w, h, color, align);
+}
+inline
+List<QuadHexaVertex> LayoutText(const char *txt, s32 x0, s32 y0, s32 w, s32 h, Color color = { RGBA_BLACK }, FontSize fs = FS_36, TextAlign align = TA_LEFT) {
+    FontSize org = GetFontSize();
+    SetFontAndSize(fs);
+    List<QuadHexaVertex> quads = LayoutText(g_a_quadbuffer, g_text_plotter, StrL(txt), x0, y0, w, h, color, align);
     SetFontAndSize(org);
     return quads;
 }

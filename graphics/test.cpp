@@ -407,7 +407,7 @@ void TestBrownianGlyphs() {
         cols.Add( ColorRandom() );
     }
 
-    List<QuadHexaVertex> quads = LayoutText(ctx->a_pers, "The quick brown fox jumps over the lazy dog", 470, 340, 400, 300);
+    List<QuadHexaVertex> quads = LayoutText(ctx->a_pers, "The quick brown fox jumps over the lazy dog", 470, 300, 300, 300, FS_72, TA_CENTER);
     DrawCall dc { 0, quads };
     for (u32 i = 0; i < quads.len; ++i) {
         QuadHexaVertex *q = quads.lst + i;
@@ -494,7 +494,7 @@ void TestUIPanel() {
                 }
             }
             LayoutPanel(l, t, w, h, border, ColorBlack(), ColorGray(graynexx));
-            LayoutText("The other quick brown fox jumps over the other lazy dog", l, t, w, h, ColorBlack(), FS_30, true);
+            LayoutText("The other quick brown fox jumps over the other lazy dog", l, t, w, h, ColorBlack(), FS_30, TA_CENTER);
         }
 
         if (loop->GetMouseTrap()->last_keypress_frame == OUR_GLFW_KEY_SPACE) {
@@ -547,7 +547,7 @@ void TestUIBtn() {
             s32 lbl_t = btn_t;
             s32 lbl_w = btn_w;
             s32 lbl_h = btn_h;
-            LayoutText("OK", btn_l, btn_t, btn_w, btn_h, ColorBlack(), FS_24);
+            LayoutText("OK", btn_l, btn_t, btn_w, btn_h, ColorBlack(), FS_24, TA_CENTER);
         }
         loop->FrameEnd2D();
     }
@@ -562,7 +562,7 @@ void Test() {
     //TestPointCloudsBoxesAndSceneGraph();
     //TestIndexSetOperations();
     //TestLayoutGlyphQuads();
-    //TestBrownianGlyphs();
-    TestUIPanel();
+    TestBrownianGlyphs();
+    //TestUIPanel();
     //TestUIBtn();
 }
