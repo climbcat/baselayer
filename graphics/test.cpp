@@ -487,7 +487,7 @@ void TestUIPanel() {
                     l += loop->mouse.dx;
                     t += loop->mouse.dy;
                 }
-                bool clicked = loop->mouse.ClickedThisFrame();
+                bool clicked = loop->mouse.ClickedRecently();
                 if (clicked) {
                     printf("click\n");
                     //show_pnl = false;
@@ -524,6 +524,7 @@ struct Widget {
     s32 y0;
     s32 w;
     s32 h;
+    s32 marg;
     LayoutKind lay;
 
     void IncLayout(s32 w, s32 h) {
@@ -538,6 +539,7 @@ struct Widget {
 Widget InitWidget(s32 x0, s32 y0, s32 w, s32 h) {
     Widget wid;
     wid.lay = LK_HORIZONTAL;
+    wid.marg = 2;
     wid.x0 = x0;
     wid.y0 = y0;
     wid.w = w;
@@ -560,20 +562,24 @@ bool UI_Button(Widget *wgt, const char *lbl) {
         if (g_mouse->l) {
             btn_brd = 6;
         }
-        clicked = g_mouse->ClickedThisFrame();
+        clicked = g_mouse->ClickedRecently();
+
+        if (clicked == true) {
+            printf("click!\n");
+        }
     }
     else {
         btn_gray = 1.0f;
     }
 
-    LayoutPanel(wgt->x0, wgt->y0, btn_w, btn_h, btn_brd, ColorBlack(), ColorGray(btn_gray));
-    List<QuadHexaVertex> quads = LayoutText(lbl, wgt->x0, wgt->y0, btn_w, btn_h, ColorBlack(), FS_24, TA_CENTER);
+    LayoutPanel(wgt->x0 + wgt->marg, wgt->y0 + wgt->marg, btn_w, btn_h, btn_brd, ColorBlack(), ColorGray(btn_gray));
+    List<QuadHexaVertex> quads = LayoutText(lbl, wgt->x0 + wgt->marg, wgt->y0 + wgt->marg, btn_w, btn_h, ColorBlack(), FS_24, TA_CENTER);
     s32 offset_y = btn_h / 2 + GetLineCenterVOffset();
     for (u32 i = 0; i < quads.len; ++i) {
         QuadOffset(quads.lst + i, 0, offset_y);
     }
 
-    wgt->IncLayout(btn_w, btn_h);
+    wgt->IncLayout(btn_w + wgt->marg*2, btn_h + wgt->marg*2);
 
     return clicked;
 }
@@ -591,15 +597,20 @@ void TestUIBtn() {
         // the if-button function
         {
             Widget wgt = InitWidget(500, 300, 0, 0);
+            Widget vert = wgt;
+            vert.lay = LK_VERTICAL;
+            vert.IncLayout(0, 52);
+
             UI_Button(&wgt, "OK");
             UI_Button(&wgt, "KO");
             UI_Button(&wgt, "OO");
             UI_Button(&wgt, "KK");
-            wgt.lay = LK_VERTICAL;
-            UI_Button(&wgt, "OK");
-            UI_Button(&wgt, "KO");
-            UI_Button(&wgt, "OO");
-            UI_Button(&wgt, "KK");
+
+            UI_Button(&vert, "OK");
+            UI_Button(&vert, "KO");
+            UI_Button(&vert, "OO");
+            UI_Button(&vert, "KK");
+
         }
         loop->FrameEnd2D();
     }

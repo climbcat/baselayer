@@ -248,8 +248,8 @@ struct MouseTrap {
         mwheel_y_delta = event.mwheel_y_delta;
     }
 
-    bool ClickedThisFrame() {
-        bool b1 = frameno - lup_fn <= 1;
+    bool ClickedRecently() {
+        bool b1 = frameno - lup_fn == 0;
         bool b2 = frameno - ldo_fn < 20;
 
         return b1 && b2;
