@@ -536,16 +536,6 @@ struct Widget {
         }
     }
 };
-Widget InitWidget(s32 x0, s32 y0, s32 w, s32 h) {
-    Widget wid;
-    wid.lay = LK_HORIZONTAL;
-    wid.marg = 2;
-    wid.x0 = x0;
-    wid.y0 = y0;
-    wid.w = w;
-    wid.h = h;
-    return wid;
-}
 
 
 bool UI_Button(Widget *wgt, const char *lbl) {
@@ -585,29 +575,87 @@ bool UI_Button(Widget *wgt, const char *lbl) {
 }
 
 
+static Stack<Widget*> g_widget_stack;
+static MPoolT<Widget> g_widget_pool;
+static Widget *g_widget_top;
+void UI_PushParent(Widget *w) {
+    g_widget_stack.Push(g_widget_top);
+    g_widget_top = w;
+}
+Widget *UI_PopParent() {
+    Widget *result = g_widget_stack.Pop();
+    g_widget_top = result;
+    return result;
+}
+void UI_Root(MArena *a_dest, s32 x0, s32 y0, s32 w, s32 h) {
+    g_widget_pool = PoolCreate<Widget>(1000);
+    g_widget_stack = InitStack<Widget*>(a_dest, 100);
+
+    Widget *wgt = g_widget_pool.Alloc();
+
+    wgt->marg = 1;
+    wgt->x0 = x0;
+    wgt->y0 = y0;
+    wgt->w = w;
+    wgt->h = h;
+
+    g_widget_top = wgt;
+}
+Widget *UI_CreateLayout(LayoutKind lk) {
+    Widget *wgt = g_widget_pool.Alloc();
+
+    *wgt = *g_widget_top;
+    wgt->lay = lk;
+
+    return wgt;
+}
+bool UI_Button(const char *lbl) {
+    return UI_Button(g_widget_top, lbl);
+}
+
+
 void TestUIBtn() {
     printf("TestUIPanel\n");
 
     MContext *ctx = InitBaselayer();
     GameLoopOne *loop = InitGraphics();
 
+
+    UI_Root(ctx->a_life, 100, 100, 50, 30);
+
+    s32 menu_idx = -1;
     while (loop->GameLoopRunning()) {
         loop->FrameStart2D(ColorGray(0.95f));
+        
+        Widget *horiz = UI_CreateLayout(LK_HORIZONTAL);
+        UI_PushParent(horiz);
 
-        Widget wgt = InitWidget(500, 300, 0, 0);
-        Widget vert = wgt;
+        if (UI_Button("OK") || menu_idx == 0) {
+            menu_idx = 0;
+
+            Widget *vert = UI_CreateLayout(LK_VERTICAL);
+            UI_PushParent(vert);
+
+            UI_Button("KO");
+            UI_Button("OO");
+            UI_Button("KK");
+
+            UI_PopParent();
+        }
+        UI_Button("KO");
+        UI_Button("OO");
+        UI_Button("KK");
+
+        UI_PopParent();
+
+        /*
         vert.lay = LK_VERTICAL;
         vert.IncLayout(0, 52);
-
-        UI_Button(&wgt, "OK");
-        UI_Button(&wgt, "KO");
-        UI_Button(&wgt, "OO");
-        UI_Button(&wgt, "KK");
-
         UI_Button(&vert, "OK");
         UI_Button(&vert, "KO");
         UI_Button(&vert, "OO");
         UI_Button(&vert, "KK");
+        */
 
         loop->FrameEnd2D();
     }

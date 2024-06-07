@@ -244,6 +244,32 @@ bool PoolFreeIdx(MPool *p, u32 idx) {
 }
 
 
+
+//
+// Templated memory pool wrapper
+//
+
+
+template<typename T>
+struct MPoolT {
+    MPool _p;
+
+    T *Alloc() {
+        return (T*) PoolAlloc(&this->_p);
+    }
+    void Free(T* el) {
+        PoolFree(&this->_p, el);
+    }
+};
+template<class T>
+MPoolT<T> PoolCreate(u32 nblocks) {
+    MPool pool_inner = PoolCreate(sizeof(T), nblocks);
+    MPoolT<T> pool;
+    pool._p = pool_inner;
+    return pool;
+}
+
+
 //
 //  Memory arena context - just a quick way to get some memory up
 
