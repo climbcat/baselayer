@@ -594,24 +594,21 @@ void TestUIBtn() {
     while (loop->GameLoopRunning()) {
         loop->FrameStart2D(ColorGray(0.95f));
 
-        // the if-button function
-        {
-            Widget wgt = InitWidget(500, 300, 0, 0);
-            Widget vert = wgt;
-            vert.lay = LK_VERTICAL;
-            vert.IncLayout(0, 52);
+        Widget wgt = InitWidget(500, 300, 0, 0);
+        Widget vert = wgt;
+        vert.lay = LK_VERTICAL;
+        vert.IncLayout(0, 52);
 
-            UI_Button(&wgt, "OK");
-            UI_Button(&wgt, "KO");
-            UI_Button(&wgt, "OO");
-            UI_Button(&wgt, "KK");
+        UI_Button(&wgt, "OK");
+        UI_Button(&wgt, "KO");
+        UI_Button(&wgt, "OO");
+        UI_Button(&wgt, "KK");
 
-            UI_Button(&vert, "OK");
-            UI_Button(&vert, "KO");
-            UI_Button(&vert, "OO");
-            UI_Button(&vert, "KK");
+        UI_Button(&vert, "OK");
+        UI_Button(&vert, "KO");
+        UI_Button(&vert, "OO");
+        UI_Button(&vert, "KK");
 
-        }
         loop->FrameEnd2D();
     }
 }
