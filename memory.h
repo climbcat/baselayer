@@ -258,7 +258,7 @@ struct MPoolT {
         return (T*) PoolAlloc(&this->_p);
     }
     void Free(T* el) {
-        PoolFree(&this->_p, el);
+        PoolFree(&this->_p, el, false);
     }
 };
 template<class T>

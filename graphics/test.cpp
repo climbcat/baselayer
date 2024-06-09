@@ -522,33 +522,83 @@ enum LayoutKind {
 struct Widget {
     s32 x0;
     s32 y0;
-    s32 w;
-    s32 h;
+    s32 x;
+    s32 y;
+    s32 w_max;
+    s32 h_max;
     s32 marg;
-    LayoutKind lay;
+    LayoutKind layout_kind;
 
-    void IncLayout(s32 w, s32 h) {
-        if (lay == LK_HORIZONTAL) {
-            x0 += w;
+    void IncItem(s32 w, s32 h) {
+        if (layout_kind == LK_HORIZONTAL) {
+            x += w + marg*2;
         }
-        else if (lay == LK_VERTICAL) {
-            y0 += h;
+        else if (layout_kind == LK_VERTICAL) {
+            y += h + marg*2;
         }
+        w_max = MaxS32(w_max, w);
+        h_max = MaxS32(h_max, h);
+    }
+    void NewRowOrCol() {
+        if (layout_kind == LK_HORIZONTAL) {
+            x = x0;
+            y += h_max;
+        }
+        else if (layout_kind == LK_VERTICAL) {
+            x += w_max;
+            y = y0;
+        }
+        h_max = 0;
+        w_max = 0;
     }
 };
+Widget UI_HorizontalLayout(s32 left, s32 top) {
+    Widget layout;
+    _memzero(&layout, sizeof(Widget));
+    layout.layout_kind = LK_HORIZONTAL;
+    layout.marg = 0;
+    layout.x0 = left;
+    layout.y0 = top;
+    layout.x = left;
+    layout.y = top;
+    return layout;
+}
+Widget UI_VerticalLayout(s32 left, s32 top) {
+    Widget layout = UI_HorizontalLayout(left, top);
+    layout.layout_kind = LK_VERTICAL;
+    layout.marg = 0;
+    return layout;
+}
+Widget UI_VerticalLayoutBelow(Widget layout) {
+    Widget vert = UI_VerticalLayout(layout.x, layout.y);
+    vert.IncItem(layout.w_max, layout.h_max);
+    return vert;
+}
 
 
-bool UI_Button(Widget *wgt, const char *lbl) {
+
+inline
+void UI_ButtonProperties(s32 *width, s32 *height, s32 *border, Color *col_btn, Color *col_hot) {
+    *width = 100;
+    *height = 50;
+    *border = 4;
+    *col_btn = ColorGray(1.0f);
+    *col_hot = ColorGray(0.9f);
+}
+
+
+bool UI_Button(Widget *layout, const char *lbl) {
+    s32 btn_w;
+    s32 btn_h;
+    s32 btn_brd;
+    Color col_btn;
+    Color col_hot;
+    UI_ButtonProperties(&btn_w, &btn_h, &btn_brd, &col_btn, &col_hot);
+
+    Color col = col_btn;
     bool clicked = false;
-
-    s32 btn_w = 100;
-    s32 btn_h = 50;
-    s32 btn_brd = 4;
-    f32 btn_gray = 1.0f;
-
-    if (g_mouse->LimsLTWHLastFrame(wgt->x0, wgt->y0, btn_w, btn_h)) {
-
-        btn_gray = 0.9f;
+    if (g_mouse->LimsLTWHLastFrame(layout->x, layout->y, btn_w, btn_h)) {
+        col = col_hot;
         if (g_mouse->l) {
             btn_brd = 6;
         }
@@ -558,59 +608,18 @@ bool UI_Button(Widget *wgt, const char *lbl) {
             printf("click!\n");
         }
     }
-    else {
-        btn_gray = 1.0f;
-    }
 
-    LayoutPanel(wgt->x0 + wgt->marg, wgt->y0 + wgt->marg, btn_w, btn_h, btn_brd, ColorBlack(), ColorGray(btn_gray));
-    List<QuadHexaVertex> quads = LayoutText(lbl, wgt->x0 + wgt->marg, wgt->y0 + wgt->marg, btn_w, btn_h, ColorBlack(), FS_24, TA_CENTER);
+    LayoutPanel(layout->x + layout->marg, layout->y + layout->marg, btn_w, btn_h, btn_brd, ColorBlack(), col);
+    List<QuadHexaVertex> quads = LayoutText(lbl, layout->x + layout->marg, layout->y + layout->marg, btn_w, btn_h, ColorBlack(), FS_24, TA_CENTER);
+
+    // vertical align center
     s32 offset_y = btn_h / 2 + GetLineCenterVOffset();
     for (u32 i = 0; i < quads.len; ++i) {
         QuadOffset(quads.lst + i, 0, offset_y);
     }
 
-    wgt->IncLayout(btn_w + wgt->marg*2, btn_h + wgt->marg*2);
-
+    layout->IncItem(btn_w, btn_h);
     return clicked;
-}
-
-
-static Stack<Widget*> g_widget_stack;
-static MPoolT<Widget> g_widget_pool;
-static Widget *g_widget_top;
-void UI_PushParent(Widget *w) {
-    g_widget_stack.Push(g_widget_top);
-    g_widget_top = w;
-}
-Widget *UI_PopParent() {
-    Widget *result = g_widget_stack.Pop();
-    g_widget_top = result;
-    return result;
-}
-void UI_Root(MArena *a_dest, s32 x0, s32 y0, s32 w, s32 h) {
-    g_widget_pool = PoolCreate<Widget>(1000);
-    g_widget_stack = InitStack<Widget*>(a_dest, 100);
-
-    Widget *wgt = g_widget_pool.Alloc();
-
-    wgt->marg = 1;
-    wgt->x0 = x0;
-    wgt->y0 = y0;
-    wgt->w = w;
-    wgt->h = h;
-
-    g_widget_top = wgt;
-}
-Widget *UI_CreateLayout(LayoutKind lk) {
-    Widget *wgt = g_widget_pool.Alloc();
-
-    *wgt = *g_widget_top;
-    wgt->lay = lk;
-
-    return wgt;
-}
-bool UI_Button(const char *lbl) {
-    return UI_Button(g_widget_top, lbl);
 }
 
 
@@ -620,45 +629,64 @@ void TestUIBtn() {
     MContext *ctx = InitBaselayer();
     GameLoopOne *loop = InitGraphics();
 
+    s32 menu_left = 10;
+    s32 menu_top = 10;
+    Widget layout_h, layout_v;
 
-    UI_Root(ctx->a_life, 100, 100, 50, 30);
+    // menu state machine:
+    s32 menu_state = -1;
+    s32 submenu_state = -1;
 
-    s32 menu_idx = -1;
     while (loop->GameLoopRunning()) {
         loop->FrameStart2D(ColorGray(0.95f));
-        
-        Widget *horiz = UI_CreateLayout(LK_HORIZONTAL);
-        UI_PushParent(horiz);
+        bool menu_clicked = false;
 
-        if (UI_Button("OK") || menu_idx == 0) {
-            menu_idx = 0;
-
-            Widget *vert = UI_CreateLayout(LK_VERTICAL);
-            UI_PushParent(vert);
-
-            UI_Button("KO");
-            UI_Button("OO");
-            UI_Button("KK");
-
-            UI_PopParent();
+        layout_h = UI_HorizontalLayout(menu_left, menu_top);
+        layout_v = UI_VerticalLayoutBelow(layout_h);
+        if (UI_Button(&layout_h, "File")) {
+            menu_state = menu_state == 0 ? -1 : 0;
+            menu_clicked = true;
         }
-        UI_Button("KO");
-        UI_Button("OO");
-        UI_Button("KK");
+        if (menu_state == 0) {
+            bool b1 = UI_Button(&layout_v, "New");
+            bool b2 = UI_Button(&layout_v, "Close");
+            bool b3 = UI_Button(&layout_v, "Exit");
+            menu_clicked = menu_clicked || b1 || b2 || b3;
 
-        UI_PopParent();
+            if (b3) {
+                loop->Exit();
+            }
+        }
 
-        /*
-        vert.lay = LK_VERTICAL;
-        vert.IncLayout(0, 52);
-        UI_Button(&vert, "OK");
-        UI_Button(&vert, "KO");
-        UI_Button(&vert, "OO");
-        UI_Button(&vert, "KK");
-        */
+        layout_v = UI_VerticalLayoutBelow(layout_h);
+        if (UI_Button(&layout_h, "Edit")) {
+            menu_state = menu_state == 1 ? -1 : 1;
+            menu_clicked = true;
+        }
+        if (menu_state == 1) {
+            menu_clicked = menu_clicked || UI_Button(&layout_v, "Clear");
+            menu_clicked = menu_clicked || UI_Button(&layout_v, "Config");
+        }
+
+        UI_Button(&layout_h, "View");
+
+        layout_v = UI_VerticalLayoutBelow(layout_h);
+        if (UI_Button(&layout_h, "Help")) {
+            menu_state = menu_state == 2 ? -1 : 2;
+            menu_clicked = true;
+        }
+        if (menu_state == 2) {
+            menu_clicked = menu_clicked || UI_Button(&layout_v, "About");
+            menu_clicked = menu_clicked || UI_Button(&layout_v, "Help");
+        }
+
+        if (g_mouse->ClickedRecently() && menu_clicked == false) {
+            menu_state = -1;
+        }
 
         loop->FrameEnd2D();
     }
+    loop->Terminate();
 }
 
 

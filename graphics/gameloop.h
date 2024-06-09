@@ -90,6 +90,7 @@ struct GameLoopOne {
 
     // TODO: rename GameLoopRunning to GameLoopFrameBegin()
     bool _is_running;
+    bool _exit_request;
     bool GameLoopRunning() {
         // poll mouse for correct dx, dy
         double xpos, ypos;
@@ -114,7 +115,7 @@ struct GameLoopOne {
 
         // exit condition
         bool exit_click = glfwWindowShouldClose(window) != 0;
-        _is_running = !(exit_click || exit_esc);
+        _is_running = !(exit_click || exit_esc || _exit_request);
         return _is_running;
     }
     bool IsRunning() {
@@ -172,6 +173,9 @@ struct GameLoopOne {
         glfwSwapBuffers(window);
     }
 
+    void Exit() {
+        _exit_request = true;
+    }
     void Terminate() {
         glfwTerminate();
     }
