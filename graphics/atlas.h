@@ -606,11 +606,11 @@ List<QuadHexaVertex> LayoutPanel(
 
 
 enum TextAlign {
-    TA_LEFT,
-    TA_CENTER,
-    TA_RIGHT,
+    TAL_LEFT,
+    TAL_CENTER,
+    TAL_RIGHT,
 
-    TA_CNT,
+    TAL_CNT,
 };
 
 
@@ -798,15 +798,15 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, GlyphPlotter *plt, Str txt, s32 
     return quads;
 }
 inline
-List<QuadHexaVertex> LayoutText(MArena *a_dest, const char *txt, s32 x0, s32 y0, s32 w, s32 h, Color color = { RGBA_BLACK }, TextAlign align = TA_LEFT) {
+List<QuadHexaVertex> LayoutText(MArena *a_dest, const char *txt, s32 x0, s32 y0, s32 w, s32 h, Color color = { RGBA_BLACK }, TextAlign align = TAL_LEFT) {
     return LayoutText(a_dest, g_text_plotter, StrInline(txt), x0, y0, w, h, color, align);
 }
 inline
-List<QuadHexaVertex> LayoutText(MArena *a_dest, const char *txt, s32 x0, s32 y0, s32 w, s32 h, TextAlign align = TA_LEFT) {
+List<QuadHexaVertex> LayoutText(MArena *a_dest, const char *txt, s32 x0, s32 y0, s32 w, s32 h, TextAlign align = TAL_LEFT) {
     return LayoutText(a_dest, g_text_plotter, StrInline(txt), x0, y0, w, h, { RGBA_BLACK }, align);
 }
 inline
-List<QuadHexaVertex> LayoutText(MArena *a_dest, const char *txt, s32 x0, s32 y0, s32 w, s32 h, FontSize fs = FS_36, TextAlign align = TA_LEFT) {
+List<QuadHexaVertex> LayoutText(MArena *a_dest, const char *txt, s32 x0, s32 y0, s32 w, s32 h, FontSize fs = FS_36, TextAlign align = TAL_LEFT) {
     FontSize org = GetFontSize();
     SetFontAndSize(fs);
     List<QuadHexaVertex> quads =  LayoutText(a_dest, g_text_plotter, StrInline(txt), x0, y0, w, h, { RGBA_BLACK }, align);
@@ -814,11 +814,11 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, const char *txt, s32 x0, s32 y0,
     return quads;
 }
 inline
-List<QuadHexaVertex> LayoutText(Str txt, s32 x0, s32 y0, s32 w, s32 h, Color color = { RGBA_BLACK }, TextAlign align = TA_LEFT) {
+List<QuadHexaVertex> LayoutText(Str txt, s32 x0, s32 y0, s32 w, s32 h, Color color = { RGBA_BLACK }, TextAlign align = TAL_LEFT) {
     return LayoutText(g_a_quadbuffer, g_text_plotter, txt, x0, y0, w, h, color, align);
 }
 inline
-List<QuadHexaVertex> LayoutText(const char *txt, s32 x0, s32 y0, s32 w, s32 h, Color color = { RGBA_BLACK }, FontSize fs = FS_36, TextAlign align = TA_LEFT) {
+List<QuadHexaVertex> LayoutText(const char *txt, s32 x0, s32 y0, s32 w, s32 h, Color color = { RGBA_BLACK }, FontSize fs = FS_36, TextAlign align = TAL_LEFT) {
     FontSize org = GetFontSize();
     SetFontAndSize(fs);
     List<QuadHexaVertex> quads = LayoutText(g_a_quadbuffer, g_text_plotter, StrL(txt), x0, y0, w, h, color, align);
