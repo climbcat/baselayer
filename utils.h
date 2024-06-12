@@ -156,6 +156,9 @@ struct FInfo {
         Str rebuilt = StrPathBuild(dirname, bn_new, StrL(ext));
         return rebuilt;
     }
+    char *BuildNameZ(const char *prefix, const char *suffix, const char *ext) {
+        return StrZeroTerm( this->BuildName(prefix, suffix, ext) );
+    }
     void Print() {
         StrPrint("file : ", name, "\n");
         StrPrint("ext  : ", ext, "\n");

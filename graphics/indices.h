@@ -201,6 +201,15 @@ List<u32> IndicesExtract(MArena *a_dest, MArena *a_indir, List<T> values, List<u
 
     return indirection;
 }
+template<class T>
+List<u32> IndicesExtractVals(MArena *a_dest, MArena *a_indir, List<T> values, List<u32> idxs, List<T> *values_out) {
+    List<u32> indirection = IndicesMarkPositive(a_indir, values.len, idxs);
+    IndicesShiftDownIndirectionList(indirection);
+
+    *values_out = IndicesSelectValues<T>(a_dest, values, indirection);
+
+    return indirection;
+}
 
 
 template<class T>
