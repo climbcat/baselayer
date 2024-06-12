@@ -407,7 +407,7 @@ void TestBrownianGlyphs() {
         cols.Add( ColorRandom() );
     }
 
-    List<QuadHexaVertex> quads = LayoutText(ctx->a_pers, "The quick brown fox jumps over the lazy dog", 470, 300, 300, 300, FS_72, TA_CENTER);
+    List<QuadHexaVertex> quads = LayoutText(ctx->a_pers, "The quick brown fox jumps over the lazy dog", 470, 300, 300, 300, FS_72, TAL_CENTER);
     DrawCall dc { 0, quads };
     for (u32 i = 0; i < quads.len; ++i) {
         QuadHexaVertex *q = quads.lst + i;
@@ -494,7 +494,7 @@ void TestUIPanel() {
                 }
             }
             LayoutPanel(l, t, w, h, border, ColorBlack(), ColorGray(graynexx));
-            LayoutText("The other quick brown fox jumps over the other lazy dog", l, t, w, h, ColorBlack(), FS_30, TA_CENTER);
+            LayoutText("The other quick brown fox jumps over the other lazy dog", l, t, w, h, ColorBlack(), FS_30, TAL_CENTER);
         }
 
         if (loop->GetMouseTrap()->last_keypress_frame == OUR_GLFW_KEY_SPACE) {
@@ -610,7 +610,7 @@ bool UI_Button(Widget *layout, const char *lbl) {
     }
 
     LayoutPanel(layout->x + layout->marg, layout->y + layout->marg, btn_w, btn_h, btn_brd, ColorBlack(), col);
-    List<QuadHexaVertex> quads = LayoutText(lbl, layout->x + layout->marg, layout->y + layout->marg, btn_w, btn_h, ColorBlack(), FS_24, TA_CENTER);
+    List<QuadHexaVertex> quads = LayoutText(lbl, layout->x + layout->marg, layout->y + layout->marg, btn_w, btn_h, ColorBlack(), FS_24, TAL_CENTER);
 
     // vertical align center
     s32 offset_y = btn_h / 2 + GetLineCenterVOffset();

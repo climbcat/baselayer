@@ -90,11 +90,12 @@ u8 *LoadFileMMAP(char *filepath, u64 *size_bytes) {
     return data;
 }
 StrLst *GetFilesInFolderPaths(MArena *a, char *rootpath) {
-
+    return NULL;
 
     // TODO: fix according to linux version
 
 
+    /*
     WIN32_FIND_DATA fd_file;
 
     HANDLE h_find = FindFirstFile(rootpath, &fd_file);
@@ -132,6 +133,7 @@ StrLst *GetFilesInFolderPaths(MArena *a, char *rootpath) {
     }
 
     return first;
+    */
 }
 bool SaveFile(char *filepath, u8 *data, u32 len) {
     std::ofstream outstream(filepath, std::ios::out | std::ios::binary);
