@@ -67,14 +67,35 @@ enum LayoutKind {
 };
 
 
+//  How the tree structure links:
+//
+//  - a new branch is created using first
+//  - each node in a branch link the same first (first node in branch)
+//  - each node in a branch link the same parent (parent node of branch)
+//  - each node links next (next node in branch)
+//
+//  Tree structure is built every turn
+//  
+
+
 struct Widget {
+    Widget *next;
+    Widget *first;
+    Widget *parent;
+
+    u64 hash_key;
+
+    // layout info
+
     s32 x0;
     s32 y0;
     s32 x;
     s32 y;
+    s32 marg;
+
+    // everything below probably belongs in the layout algorithm: 
     s32 w_max;
     s32 h_max;
-    s32 marg;
     LayoutKind layout_kind;
 
     void IncItem(s32 w, s32 h) {
