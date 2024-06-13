@@ -689,17 +689,17 @@ void DoWhiteSpace(s32 space_width, s32 *pt_x) {
 }
 inline
 void AlignQuadsH(List<QuadHexaVertex> line_quads, s32 cx, TextAlign ta) {
-    if (ta != TA_LEFT) {
+    if (ta != TAL_LEFT) {
         QuadHexaVertex *ql = line_quads.lst;
         QuadHexaVertex *qr = line_quads.LastPtr();
         s32 line_c = (qr->GetX1() + ql->GetX0()) / 2;
 
         s32 offset_x = cx - line_c;
-        if (ta == TA_RIGHT) {
+        if (ta == TAL_RIGHT) {
             offset_x *= 2;
         }
         else {
-            assert(ta == TA_CENTER);
+            assert(ta == TAL_CENTER);
         }
 
         for (u32 i = 0; i < line_quads.len; ++i) {
