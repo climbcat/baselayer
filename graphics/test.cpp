@@ -454,7 +454,7 @@ void TestBrownianGlyphs() {
 }
 
 
-void TestUIPanel() {
+void TestUIDragPanel() {
     printf("TestUIPanel\n");
 
     MContext *ctx = InitBaselayer();
@@ -512,7 +512,70 @@ void TestUIPanel() {
 }
 
 
-void TestUIBtn() {
+Widget UI_HorizontalLayout(s32 left, s32 top) {
+    Widget layout;
+    _memzero(&layout, sizeof(Widget));
+    layout.layout_kind = LK_HORIZONTAL;
+    layout.marg = 0;
+    layout.x0 = left;
+    layout.y0 = top;
+    layout.x = left;
+    layout.y = top;
+    return layout;
+}
+Widget UI_VerticalLayout(s32 left, s32 top) {
+    Widget layout = UI_HorizontalLayout(left, top);
+    layout.layout_kind = LK_VERTICAL;
+    layout.marg = 0;
+    return layout;
+}
+Widget UI_VerticalLayoutBelow(Widget layout) {
+    Widget vert = UI_VerticalLayout(layout.x, layout.y);
+    vert.IncItem(layout.w_max, layout.h_max);
+    return vert;
+}
+void UI_ButtonProperties(s32 *width, s32 *height, s32 *border, Color *col_btn, Color *col_hot) {
+    *width = 100;
+    *height = 50;
+    *border = 4;
+    *col_btn = ColorGray(1.0f);
+    *col_hot = ColorGray(0.9f);
+}
+bool UI_Button(Widget *layout, const char *lbl) {
+    s32 btn_w;
+    s32 btn_h;
+    s32 btn_brd;
+    Color col_btn;
+    Color col_hot;
+    UI_ButtonProperties(&btn_w, &btn_h, &btn_brd, &col_btn, &col_hot);
+
+    Color col = col_btn;
+    bool clicked = false;
+    if (g_mouse->LimsLTWHLastFrame(layout->x, layout->y, btn_w, btn_h)) {
+        col = col_hot;
+        if (g_mouse->l) {
+            btn_brd = 6;
+        }
+        clicked = g_mouse->ClickedRecently();
+
+        if (clicked == true) {
+            printf("click!\n");
+        }
+    }
+
+    LayoutPanel(layout->x + layout->marg, layout->y + layout->marg, btn_w, btn_h, btn_brd, ColorBlack(), col);
+    List<QuadHexaVertex> quads = LayoutText(lbl, layout->x + layout->marg, layout->y + layout->marg, btn_w, btn_h, ColorBlack(), FS_24, TAL_CENTER);
+
+    // vertical align center
+    s32 offset_y = btn_h / 2 + GetLineCenterVOffset();
+    for (u32 i = 0; i < quads.len; ++i) {
+        QuadOffset(quads.lst + i, 0, offset_y);
+    }
+
+    layout->IncItem(btn_w, btn_h);
+    return clicked;
+}
+void TestUIButtonMenuManual() {
     printf("TestUIPanel\n");
 
     MContext *ctx = InitBaselayer();
@@ -579,6 +642,23 @@ void TestUIBtn() {
 }
 
 
+void TestUILayoutWidgetAPI() {
+    printf("TestUILayoutWidgetAPI\n");
+
+    MContext *ctx = InitBaselayer();
+    GameLoopOne *loop = InitGraphics();
+
+    while (loop->GameLoopRunning()) {
+        loop->FrameStart2D(ColorGray(0.95f));
+
+        // TODO: layout
+
+        loop->FrameEnd2D();
+    }
+    loop->Terminate();
+}
+
+
 void Test() {
     //TestRandomPCWithNormals();
     //TestVGROcTree(); // TODO: fix
@@ -588,6 +668,7 @@ void Test() {
     //TestIndexSetOperations();
     //TestLayoutGlyphQuads();
     //TestBrownianGlyphs();
-    //TestUIPanel();
-    TestUIBtn();
+    //TestUIDragPanel();
+    //TestUIButtonMenuManual();
+    TestUILayoutWidgetAPI();
 }
