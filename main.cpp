@@ -385,6 +385,68 @@ void TestScritinizeFilename() {
 }
 
 
+struct TestWidget {
+    TestWidget *next;
+    TestWidget *first;
+    TestWidget *parent;
+    u64 key;
+};
+void TestPoolAllocatorAgain()  {
+    printf("TestPoolAllocatorAgain\n");
+
+    MContext *ctx = InitBaselayer();
+
+    u32 pool_sz = 1000;
+    u32 fill_sz = 800;
+    u32 rm_sz = 500;
+    u32 refill_sz = 500;
+
+    printf("\n");
+    printf("create                %u\n", pool_sz);
+    MPoolT<TestWidget> _p = PoolCreate<TestWidget>(pool_sz);
+    MPoolT<TestWidget> *p = &_p;
+
+    List<TestWidget*> wgts = InitList<TestWidget*>(ctx->a_tmp, pool_sz);
+
+    // fill
+    printf("fill                  %u\n", fill_sz);
+    for (u32 i = 0; i < fill_sz; ++i) {
+        TestWidget *w = p->Alloc();
+        wgts.Add(w);
+    }
+
+    u32 repeat_cnt = 10; // 1000
+    for (u32 rep = 0; rep < repeat_cnt; ++rep) {
+        // remove
+        printf("remove random allocs  %u\n", rm_sz);
+        for (u32 i = 0; i < rm_sz; ++i) {
+            u32 r = RandMinMaxI(0, wgts.len-1);
+
+            p->Free(wgts.lst[r]);
+            wgts.Delete(r);
+        }
+
+        // re-fill
+        printf("re-fill               %u\n", refill_sz);
+        for (u32 i = 0; i < refill_sz; ++i) {
+            TestWidget *w = p->Alloc();
+
+            assert(w != NULL);
+
+            wgts.Add(w);
+        }
+    }
+
+    // empty
+    for (u32 i = 0; i < wgts.len; ++i) {
+        p->Free(wgts.lst[i]);
+    }
+    assert(p->_p.occupancy == 0);
+    printf("emptying              %u\n", wgts.len);
+    printf("memory pool seems to work perfectly\n");
+}
+
+
 void Test() {
     printf("Running tests ...\n");
 
@@ -393,7 +455,8 @@ void Test() {
     //TestStringHelpers();
     //TestDict();
     //TestPointerHashMap();
-    TestScritinizeFilename();
+    //TestScritinizeFilename();
+    TestPoolAllocatorAgain();
 }
 
 
