@@ -7,7 +7,9 @@
 
 #include "gtypes.h"
 #include "geometry.h"
+#include "sprite.h"
 #include "atlas.h"
+#include "imui.h"
 
 #include "indices.h"
 #include "octree.h"
