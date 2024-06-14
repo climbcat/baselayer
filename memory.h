@@ -422,9 +422,8 @@ struct Stack {
             return lst[--len];
         }
         else {
-            T defval;
-            _memzero(&defval, sizeof(T));
-            return defval;
+            T zero = {};
+            return zero;
         }
     }
 };

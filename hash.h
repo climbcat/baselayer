@@ -23,6 +23,18 @@ u32 HashStringValue(Str key, u32 mod) {
     u32 slot = Hash(key4) % mod;
     return slot;
 }
+u64 HashStringValue(const char *key) {
+    u32 key4 = 0;
+    u32 i = 0;
+    while ( key[i] != '\0' ) {
+        u32 val = key[i] << i % 4;
+        key4 += val;
+
+        ++i;
+    }
+    u64 hashval = Hash(key4);
+    return hashval;
+}
 
 
 // TODO: also be a GPA?
@@ -306,6 +318,11 @@ u64 MapGet(HashMap *map, u64 key /*, bool *valid*/ ) {
     }
 
     return 0;
+}
+bool MapRemove(HashMap *map, u64 key, void *val) {
+    // TODO: impl
+
+    return true;
 }
 
 

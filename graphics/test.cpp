@@ -648,10 +648,24 @@ void TestUILayoutWidgetAPI() {
     MContext *ctx = InitBaselayer();
     GameLoopOne *loop = InitGraphics();
 
+    UI_Init();
+
     while (loop->GameLoopRunning()) {
         loop->FrameStart2D(ColorGray(0.95f));
 
+        mdown = (g_mouse->dl == -1);
+        mup = (g_mouse->dl == 1);
+        mx = g_mouse->x;
+        my = g_mouse->y;
+
+
         // TODO: layout
+
+
+        UI_Button("Ok");
+        //UI_Button("Cancel");
+
+        UI_FrameEnd(ctx->a_tmp);
 
         loop->FrameEnd2D();
     }
