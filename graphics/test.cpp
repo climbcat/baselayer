@@ -653,16 +653,24 @@ void TestUILayoutWidgetAPI() {
     while (loop->GameLoopRunning()) {
         loop->FrameStart2D(ColorGray(0.95f));
 
-        mdown = (g_mouse->dl == -1);
-        mup = (g_mouse->dl == 1);
+        mlclicked = g_mouse->ClickedRecently();
+        mdl = g_mouse->dl;
+        ml = g_mouse->l;
         mx = g_mouse->x;
         my = g_mouse->y;
+        frameno = loop->frameno;
 
 
-        // TODO: layout
+        if (frameno % 1 == 0) {
+            //printf("\ndl: %d fn: %lu\n", g_mouse->dl, frameno);
+        }
 
 
-        UI_Button("Ok");
+        // builder code
+        bool b = UI_Button("Ok");
+        if (b == true) {
+            printf("clicked!\n");
+        }
         //UI_Button("Cancel");
 
         UI_FrameEnd(ctx->a_tmp);

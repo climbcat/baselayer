@@ -200,6 +200,10 @@ struct MouseTrap {
         this->frameno = frameno;
         mwheel_y_delta = 0;
         last_keypress_frame = 0;
+
+        dl = 0;
+        dr = 0;
+        dm = 0;
     }
     inline
     void UpdateFrameMouseState(s32 xpos, s32 ypos) {

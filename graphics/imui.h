@@ -93,6 +93,18 @@ struct CollRect {
 };
 
 
+// temporary widget types - to be replaced by behaviors (d/h/a, color, border, etc.)
+enum WidgetType {
+    WT_UNDEFINED,
+
+    WT_BUTTON,
+    WT_LABEL,
+    WT_PANEL,
+
+    WT_CNT,
+};
+
+
 struct Widget {
     Widget *next;   // sibling in the branch
     Widget *first;  // child sub-branch first
@@ -108,11 +120,14 @@ struct Widget {
     s32 h;
     s32 marg;
     s32 border;
+    Str text;
 
     CollRect rect;
     Color col_1;
     Color col_2;
     Color col_3;
+
+    WidgetType tpe;
 
     // everything below probably belongs in the layout algorithm
     s32 x;
@@ -120,6 +135,16 @@ struct Widget {
     s32 w_max;
     s32 h_max;
     LayoutKind layout_kind;
+
+    void CollRectClear() {
+        rect = {};
+    }
+    void SetCollisionRectUsingX0Y0WH() {
+        rect.x0 = x0;
+        rect.x1 = x0 + w;
+        rect.y0 = y0;
+        rect.y1 = y0 + h;
+    }
 
     void IncItem(s32 w, s32 h) {
         if (layout_kind == LK_HORIZONTAL) {
@@ -164,8 +189,9 @@ static Widget *w_hot;
 static Widget *w_active;
 
 
-bool mup;
-bool mdown;
+s32 mdl;
+bool ml;
+bool mlclicked;
 s32 mx;
 s32 my;
 u64 frameno;
@@ -221,21 +247,58 @@ void UI_Init(u32 width = 1280, u32 height = 800) {
         map = &_map;
 
         w_branch = &_w_root;
+        _w_root.w = width;
+        _w_root.h = height,
+        _w_root.x0 = 0;
+        _w_root.y0 = 0;
     }
 }
 
 
 void UI_FrameEnd(MArena *a_tmp) {
     // TODO: offline auto-layout
+    if (frameno % 1 == 0) {
+        //printf("%d %d %d %d fn: %lu\n", mx, my, mdown, mup, frameno);
+    }
+    if (ml == false) {
+        w_active = NULL;
+    }
 
-
-    // iterate depth-first:
     Widget *w = &_w_root;
+    s32 x = w->x0;
+    s32 y = w->y0;
+
     List<Widget*> all_widgets = InitList<Widget*>(a_tmp, 0);
     while (w != NULL) {
+        // collect all widgets
         ArenaAlloc(a_tmp, sizeof(Widget*));
         all_widgets.Add(w);
 
+
+        // layout (may iter all children, up to read parent properties, etc. etc.)
+
+
+        if (w->tpe == WT_BUTTON) {
+            w->x = x;
+            w->y = y;
+            w->SetCollisionRectUsingX0Y0WH();
+
+            LayoutPanel(x + w->marg, y + w->marg, w->w, w->h, w->border, ColorBlack(), w->col_1);
+            List<QuadHexaVertex> quads = LayoutText(w->text.str, x + w->marg, w->y + w->marg, w->w, w->h, ColorBlack(), FS_24, TAL_CENTER);
+
+            // vertical align center
+            s32 offset_y = w->h / 2 + GetLineCenterVOffset();
+            for (u32 i = 0; i < quads.len; ++i) {
+                QuadOffset(quads.lst + i, 0, offset_y);
+            }
+
+
+            x += w->w;
+            y += w->h;
+        }
+
+
+        // iter depth-first
         if (w->first != NULL) {
             // descend
             if (w->next) {
@@ -283,25 +346,29 @@ bool UI_Button(const char *text) {
     Widget *w = (Widget*) MapGet(map, key);
     if (w == NULL) {
         w = p_widgets->Alloc();
-        // TODO: set btn properties for layout algorithm to be able to set recognize
+        w->tpe = WT_BUTTON;
         w->w = 100;
         w->h = 50;
+        w->text = Str { (char*) text, _strlen( (char*) text) };
 
         MapPut(map, key, w);
     }
     w->frame_touched = frameno;
 
     bool hot = w->rect.DidCollide( mx, my );
-    bool activate = hot && mdown;
-    if (activate) {
-        w_active = w;
+    if (hot) {
+        if (ml) {
+            w_active = w;
+        }
     }
-    bool active = (w == w_active);
+    bool active = (w_active == w);
+    bool clicked = active && hot && (mdl == 1 || mlclicked);
+
     if (active) {
         // ACTIVE: mouse-down was engaged on this element
 
         // configure active properties
-        w->border = 2;
+        w->border = 3;
         w->col_1 = ColorGray(0.8f); // panel
         w->col_2 = ColorBlack();    // text
         w->col_3 = ColorBlack();    // border
@@ -311,8 +378,8 @@ bool UI_Button(const char *text) {
         w_hot = w;
 
         // configure hot properties
-        w->border = 2;
-        w->col_1 = ColorGray(0.9f); // panel
+        w->border = 3;
+        w->col_1 = ColorWhite(); // panel
         w->col_2 = ColorBlack();    // text
         w->col_3 = ColorBlack();    // border
     }
@@ -327,8 +394,7 @@ bool UI_Button(const char *text) {
     // add into widget tree
     TreeSibling(w);
 
-    bool result = active && hot && mup;
-    return result;
+    return clicked;
 }
 
 

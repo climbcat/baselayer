@@ -148,7 +148,7 @@ struct GameLoopOne {
         ImageBufferDrawAndSwap();
 
         frameno++;
-        XSleep(1);
+        XSleep(10);
     }
     void JustRun(EntitySystem *es) {
         while (GameLoopRunning()) {
