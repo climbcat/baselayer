@@ -201,7 +201,7 @@ u64 frameno;
 void TreeSibling(Widget *w) {
     if (w_branch->first != NULL) {
         Widget *sib = w_branch->first;
-        while (sib != NULL) {
+        while (sib->next != NULL) {
             sib = sib->next;
         }
         sib->next = w;
@@ -279,12 +279,12 @@ void UI_FrameEnd(MArena *a_tmp) {
 
 
         if (w->tpe == WT_BUTTON) {
-            w->x = x;
-            w->y = y;
+            w->x0 = x;
+            w->y0 = y;
             w->SetCollisionRectUsingX0Y0WH();
 
             LayoutPanel(x + w->marg, y + w->marg, w->w, w->h, w->border, ColorBlack(), w->col_1);
-            List<QuadHexaVertex> quads = LayoutText(w->text.str, x + w->marg, w->y + w->marg, w->w, w->h, ColorBlack(), FS_24, TAL_CENTER);
+            List<QuadHexaVertex> quads = LayoutText(w->text.str, x + w->marg, w->y0 + w->marg, w->w, w->h, ColorBlack(), FS_24, TAL_CENTER);
 
             // vertical align center
             s32 offset_y = w->h / 2 + GetLineCenterVOffset();
@@ -293,8 +293,8 @@ void UI_FrameEnd(MArena *a_tmp) {
             }
 
 
+            // horizontal layout
             x += w->w;
-            y += w->h;
         }
 
 

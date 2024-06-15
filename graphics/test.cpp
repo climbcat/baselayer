@@ -667,11 +667,12 @@ void TestUILayoutWidgetAPI() {
 
 
         // builder code
-        bool b = UI_Button("Ok");
-        if (b == true) {
-            printf("clicked!\n");
+        if (UI_Button("Ok")) {
+            printf("clicked ok!\n");
         }
-        //UI_Button("Cancel");
+        if (UI_Button("Cancel")) {
+            printf("clicked Cancel!\n");
+        }
 
         UI_FrameEnd(ctx->a_tmp);
 
