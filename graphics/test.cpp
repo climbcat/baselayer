@@ -531,21 +531,19 @@ void TestUILayoutWidgetAPI() {
         frameno = loop->frameno;
 
 
-        if (frameno % 1 == 0) {
-            //printf("\ndl: %d fn: %lu\n", g_mouse->dl, frameno);
-        }
-
-
         // builder code
+        UI_Panel(500, 500);
         if (UI_Button("Ok")) {
             printf("clicked ok!\n");
         }
         if (UI_Button("Cancel")) {
             printf("clicked Cancel!\n");
         }
+        UI_Label("Evocative text sequence");
 
+
+        // frame end
         UI_FrameEnd(ctx->a_tmp);
-
         loop->FrameEnd2D();
     }
     loop->Terminate();

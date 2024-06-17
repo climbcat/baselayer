@@ -222,7 +222,7 @@ bool PoolFree(MPool *p, void *element, bool enable_strict_mode = true) {
     // check element doesn't carry a valid free-list pointer
     bool is_first_free_element = p->free_list.next == e;
     bool target_valid = PoolCheckAddress(p, e->next);
-    if (target_valid || is_first_free_element) {
+    if (target_valid && is_first_free_element) {
         if (enable_strict_mode) {
             assert(target_valid == false && "trying to free an element probably on the free list");
         }

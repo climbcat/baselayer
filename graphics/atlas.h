@@ -319,7 +319,7 @@ void DoWhiteSpace(s32 space_width, s32 *pt_x) {
 }
 inline
 void AlignQuadsH(List<QuadHexaVertex> line_quads, s32 cx, TextAlign ta) {
-    if (ta != TAL_LEFT) {
+    if (ta != TAL_LEFT && line_quads.len > 0) {
         QuadHexaVertex *ql = line_quads.lst;
         QuadHexaVertex *qr = line_quads.LastPtr();
         s32 line_c = (qr->GetX1() + ql->GetX0()) / 2;
@@ -341,6 +341,10 @@ s32 GetLineCenterVOffset() {
     s32 result = -1 * (g_text_plotter->ln_height - g_text_plotter->ln_ascend) / 2;
     return result;
 }
+
+
+// TODO: split up somehow, since too much stuff happens in this one function
+
 
 List<QuadHexaVertex> LayoutText(MArena *a_dest, GlyphPlotter *plt, Str txt, s32 x0, s32 y0, s32 w, s32 h, Color color, TextAlign ta) {
     assert(g_text_plotter != NULL && "init text plotters first");
@@ -419,6 +423,68 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, GlyphPlotter *plt, Str txt, s32 
     // only scale if absolutely necessary
     f32 scale = 1.0f;
     ScaleTextInline(quads, scale, x0, y0, w, h);
+
+    DrawCall dc;
+    dc.texture = 0;
+    dc.quads = quads;
+    SR_Push(dc);
+
+    return quads;
+}List<QuadHexaVertex> LayoutTextStraight(MArena *a_dest, GlyphPlotter *plt, Str txt, s32 x0, s32 y0, s32 *sz_x, s32 *sz_y, Color color) {
+    assert(g_text_plotter != NULL && "init text plotters first");
+
+    *sz_x = 0;
+    *sz_y = 0;
+
+    s32 pt_x = x0;
+    s32 pt_y = y0 + plt->ln_ascend;
+    s32 w_space = plt->advance_x.lst[' '];
+
+    u32 i = 0;
+    Str s = txt;
+
+    List<QuadHexaVertex> quads = InitList<QuadHexaVertex>(a_dest, 0);
+    u32 line_first_idx = 0;
+    u32 line_len = 0;
+    while (s.len > 0) {
+        // while words
+        *sz_x = MaxS32(*sz_x, pt_x);
+
+        if (IsNewLine(s)) {
+
+            DoNewLine(plt->ln_height, x0, &pt_x, &pt_y);
+
+            line_len = 0;
+            line_first_idx = quads.len;
+            s = StrInc(s, 1);
+        }
+        if (IsWhiteSpace(s)) {
+            DoWhiteSpace(w_space, &pt_x);
+            s = StrInc(s, 1);
+        }
+
+        // lookahead word len (include leading whitespace)
+        s32 w_adv = 0;
+        u32 w_len = WorldLen(s, plt->advance_x, &w_adv);
+
+        // lay out word
+        for (u32 j = 0; j < w_len; ++j) {
+            char c = s.str[j];
+            QuadHexaVertex q = QuadOffset(plt->cooked.lst + c, pt_x, pt_y, color);
+            pt_x += plt->advance_x.lst[c];
+            ArenaAlloc(a_dest, sizeof(QuadHexaVertex));
+            quads.Add(q);
+
+            *sz_y = MaxS32(*sz_y, q.GetHeight());
+
+            line_len++;
+        }
+        s = StrInc(s, w_len);
+
+        // dbg count
+        ++i;
+    }
+    assert(quads.len <= txt.len); // quad len equals char count minus whitespaces
 
     DrawCall dc;
     dc.texture = 0;

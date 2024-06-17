@@ -102,6 +102,7 @@ enum WidgetFlags {
     WF_DRAW_BORDER = 1 << 4,
     WF_HAS_HOT = 1 << 5,
     WF_HAS_ACTIVE = 1 << 6,
+    WF_AUTO_SIZE_MINIMAL = 1 << 7,
 };
 
 
@@ -118,6 +119,8 @@ struct Widget {
     s32 y0;
     s32 w;
     s32 h;
+    s32 w_max;
+    s32 h_max;
 
     CollRect rect;
 
@@ -257,22 +260,37 @@ void UI_FrameEnd(MArena *a_tmp) {
         w->y0 = y;
         w->SetCollisionRectUsingX0Y0WH();
 
-        if (w->features & WF_CLICKABLE) {
-
-            LayoutPanel(x + w->marg, y + w->marg, w->w, w->h, w->border, ColorBlack(), w->col_bckgrnd);
-
+        if (w->features & WF_DRAW_BACKGROUND) {
+            LayoutPanel(x + w->marg, y + w->marg, w->w, w->h, w->border, w->col_border, w->col_bckgrnd);
         }
+
+        // TODO: separate draw_border feature
+
         if (w->features & WF_DRAW_TEXT) {
             // TODO: test for draw_text
-            List<QuadHexaVertex> quads = LayoutText(w->text.str, x + w->marg, w->y0 + w->marg, w->w, w->h, ColorBlack(), FS_24, TAL_CENTER);
+            List<QuadHexaVertex> quads;
+
+            s32 w_out = 0;
+            s32 h_out = 0;
+
+            if (w->w != 0 && w->h != 0) {
+                quads = LayoutText(w->text.str, x + w->marg, w->y0 + w->marg, w->w, w->h, ColorBlack(), FS_48, TAL_CENTER);
+            }
+            else {
+                quads = LayoutTextStraight(g_a_quadbuffer, g_text_plotter, w->text, x + w->marg, w->y0 + w->marg, &w_out, &h_out, w->col_alt);
+            }
 
             // vertical align center
             s32 offset_y = w->h / 2 + GetLineCenterVOffset();
             for (u32 i = 0; i < quads.len; ++i) {
                 QuadOffset(quads.lst + i, 0, offset_y);
             }
-        }
 
+            if (quads.len > 0 && w->features & WF_AUTO_SIZE_MINIMAL) {
+                w->w = w_out;
+                w->h = h_out;
+            }
+        }
 
         // only for the horizontal layout
         if (w->features & WF_SOLID) {
@@ -333,14 +351,6 @@ bool UI_Button(const char *text) {
         w->features |= WF_DRAW_BACKGROUND;
         w->features |= WF_DRAW_BORDER;
 
-        u32 f = w->features;
-
-        printf("%d ", f & WF_CLICKABLE);
-        printf("%d ", f & WF_DRAW_TEXT);
-        printf("%d ", f & WF_DRAW_BORDER);
-        printf("%d ", f & WF_HAS_ACTIVE);
-        printf("\n");
-
         w->w = 100;
         w->h = 50;
         w->text = Str { (char*) text, _strlen( (char*) text) };
@@ -391,9 +401,39 @@ bool UI_Button(const char *text) {
     return clicked;
 }
 
+void UI_Panel(u32 width, u32 height) {
+    // no frame persistence
 
-void UI_Label(const char *text) {}
-void UI_Panel(u64 key) {}
+    Widget *w = p_widgets->Alloc();
+    w->features |= WF_DRAW_BACKGROUND;
+    w->features |= WF_DRAW_BORDER;
+    w->w = width;
+    w->h = height;
+    w->col_bckgrnd = ColorGray(0.9f);
+    w->col_border = ColorBlack();
+
+    TreeSibling(w);
+}
+
+
+void UI_Label(const char *text) {
+    // no frame persistence
+    Widget *w = p_widgets->Alloc();
+    w->features |= WF_DRAW_BACKGROUND;
+    w->features |= WF_DRAW_BORDER;
+    w->features |= WF_DRAW_TEXT;
+    w->features |= WF_AUTO_SIZE_MINIMAL;
+    w->features |= WF_SOLID;
+
+    w->w = 0;
+    w->h = 0;
+    w->text = Str { (char*) text, _strlen( (char*) text) };
+    w->col_bckgrnd = ColorGray(0.9f);
+    w->col_border = ColorBlack();
+    w->col_alt = ColorBlack();
+
+    TreeSibling(w);
+}
 void UI_LayoutHoriz(u64 key) {}
 void UI_LayoutVert(u64 key) {}
 void UI_LayoutHorizC(u64 key) {}
