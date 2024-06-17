@@ -355,7 +355,7 @@ bool UI_Button(const char *text) {
     }
     w->frame_touched = frameno;
 
-    bool hot = w->rect.DidCollide( mx, my );
+    bool hot = w->rect.DidCollide( mx, my ) && (w_active == NULL || w_active == w);
     if (hot) {
         if (ml) {
             w_active = w;
