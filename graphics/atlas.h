@@ -430,14 +430,17 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, GlyphPlotter *plt, Str txt, s32 
     SR_Push(dc);
 
     return quads;
-}List<QuadHexaVertex> LayoutTextStraight(MArena *a_dest, GlyphPlotter *plt, Str txt, s32 x0, s32 y0, s32 *sz_x, s32 *sz_y, Color color) {
+}
+List<QuadHexaVertex> LayoutTextStraight(MArena *a_dest, GlyphPlotter *plt, Str txt, s32 x0, s32 y0, s32 *sz_x, s32 *sz_y, Color color) {
     assert(g_text_plotter != NULL && "init text plotters first");
 
     *sz_x = 0;
     *sz_y = 0;
+    s32 ymin = 0;
+    s32 ymax = 0;
 
     s32 pt_x = x0;
-    s32 pt_y = y0 + plt->ln_ascend;
+    s32 pt_y = y0 + plt->ln_height;
     s32 w_space = plt->advance_x.lst[' '];
 
     u32 i = 0;
@@ -475,7 +478,8 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, GlyphPlotter *plt, Str txt, s32 
             ArenaAlloc(a_dest, sizeof(QuadHexaVertex));
             quads.Add(q);
 
-            *sz_y = MaxS32(*sz_y, q.GetHeight());
+            ymin = MinS32(ymin, q.GetY0());
+            ymax = MaxS32(ymax, q.GetY1());
 
             line_len++;
         }
@@ -485,6 +489,7 @@ List<QuadHexaVertex> LayoutText(MArena *a_dest, GlyphPlotter *plt, Str txt, s32 
         ++i;
     }
     assert(quads.len <= txt.len); // quad len equals char count minus whitespaces
+    *sz_y = ymax - ymin;
 
     DrawCall dc;
     dc.texture = 0;

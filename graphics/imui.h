@@ -176,7 +176,6 @@ s32 my;
 u64 frameno;
 
 
-
 void TreeSibling(Widget *w) {
     if (w_branch->first != NULL) {
         Widget *sib = w_branch->first;
@@ -264,7 +263,9 @@ void UI_FrameEnd(MArena *a_tmp) {
             LayoutPanel(x + w->marg, y + w->marg, w->w, w->h, w->border, w->col_border, w->col_bckgrnd);
         }
 
-        // TODO: separate draw_border feature
+
+        // TODO: separate the draw_border feature
+
 
         if (w->features & WF_DRAW_TEXT) {
             // TODO: test for draw_text
@@ -274,10 +275,10 @@ void UI_FrameEnd(MArena *a_tmp) {
             s32 h_out = 0;
 
             if (w->w != 0 && w->h != 0) {
-                quads = LayoutText(w->text.str, x + w->marg, w->y0 + w->marg, w->w, w->h, ColorBlack(), FS_48, TAL_CENTER);
+                quads = LayoutText(w->text.str, x + w->marg, y + w->marg, w->w, w->h, ColorBlack(), FS_30, TAL_CENTER);
             }
             else {
-                quads = LayoutTextStraight(g_a_quadbuffer, g_text_plotter, w->text, x + w->marg, w->y0 + w->marg, &w_out, &h_out, w->col_alt);
+                quads = LayoutTextStraight(g_a_quadbuffer, g_text_plotter, w->text, x, y, &w_out, &h_out, w->col_alt);
             }
 
             // vertical align center
@@ -287,6 +288,7 @@ void UI_FrameEnd(MArena *a_tmp) {
             }
 
             if (quads.len > 0 && w->features & WF_AUTO_SIZE_MINIMAL) {
+
                 w->w = w_out;
                 w->h = h_out;
             }
