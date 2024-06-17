@@ -93,15 +93,15 @@ struct CollRect {
 };
 
 
-// temporary widget types - to be replaced by behaviors (d/h/a, color, border, etc.)
-enum WidgetType {
-    WT_UNDEFINED,
-
-    WT_BUTTON,
-    WT_LABEL,
-    WT_PANEL,
-
-    WT_CNT,
+enum WidgetFlags {
+    WF_PASSIVE = 0,
+    WF_SOLID = 1 << 0,
+    WF_CLICKABLE = 1 << 1,
+    WF_DRAW_BACKGROUND = 1 << 2,
+    WF_DRAW_TEXT = 1 << 3,
+    WF_DRAW_BORDER = 1 << 4,
+    WF_HAS_HOT = 1 << 5,
+    WF_HAS_ACTIVE = 1 << 6,
 };
 
 
@@ -118,22 +118,21 @@ struct Widget {
     s32 y0;
     s32 w;
     s32 h;
-    s32 marg;
-    s32 border;
-    Str text;
 
     CollRect rect;
-    Color col_1;
-    Color col_2;
-    Color col_3;
 
-    WidgetType tpe;
+    s32 marg;
+    //s32 padding;
+
+    Str text;
+    s32 border;
+    Color col_bckgrnd;
+    Color col_alt;
+    Color col_border;
+
+    u32 features;
 
     // everything below probably belongs in the layout algorithm
-    s32 x;
-    s32 y;
-    s32 w_max;
-    s32 h_max;
     LayoutKind layout_kind;
 
     void CollRectClear() {
@@ -144,29 +143,6 @@ struct Widget {
         rect.x1 = x0 + w;
         rect.y0 = y0;
         rect.y1 = y0 + h;
-    }
-
-    void IncItem(s32 w, s32 h) {
-        if (layout_kind == LK_HORIZONTAL) {
-            x += w + marg*2;
-        }
-        else if (layout_kind == LK_VERTICAL) {
-            y += h + marg*2;
-        }
-        w_max = MaxS32(w_max, w);
-        h_max = MaxS32(h_max, h);
-    }
-    void NewRowOrCol() {
-        if (layout_kind == LK_HORIZONTAL) {
-            x = x0;
-            y += h_max;
-        }
-        else if (layout_kind == LK_VERTICAL) {
-            x += w_max;
-            y = y0;
-        }
-        h_max = 0;
-        w_max = 0;
     }
 };
 
@@ -277,13 +253,17 @@ void UI_FrameEnd(MArena *a_tmp) {
 
         // layout (may iter all children, up to read parent properties, etc. etc.)
 
+        w->x0 = x;
+        w->y0 = y;
+        w->SetCollisionRectUsingX0Y0WH();
 
-        if (w->tpe == WT_BUTTON) {
-            w->x0 = x;
-            w->y0 = y;
-            w->SetCollisionRectUsingX0Y0WH();
+        if (w->features & WF_CLICKABLE) {
 
-            LayoutPanel(x + w->marg, y + w->marg, w->w, w->h, w->border, ColorBlack(), w->col_1);
+            LayoutPanel(x + w->marg, y + w->marg, w->w, w->h, w->border, ColorBlack(), w->col_bckgrnd);
+
+        }
+        if (w->features & WF_DRAW_TEXT) {
+            // TODO: test for draw_text
             List<QuadHexaVertex> quads = LayoutText(w->text.str, x + w->marg, w->y0 + w->marg, w->w, w->h, ColorBlack(), FS_24, TAL_CENTER);
 
             // vertical align center
@@ -291,9 +271,11 @@ void UI_FrameEnd(MArena *a_tmp) {
             for (u32 i = 0; i < quads.len; ++i) {
                 QuadOffset(quads.lst + i, 0, offset_y);
             }
+        }
 
 
-            // horizontal layout
+        // only for the horizontal layout
+        if (w->features & WF_SOLID) {
             x += w->w;
         }
 
@@ -339,14 +321,26 @@ void UI_FrameEnd(MArena *a_tmp) {
 //  Builder API
 
 
-
 bool UI_Button(const char *text) {
     u64 key = HashStringValue(text);
 
     Widget *w = (Widget*) MapGet(map, key);
     if (w == NULL) {
         w = p_widgets->Alloc();
-        w->tpe = WT_BUTTON;
+        w->features |= WF_SOLID;
+        w->features |= WF_CLICKABLE;
+        w->features |= WF_DRAW_TEXT;
+        w->features |= WF_DRAW_BACKGROUND;
+        w->features |= WF_DRAW_BORDER;
+
+        u32 f = w->features;
+
+        printf("%d ", f & WF_CLICKABLE);
+        printf("%d ", f & WF_DRAW_TEXT);
+        printf("%d ", f & WF_DRAW_BORDER);
+        printf("%d ", f & WF_HAS_ACTIVE);
+        printf("\n");
+
         w->w = 100;
         w->h = 50;
         w->text = Str { (char*) text, _strlen( (char*) text) };
@@ -369,9 +363,9 @@ bool UI_Button(const char *text) {
 
         // configure active properties
         w->border = 3;
-        w->col_1 = ColorGray(0.8f); // panel
-        w->col_2 = ColorBlack();    // text
-        w->col_3 = ColorBlack();    // border
+        w->col_bckgrnd = ColorGray(0.8f); // panel
+        w->col_alt = ColorBlack();        // text
+        w->col_border = ColorBlack();     // border
     }
     else if (hot) {
         // HOT: currently hovering the mouse
@@ -379,16 +373,16 @@ bool UI_Button(const char *text) {
 
         // configure hot properties
         w->border = 3;
-        w->col_1 = ColorWhite(); // panel
-        w->col_2 = ColorBlack();    // text
-        w->col_3 = ColorBlack();    // border
+        w->col_bckgrnd = ColorWhite(); // panel
+        w->col_alt = ColorBlack();        // text
+        w->col_border = ColorBlack();     // border
     }
     else {
         // configure cold properties
         w->border = 1;
-        w->col_1 = ColorWhite(); // panel
-        w->col_2 = ColorBlack();    // text
-        w->col_3 = ColorBlack();    // border
+        w->col_bckgrnd = ColorWhite(); // panel
+        w->col_alt = ColorBlack();        // text
+        w->col_border = ColorBlack();     // border
     }
 
     // add into widget tree
