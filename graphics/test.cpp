@@ -537,16 +537,21 @@ void TestUILayoutWidgetAPI() {
 
         // builder code
         UI_CoolPanel(500, 500);
+        UI_SpacePanel(1, 30);
+        UI_Label("A descriptive label");
+        UI_SpacePanel(1, 30);
         if (UI_Button("Ok")) {
             printf("clicked ok!\n");
         }
+        UI_Pop();
+
+        UI_CoolPanel(500, 500);
+        UI_SpacePanel(1, 30);
+        UI_Label("Evocative text");
+        UI_SpacePanel(1, 30);
         if (UI_Button("Cancel")) {
             printf("clicked Cancel!\n");
         }
-        UI_Label("Evocative text sequence");
-        UI_Label("And a label");
-        UI_Pop();
-        UI_CoolPanel(500, 500);
 
 
         // frame end

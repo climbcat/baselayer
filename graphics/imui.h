@@ -256,6 +256,13 @@ void UI_FrameEnd(MArena *a_tmp) {
         ArenaAlloc(a_tmp, sizeof(Widget*));
         all_widgets.Add(w);
 
+
+        s32 x0 = 0;
+        s32 y0 = 0;
+        if (w->parent) {
+            x0 = w->parent->x0;
+            y0 = w->parent->y0;
+        }
         s32 *x = &w->parent->x;
         s32 *y = &w->parent->y;
 
@@ -271,18 +278,18 @@ void UI_FrameEnd(MArena *a_tmp) {
 
         // iterate the layout
         if (w->parent && (w->parent->features & WF_LAYOUT_H)) {
-            w->x0 = *x;
+            w->x0 = *x + x0;
             *x += w->w;
         }
         if (w->parent && (w->parent->features & WF_LAYOUT_V)) {
-            w->y0 = *y;
+            w->y0 = *y + y0;
             *y += w->h;
         }
         if (w->parent && (w->parent->features & WF_LAYOUT_CH)) {
-            w->x0 = (w->parent->x0 + w->parent->w - w->w) / 2;
+            w->x0 = x0 + (w->parent->w - w->w) / 2;
         }
         if (w->parent && (w->parent->features & WF_LAYOUT_CV)) {
-            w->y0 = (w->parent->y0 + w->parent->h - w->h) / 2;
+            w->y0 = y0 + (w->parent->h - w->h) / 2;
         }
 
 
@@ -371,7 +378,7 @@ bool UI_Button(const char *text) {
         w->features |= WF_DRAW_BACKGROUND_AND_BORDER;
 
         w->w = 100;
-        w->h = 150;
+        w->h = 50;
         w->text = Str { (char*) text, _strlen( (char*) text) };
         w->sz_font = FS_36;
 
@@ -435,8 +442,22 @@ void UI_CoolPanel(u32 width, u32 height) {
     w->col_bckgrnd = ColorGray(0.9f);
     w->col_border = ColorGray(0.7f);
 
-    //TreeSibling(w);
     TreeBranch(w);
+}
+
+
+void UI_SpacePanel(u32 width, u32 height) {
+    // no frame persistence
+
+    Widget *w = p_widgets->Alloc();
+    w->frame_touched = 0;
+    w->w = width;
+    w->h = height;
+    w->sz_border = 20;
+    w->col_bckgrnd = ColorGray(0.9f);
+    w->col_border = ColorGray(0.7f);
+
+    TreeSibling(w);
 }
 
 
