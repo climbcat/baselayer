@@ -385,8 +385,8 @@ void TestLayoutGlyphQuads() {
     MContext *ctx = InitBaselayer();
     GameLoopOne *loop = InitGraphics();
 
-    LayoutText("The quick brown fox jumps over the lazy dog", 50, 100, 1000, 200, ColorRandom());
-    LayoutText("The other quick brown fox jumps over the other lazy dog", 100, 200, 400, 200, ColorRandom());
+    LayoutTextLine("The quick brown fox jumps over the lazy dog", 50, 100, ColorRandom());
+    LayoutTextLine("The other quick brown fox jumps over the other lazy dog", 100, 200, ColorRandom());
 
     SR_Render();
     loop->JustShowBuffer();
@@ -407,7 +407,8 @@ void TestBrownianGlyphs() {
         cols.Add( ColorRandom() );
     }
 
-    List<QuadHexaVertex> quads = LayoutText(ctx->a_pers, "The quick brown fox jumps over the lazy dog", 470, 300, 300, 300, FS_72, TAL_CENTER);
+    SetFontAndSize(FS_72);
+    List<QuadHexaVertex> quads = LayoutTextAutowrap(ctx->a_pers, g_text_plotter, StrL("The quick brown fox jumps over the lazy dog"), 470, 300, 300, 300, ColorRandom(), TAL_CENTER);
     DrawCall dc { 0, quads };
     for (u32 i = 0; i < quads.len; ++i) {
         QuadHexaVertex *q = quads.lst + i;
@@ -417,6 +418,7 @@ void TestBrownianGlyphs() {
         }
     }
     List<QuadHexaVertex> quads_initial = ListCopy(ctx->a_life, quads);
+        SetFontAndSize(FS_30);
 
     f32 magnitude = 0.8;
     while (loop->GameLoopRunning()) {
@@ -445,7 +447,7 @@ void TestBrownianGlyphs() {
         }
 
         // render
-        LayoutText("press space/up/down", 50, 50, 1000, 200, clbl, FS_30);
+        LayoutTextLine("press space/up/down", 50, 50, clbl);
         SR_Push(dc);
 
         loop->FrameEnd2D();
@@ -472,7 +474,7 @@ void TestUIDragPanel() {
     while (loop->GameLoopRunning()) {
         loop->FrameStart2D(ColorGray(0.9f));
 
-        LayoutText("The quick brown fox jumps over the lazy dog", 50, 80, 1000, 200, ColorBlack());
+        LayoutTextLine("The quick brown fox jumps over the lazy dog", 50, 80, ColorBlack());
 
         // bordered drag-panel
         if (show_pnl) {
@@ -494,7 +496,9 @@ void TestUIDragPanel() {
                 }
             }
             LayoutPanel(l, t, w, h, border, ColorBlack(), ColorGray(graynexx));
-            LayoutText("The other quick brown fox jumps over the other lazy dog", l, t, w, h, ColorBlack(), FS_30, TAL_CENTER);
+            SetFontAndSize(FS_30);
+            LayoutTextLine("The other quick brown fox jumps over the other lazy dog", l, t, ColorBlack());
+            // TODO: align, e.g. TAL_CENTER
         }
 
         if (loop->GetMouseTrap()->last_keypress_frame == OUR_GLFW_KEY_SPACE) {
@@ -540,6 +544,7 @@ void TestUILayoutWidgetAPI() {
             printf("clicked Cancel!\n");
         }
         UI_Label("Evocative text sequence");
+        UI_Label("And a label");
 
 
         // frame end

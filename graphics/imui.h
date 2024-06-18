@@ -119,8 +119,6 @@ struct Widget {
     s32 y0;
     s32 w;
     s32 h;
-    s32 w_max;
-    s32 h_max;
 
     CollRect rect;
 
@@ -128,6 +126,7 @@ struct Widget {
     //s32 padding;
 
     Str text;
+    FontSize text_size;
     s32 border;
     Color col_bckgrnd;
     Color col_alt;
@@ -260,37 +259,34 @@ void UI_FrameEnd(MArena *a_tmp) {
         w->SetCollisionRectUsingX0Y0WH();
 
         if (w->features & WF_DRAW_BACKGROUND) {
+            // TODO: separate the draw_border feature
             LayoutPanel(x + w->marg, y + w->marg, w->w, w->h, w->border, w->col_border, w->col_bckgrnd);
         }
 
-
-        // TODO: separate the draw_border feature
-
-
         if (w->features & WF_DRAW_TEXT) {
             // TODO: test for draw_text
-            List<QuadHexaVertex> quads;
+            List<QuadHexaVertex> txt_quads;
 
-            s32 w_out = 0;
-            s32 h_out = 0;
+            SetFontAndSize(w->text_size);
+            s32 w_out;
+            s32 h_out;
+            txt_quads = LayoutTextLine(w->text, x, y, &w_out, &h_out, w->col_alt);
 
-            if (w->w != 0 && w->h != 0) {
-                quads = LayoutText(w->text.str, x + w->marg, y + w->marg, w->w, w->h, ColorBlack(), FS_30, TAL_CENTER);
-            }
-            else {
-                quads = LayoutTextStraight(g_a_quadbuffer, g_text_plotter, w->text, x, y, &w_out, &h_out, w->col_alt);
-            }
-
-            // vertical align center
-            s32 offset_y = w->h / 2 + GetLineCenterVOffset();
-            for (u32 i = 0; i < quads.len; ++i) {
-                QuadOffset(quads.lst + i, 0, offset_y);
-            }
-
-            if (quads.len > 0 && w->features & WF_AUTO_SIZE_MINIMAL) {
-
+            if (w->h == 0 && w->w == 0) {
+                // auto-expand widget to wrap the text
                 w->w = w_out;
                 w->h = h_out;
+            }
+            else {
+                // position text at widget center
+                s32 w_center_x = w->x0 + w->w / 2;
+                s32 w_center_y = w->y0 + w->h / 2;
+
+                s32 offset_x = (w->w - w_out) / 2;
+                s32 offset_y = (w->h - h_out) / 2;
+                for (u32 i = 0; i < txt_quads.len; ++i) {
+                    QuadOffset(txt_quads.lst + i, offset_x, offset_y);
+                }
             }
         }
 
@@ -298,7 +294,6 @@ void UI_FrameEnd(MArena *a_tmp) {
         if (w->features & WF_SOLID) {
             x += w->w;
         }
-
 
         // iter depth-first
         if (w->first != NULL) {
@@ -352,10 +347,13 @@ bool UI_Button(const char *text) {
         w->features |= WF_DRAW_TEXT;
         w->features |= WF_DRAW_BACKGROUND;
         w->features |= WF_DRAW_BORDER;
+        w->features |= WF_HAS_HOT;
+        w->features |= WF_HAS_ACTIVE;
 
         w->w = 100;
-        w->h = 50;
+        w->h = 150;
         w->text = Str { (char*) text, _strlen( (char*) text) };
+        w->text_size = FS_36;
 
         MapPut(map, key, w);
     }
@@ -421,8 +419,6 @@ void UI_Panel(u32 width, u32 height) {
 void UI_Label(const char *text) {
     // no frame persistence
     Widget *w = p_widgets->Alloc();
-    w->features |= WF_DRAW_BACKGROUND;
-    w->features |= WF_DRAW_BORDER;
     w->features |= WF_DRAW_TEXT;
     w->features |= WF_AUTO_SIZE_MINIMAL;
     w->features |= WF_SOLID;
@@ -430,6 +426,7 @@ void UI_Label(const char *text) {
     w->w = 0;
     w->h = 0;
     w->text = Str { (char*) text, _strlen( (char*) text) };
+    w->text_size = FS_48;
     w->col_bckgrnd = ColorGray(0.9f);
     w->col_border = ColorBlack();
     w->col_alt = ColorBlack();
