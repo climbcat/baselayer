@@ -241,15 +241,6 @@ void InitFonts() {
 //
 
 
-enum TextAlign {
-    TAL_LEFT,
-    TAL_CENTER,
-    TAL_RIGHT,
-
-    TAL_CNT,
-};
-
-
 // TODO: export helper functions to string.h
 
 
@@ -285,7 +276,6 @@ Str StrInc(Str s, u32 inc) {
     s.len -= inc;
     return s;
 }
-
 
 
 inline
@@ -334,6 +324,15 @@ inline
 void DoWhiteSpace(s32 space_width, s32 *pt_x) {
     *pt_x += space_width;
 }
+
+
+enum TextAlign {
+    TAL_LEFT,
+    TAL_CENTER,
+    TAL_RIGHT,
+
+    TAL_CNT,
+};
 inline
 void AlignQuadsH(List<QuadHexaVertex> line_quads, s32 cx, TextAlign ta) {
     if (ta != TAL_LEFT && line_quads.len > 0) {
@@ -354,10 +353,14 @@ void AlignQuadsH(List<QuadHexaVertex> line_quads, s32 cx, TextAlign ta) {
         }
     }
 }
+
+
+//
+// TODO: un-retire autowrap function at some point !
+
 List<QuadHexaVertex> LayoutTextAutowrap(MArena *a_dest, GlyphPlotter *plt, Str txt, s32 x0, s32 y0, s32 w, s32 h, Color color, TextAlign ta) {
     assert(g_text_plotter != NULL && "init text plotters first");
 
-    // TODO: un-retire autowrap function
 
     s32 pt_x = x0;
     s32 pt_y = y0;
@@ -515,9 +518,7 @@ List<QuadHexaVertex> LayoutTextLine(const char *txt, s32 x0, s32 y0, Color color
 
     return LayoutTextLine(g_a_quadbuffer, g_text_plotter, txts, x0, y0, &sz_x, color);
 }
-List<QuadHexaVertex> LayoutTextLine(Str txt, s32 x0, s32 y0, s32 *sz_x, s32 *sz_y, Color color, TextAlign align = TAL_LEFT) {
-    // TODO: alignment
-
+List<QuadHexaVertex> LayoutTextLine(Str txt, s32 x0, s32 y0, s32 *sz_x, s32 *sz_y, Color color) {
     *sz_y = g_text_plotter->ln_measured;
     return LayoutTextLine(g_a_quadbuffer, g_text_plotter, txt, x0, y0, sz_x, color);
 }

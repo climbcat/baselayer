@@ -536,7 +536,7 @@ void TestUILayoutWidgetAPI() {
 
 
         // builder code
-        UI_Panel(500, 500);
+        UI_CoolPanel(500, 500);
         if (UI_Button("Ok")) {
             printf("clicked ok!\n");
         }
