@@ -545,6 +545,8 @@ void TestUILayoutWidgetAPI() {
         }
         UI_Label("Evocative text sequence");
         UI_Label("And a label");
+        UI_Pop();
+        UI_CoolPanel(500, 500);
 
 
         // frame end

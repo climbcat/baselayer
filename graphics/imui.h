@@ -86,19 +86,20 @@ struct CollRect {
 enum WidgetFlags {
     WF_PASSIVE = 0,
 
-    WF_DRAW_BACKGROUND = 1 << 1,
-    WF_DRAW_TEXT = 1 << 3,
-    WF_DRAW_BORDER = 1 << 4,
+    WF_DRAW_BACKGROUND_AND_BORDER = 1 << 0,
+    WF_DRAW_TEXT = 1 << 1,
 
     WF_LAYOUT_H = 1 << 10,
     WF_LAYOUT_V = 1 << 11,
-    WF_LAYOUT_C = 1 << 12,
+    WF_LAYOUT_CH = 1 << 12,
+    WF_LAYOUT_CV = 1 << 13,
 };
 bool WidgetIsLayout(u32 features) {
     bool result =
         features & WF_LAYOUT_H ||
         features & WF_LAYOUT_V ||
-        features & WF_LAYOUT_C ||
+        features & WF_LAYOUT_CH ||
+        features & WF_LAYOUT_CV ||
     false;
     return result;
 }
@@ -129,6 +130,9 @@ struct Widget {
     u32 features;
 
     // everything below belongs in the layout algorithm
+    s32 x;
+    s32 y;
+
     CollRect rect;
     void CollRectClear() {
         rect = {};
@@ -183,8 +187,17 @@ void TreeSibling(Widget *w) {
     }
 }
 void TreeBranch(Widget *w) {
-    w_layout->first = w;
-    w->parent = w;
+    if (w_layout->first != NULL) {
+        Widget *sib = w_layout->first;
+        while (sib->next != NULL) {
+            sib = sib->next;
+        }
+        sib->next = w;
+    }
+    else {
+        w_layout->first = w;
+    }
+    w->parent = w_layout;
     w_layout = w;
 }
 void TreePop() {
@@ -238,11 +251,13 @@ void UI_FrameEnd(MArena *a_tmp) {
 
     // layout pass
     Widget *w = &_w_root;
-    s32 x = w->x0;
-    s32 y = w->y0;
+    Widget *layout = &_w_root;
     while (w != NULL) {
         ArenaAlloc(a_tmp, sizeof(Widget*));
         all_widgets.Add(w);
+
+        s32 *x = &w->parent->x;
+        s32 *y = &w->parent->y;
 
 
         if (w->features & WF_DRAW_TEXT) {
@@ -254,14 +269,25 @@ void UI_FrameEnd(MArena *a_tmp) {
             }
         }
 
+        // iterate the layout
+        if (w->parent && (w->parent->features & WF_LAYOUT_H)) {
+            w->x0 = *x;
+            *x += w->w;
+        }
+        if (w->parent && (w->parent->features & WF_LAYOUT_V)) {
+            w->y0 = *y;
+            *y += w->h;
+        }
+        if (w->parent && (w->parent->features & WF_LAYOUT_CH)) {
+            w->x0 = (w->parent->x0 + w->parent->w - w->w) / 2;
+        }
+        if (w->parent && (w->parent->features & WF_LAYOUT_CV)) {
+            w->y0 = (w->parent->y0 + w->parent->h - w->h) / 2;
+        }
+
 
         // set the collision rect for next frame code-interleaved mouse collision
-        w->x0 = x;
-        w->y0 = y;
         w->SetCollisionRectUsingX0Y0WH();
-
-        // iterate the layout
-        x += w->w;
 
 
         // iter
@@ -283,7 +309,7 @@ void UI_FrameEnd(MArena *a_tmp) {
     for (u32 i = 0; i < all_widgets.len; ++i) {
         Widget *w = all_widgets.lst[i];
 
-        if (w->features & WF_DRAW_BACKGROUND) {
+        if (w->features & WF_DRAW_BACKGROUND_AND_BORDER) {
             LayoutPanel(w->x0, w->y0, w->w, w->h, w->sz_border, w->col_border, w->col_bckgrnd);
         }
 
@@ -322,6 +348,10 @@ void UI_FrameEnd(MArena *a_tmp) {
             w->parent = NULL;
             w->first = NULL;
             w->next = NULL;
+            w->x0 = 0;
+            w->y0 = 0;
+            w->x = 0;
+            w->y = 0;
         }
     }
 }
@@ -338,8 +368,7 @@ bool UI_Button(const char *text) {
     if (w == NULL) {
         w = p_widgets->Alloc();
         w->features |= WF_DRAW_TEXT;
-        w->features |= WF_DRAW_BACKGROUND;
-        w->features |= WF_DRAW_BORDER;
+        w->features |= WF_DRAW_BACKGROUND_AND_BORDER;
 
         w->w = 100;
         w->h = 150;
@@ -396,22 +425,25 @@ void UI_CoolPanel(u32 width, u32 height) {
     // no frame persistence
 
     Widget *w = p_widgets->Alloc();
-    w->features |= WF_DRAW_BACKGROUND;
-    w->features |= WF_DRAW_BORDER;
-    w->features |= WF_LAYOUT_C;
+    w->frame_touched = 0;
+    w->features |= WF_DRAW_BACKGROUND_AND_BORDER;
+    w->features |= WF_LAYOUT_CH;
+    w->features |= WF_LAYOUT_V;
     w->w = width;
     w->h = height;
     w->sz_border = 20;
     w->col_bckgrnd = ColorGray(0.9f);
     w->col_border = ColorGray(0.7f);
 
-    TreeSibling(w);
+    //TreeSibling(w);
+    TreeBranch(w);
 }
 
 
 void UI_Label(const char *text) {
     // no frame persistence
     Widget *w = p_widgets->Alloc();
+    w->frame_touched = 0;
     w->features |= WF_DRAW_TEXT;
 
     w->w = 0;
@@ -428,7 +460,9 @@ void UI_LayoutHoriz(u64 key) {}
 void UI_LayoutVert(u64 key) {}
 void UI_LayoutHorizC(u64 key) {}
 void UI_LayoutVertC(u64 key) {}
-void UI_Pop() {}
+void UI_Pop() {
+    TreePop();
+}
 
 
 #endif
