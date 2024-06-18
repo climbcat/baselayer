@@ -8,12 +8,11 @@
 
 
 List<QuadHexaVertex> LayoutPanel(
-        MArena *a_dest,
-        s32 l, s32 t, s32 w, s32 h,
-        s32 border,
-        Color col_border = { RGBA_GRAY_75 }, Color col_pnl = { RGBA_WHITE } )
+    MArena *a_dest,
+    s32 l, s32 t, s32 w, s32 h,
+    s32 thic_border, Color col_border = { RGBA_GRAY_75 }, Color col_pnl = { RGBA_WHITE } )
 {
-    if (border >= w / 2 || border >= w / 2) {
+    if (thic_border >= w / 2 || thic_border >= w / 2) {
         return List<QuadHexaVertex> { NULL, 0 };
     }
 
@@ -33,10 +32,10 @@ List<QuadHexaVertex> LayoutPanel(
     {
         Quad q;
         _memzero(&q, sizeof(Quad));
-        q.x0 = l + border;
-        q.x1 = l + w - border;
-        q.y0 = t + border;
-        q.y1 = t + h - border;
+        q.x0 = l + thic_border;
+        q.x1 = l + w - thic_border;
+        q.y0 = t + thic_border;
+        q.y1 = t + h - thic_border;
         q.c = col_pnl;
         dc.quads.Add(QuadCook(q));
     }
@@ -56,16 +55,7 @@ List<QuadHexaVertex> LayoutPanel(
 
 //
 //  IMUI system experiments
-
-
-enum LayoutKind {
-    LK_INDEICISIVE,
-    LK_HORIZONTAL,
-    LK_VERTICAL,
-    LK_CENTER,
-
-    LK_CNT,
-};
+//
 
 
 //
@@ -95,48 +85,49 @@ struct CollRect {
 
 enum WidgetFlags {
     WF_PASSIVE = 0,
-    WF_SOLID = 1 << 0,
-    WF_CLICKABLE = 1 << 1,
-    WF_DRAW_BACKGROUND = 1 << 2,
+
+    WF_DRAW_BACKGROUND = 1 << 1,
     WF_DRAW_TEXT = 1 << 3,
     WF_DRAW_BORDER = 1 << 4,
-    WF_HAS_HOT = 1 << 5,
-    WF_HAS_ACTIVE = 1 << 6,
-    WF_AUTO_SIZE_MINIMAL = 1 << 7,
+
+    WF_LAYOUT_H = 1 << 10,
+    WF_LAYOUT_V = 1 << 11,
+    WF_LAYOUT_C = 1 << 12,
 };
+bool WidgetIsLayout(u32 features) {
+    bool result =
+        features & WF_LAYOUT_H ||
+        features & WF_LAYOUT_V ||
+        features & WF_LAYOUT_C ||
+    false;
+    return result;
+}
 
 
 struct Widget {
-    Widget *next;   // sibling in the branch
-    Widget *first;  // child sub-branch first
-    Widget *parent; // parent of the branch
+    Widget *next;       // sibling in the branch
+    Widget *first;      // child sub-branch first
+    Widget *parent;     // parent of the branch
 
-    u64 hash_key;   // hashes frame-boundary persistent widgets
-    u64 frame_touched;
+    u64 hash_key;       // hash for frame-boundary persistence
+    u64 frame_touched;  // expiration date
 
-    // layout info
     s32 x0;
     s32 y0;
     s32 w;
     s32 h;
 
-    CollRect rect;
-
-    s32 marg;
-    //s32 padding;
-
     Str text;
-    FontSize text_size;
-    s32 border;
+    FontSize sz_font;
+    s32 sz_border;
     Color col_bckgrnd;
-    Color col_alt;
+    Color col_text;
     Color col_border;
 
     u32 features;
 
-    // everything below probably belongs in the layout algorithm
-    LayoutKind layout_kind;
-
+    // everything below belongs in the layout algorithm
+    CollRect rect;
     void CollRectClear() {
         rect = {};
     }
@@ -223,6 +214,8 @@ void UI_Init(u32 width = 1280, u32 height = 800) {
         _map = InitMap(g_a_imui, max_widgets);
         map = &_map;
 
+        _w_root.features |= WF_LAYOUT_H;
+
         w_branch = &_w_root;
         _w_root.w = width;
         _w_root.h = height,
@@ -260,17 +253,17 @@ void UI_FrameEnd(MArena *a_tmp) {
 
         if (w->features & WF_DRAW_BACKGROUND) {
             // TODO: separate the draw_border feature
-            LayoutPanel(x + w->marg, y + w->marg, w->w, w->h, w->border, w->col_border, w->col_bckgrnd);
+            LayoutPanel(x, y, w->w, w->h, w->sz_border, w->col_border, w->col_bckgrnd);
         }
 
         if (w->features & WF_DRAW_TEXT) {
             // TODO: test for draw_text
             List<QuadHexaVertex> txt_quads;
 
-            SetFontAndSize(w->text_size);
+            SetFontAndSize(w->sz_font);
             s32 w_out;
             s32 h_out;
-            txt_quads = LayoutTextLine(w->text, x, y, &w_out, &h_out, w->col_alt);
+            txt_quads = LayoutTextLine(w->text, x, y, &w_out, &h_out, w->col_text);
 
             if (w->h == 0 && w->w == 0) {
                 // auto-expand widget to wrap the text
@@ -290,8 +283,8 @@ void UI_FrameEnd(MArena *a_tmp) {
             }
         }
 
-        // only for the horizontal layout
-        if (w->features & WF_SOLID) {
+        // layout non-containing panel
+        if (WidgetIsLayout(w->features) == false) {
             x += w->w;
         }
 
@@ -342,18 +335,14 @@ bool UI_Button(const char *text) {
     Widget *w = (Widget*) MapGet(map, key);
     if (w == NULL) {
         w = p_widgets->Alloc();
-        w->features |= WF_SOLID;
-        w->features |= WF_CLICKABLE;
         w->features |= WF_DRAW_TEXT;
         w->features |= WF_DRAW_BACKGROUND;
         w->features |= WF_DRAW_BORDER;
-        w->features |= WF_HAS_HOT;
-        w->features |= WF_HAS_ACTIVE;
 
         w->w = 100;
         w->h = 150;
         w->text = Str { (char*) text, _strlen( (char*) text) };
-        w->text_size = FS_36;
+        w->sz_font = FS_36;
 
         MapPut(map, key, w);
     }
@@ -372,9 +361,9 @@ bool UI_Button(const char *text) {
         // ACTIVE: mouse-down was engaged on this element
 
         // configure active properties
-        w->border = 3;
+        w->sz_border = 3;
         w->col_bckgrnd = ColorGray(0.8f); // panel
-        w->col_alt = ColorBlack();        // text
+        w->col_text = ColorBlack();        // text
         w->col_border = ColorBlack();     // border
     }
     else if (hot) {
@@ -382,16 +371,16 @@ bool UI_Button(const char *text) {
         w_hot = w;
 
         // configure hot properties
-        w->border = 3;
+        w->sz_border = 3;
         w->col_bckgrnd = ColorWhite(); // panel
-        w->col_alt = ColorBlack();        // text
+        w->col_text = ColorBlack();        // text
         w->col_border = ColorBlack();     // border
     }
     else {
         // configure cold properties
-        w->border = 1;
+        w->sz_border = 1;
         w->col_bckgrnd = ColorWhite(); // panel
-        w->col_alt = ColorBlack();        // text
+        w->col_text = ColorBlack();        // text
         w->col_border = ColorBlack();     // border
     }
 
@@ -407,6 +396,7 @@ void UI_Panel(u32 width, u32 height) {
     Widget *w = p_widgets->Alloc();
     w->features |= WF_DRAW_BACKGROUND;
     w->features |= WF_DRAW_BORDER;
+    w->features |= WF_LAYOUT_C;
     w->w = width;
     w->h = height;
     w->col_bckgrnd = ColorGray(0.9f);
@@ -420,16 +410,14 @@ void UI_Label(const char *text) {
     // no frame persistence
     Widget *w = p_widgets->Alloc();
     w->features |= WF_DRAW_TEXT;
-    w->features |= WF_AUTO_SIZE_MINIMAL;
-    w->features |= WF_SOLID;
 
     w->w = 0;
     w->h = 0;
     w->text = Str { (char*) text, _strlen( (char*) text) };
-    w->text_size = FS_48;
+    w->sz_font = FS_48;
     w->col_bckgrnd = ColorGray(0.9f);
     w->col_border = ColorBlack();
-    w->col_alt = ColorBlack();
+    w->col_text = ColorBlack();
 
     TreeSibling(w);
 }
