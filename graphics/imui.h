@@ -226,67 +226,41 @@ void UI_Init(u32 width = 1280, u32 height = 800) {
 
 
 void UI_FrameEnd(MArena *a_tmp) {
-    // TODO: offline auto-layout
-    if (frameno % 1 == 0) {
-        //printf("%d %d %d %d fn: %lu\n", mx, my, mdown, mup, frameno);
-    }
     if (ml == false) {
         w_active = NULL;
     }
 
+    // collect widgets during layout pass
+    List<Widget*> all_widgets = InitList<Widget*>(a_tmp, 0);
+
+    // layout pass
     Widget *w = &_w_root;
     s32 x = w->x0;
     s32 y = w->y0;
-
-    List<Widget*> all_widgets = InitList<Widget*>(a_tmp, 0);
     while (w != NULL) {
         // collect all widgets
         ArenaAlloc(a_tmp, sizeof(Widget*));
         all_widgets.Add(w);
 
-
-        // layout (may iter all children, up to read parent properties, etc. etc.)
-
         w->x0 = x;
         w->y0 = y;
         w->SetCollisionRectUsingX0Y0WH();
 
-        if (w->features & WF_DRAW_BACKGROUND) {
-            // TODO: separate the draw_border feature
-            LayoutPanel(x, y, w->w, w->h, w->sz_border, w->col_border, w->col_bckgrnd);
-        }
 
         if (w->features & WF_DRAW_TEXT) {
             // TODO: test for draw_text
             List<QuadHexaVertex> txt_quads;
 
-            SetFontAndSize(w->sz_font);
-            s32 w_out;
-            s32 h_out;
-            txt_quads = LayoutTextLine(w->text, x, y, &w_out, &h_out, w->col_text);
-
             if (w->h == 0 && w->w == 0) {
-                // auto-expand widget to wrap the text
-                w->w = w_out;
-                w->h = h_out;
-            }
-            else {
-                // position text at widget center
-                s32 w_center_x = w->x0 + w->w / 2;
-                s32 w_center_y = w->y0 + w->h / 2;
-
-                s32 offset_x = (w->w - w_out) / 2;
-                s32 offset_y = (w->h - h_out) / 2;
-                for (u32 i = 0; i < txt_quads.len; ++i) {
-                    QuadOffset(txt_quads.lst + i, offset_x, offset_y);
-                }
+                SetFontAndSize(w->sz_font);
+                w->w = TextLineWidth(g_text_plotter, w->text);;
+                w->h = g_text_plotter->ln_measured;
             }
         }
-
-        // layout non-containing panel
         if (WidgetIsLayout(w->features) == false) {
             x += w->w;
         }
+
 
         // iter depth-first
         if (w->first != NULL) {
@@ -303,6 +277,34 @@ void UI_FrameEnd(MArena *a_tmp) {
             w = s_widgets->Pop();
         }
     }
+
+
+    // render pass
+    for (u32 i = 0; i < all_widgets.len; ++i) {
+        Widget *w = all_widgets.lst[i];
+
+        if (w->features & WF_DRAW_BACKGROUND) {
+            LayoutPanel(w->x0, w->y0, w->w, w->h, w->sz_border, w->col_border, w->col_bckgrnd);
+        }
+
+        if (w->features & WF_DRAW_TEXT) {
+            SetFontAndSize(w->sz_font);
+            s32 w_out;
+            s32 h_out;
+            List<QuadHexaVertex> txt_quads = LayoutTextLine(w->text, w->x0, w->y0, &w_out, &h_out, w->col_text);
+
+            // position text at widget center
+            s32 w_center_x = w->x0 + w->w / 2;
+            s32 w_center_y = w->y0 + w->h / 2;
+
+            s32 offset_x = (w->w - w_out) / 2;
+            s32 offset_y = (w->h - h_out) / 2;
+            for (u32 i = 0; i < txt_quads.len; ++i) {
+                QuadOffset(txt_quads.lst + i, offset_x, offset_y);
+            }
+        }
+    }
+
 
     // clean all tree links for frame-persistent widgets & free untouched widgets
     _w_root.frame_touched = frameno;
