@@ -277,7 +277,7 @@ void WidgetWrap_Rec(Widget *w, s32 *w_sum, s32 *h_sum, s32 *w_max, s32 *h_max) {
             w->w = *w_max;
             w->h = *h_sum;
         }
-        if ((w->features & WF_LAYOUT_CX) || (w->features & WF_LAYOUT_CX)) {
+        if ((w->features & WF_LAYOUT_CX) || (w->features & WF_LAYOUT_CY)) {
             w->w = *w_max;
             w->h = *h_max;
         }
@@ -312,10 +312,10 @@ void UI_FrameEnd(MArena *a_tmp) {
     List<Widget*> all_widgets = InitList<Widget*>(a_tmp, 0);
     Widget *w = &_w_root;
 
-    // layout pass: sizing
+    // layout pass: sizing (bottom-up)
     WidgetWrap_Tree(w);
 
-    // layout pass: positioning
+    // layout pass: positioning (top-down)
     while (w != NULL) {
         ArenaAlloc(a_tmp, sizeof(Widget*));
         all_widgets.Add(w);

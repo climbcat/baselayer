@@ -576,7 +576,7 @@ void TestUILayoutWidgetAPI() {
             UI_SpacePanelV(30);
 
             UI_LayoutHoriz();
-            UI_Label("Evocative");
+            UI_Label("Evocative ");
             UI_Label("text");
             UI_Pop();
 
