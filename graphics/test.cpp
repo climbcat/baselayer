@@ -534,56 +534,57 @@ void TestUILayoutWidgetAPI() {
         my = g_mouse->y;
         frameno = loop->frameno;
 
+        if (false) {
+            // builder code: nested horizontal layout in a vertical layout
+            bool first_v = true;
+            bool nested_h = true;
 
-        bool first_v = true;
-        bool nested_h = true;
+            if (first_v) {
+                UI_LayoutVert();
+                UI_Label("Vert");
+                UI_Label(" ical ");
+                UI_Label("text");
+            }
+            if (nested_h) {
+                UI_LayoutHoriz();
+                UI_Label("Horiz");
+                UI_Label(" ontal ");
+                UI_Label("label");
+            }
 
-        if (first_v) {
-            UI_LayoutVert();
-            UI_Label("Vert");
-            UI_Label(" ical ");
-            UI_Label("text");
+            if (nested_h) {
+                UI_Pop();
+            }
+            if (first_v) {
+                UI_Pop();
+            }
+            UI_Button("hest");
         }
-        if (nested_h) {
+
+        if (true) {
+            // builder code: also centering panels
+            UI_CoolPanel(500, 500);
+            UI_SpacePanelV(30);
+            UI_Label("A descriptive label");
+            UI_SpacePanelV(30);
+            if (UI_Button("Ok")) {
+                printf("clicked Ok!\n");
+            }
+            UI_Pop();
+
+            UI_CoolPanel(500, 500);
+            UI_SpacePanelV(30);
+
             UI_LayoutHoriz();
-            UI_Label("Horiz");
-            UI_Label(" ontal ");
-            UI_Label("label");
-        }
-
-        if (nested_h) {
+            UI_Label("Evocative");
+            UI_Label("text");
             UI_Pop();
-        }
-        if (first_v) {
-            UI_Pop();
-        }
-        UI_Button("hest");
-        
 
-        /*
-        // builder code
-        UI_CoolPanel(500, 500);
-        UI_SpacePanel(1, 30);
-        UI_Label("A descriptive label");
-        UI_SpacePanel(1, 30);
-        if (UI_Button("Ok")) {
-            printf("clicked ok!\n");
+            UI_SpacePanelV(30);
+            if (UI_Button("Cancel")) {
+                printf("clicked Cancel!\n");
+            }
         }
-        UI_Pop();
-
-        UI_CoolPanel(500, 500);
-        UI_SpacePanel(1, 30);
-
-        UI_LayoutHoriz();
-        UI_Label("Evocative");
-        UI_Label("text");
-        UI_Pop();
-
-        UI_SpacePanel(1, 30);
-        if (UI_Button("Cancel")) {
-            printf("clicked Cancel!\n");
-        }
-        */
 
 
         // frame end

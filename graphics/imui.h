@@ -91,15 +91,15 @@ enum WidgetFlags {
 
     WF_LAYOUT_H = 1 << 10,
     WF_LAYOUT_V = 1 << 11,
-    WF_LAYOUT_CH = 1 << 12,
-    WF_LAYOUT_CV = 1 << 13,
+    WF_LAYOUT_CX = 1 << 12,
+    WF_LAYOUT_CY = 1 << 13,
 };
 bool WidgetIsLayout(u32 features) {
     bool result =
         features & WF_LAYOUT_H ||
         features & WF_LAYOUT_V ||
-        features & WF_LAYOUT_CH ||
-        features & WF_LAYOUT_CV ||
+        features & WF_LAYOUT_CX ||
+        features & WF_LAYOUT_CY ||
     false;
     return result;
 }
@@ -277,6 +277,10 @@ void WidgetWrap_Rec(Widget *w, s32 *w_sum, s32 *h_sum, s32 *w_max, s32 *h_max) {
             w->w = *w_max;
             w->h = *h_sum;
         }
+        if ((w->features & WF_LAYOUT_CX) || (w->features & WF_LAYOUT_CX)) {
+            w->w = *w_max;
+            w->h = *h_max;
+        }
     }
     // or keep pre-set sizes
     else {
@@ -322,26 +326,25 @@ void UI_FrameEnd(MArena *a_tmp) {
         // since all sizes are known, each widget can lay out its children according to its settings
         Widget *ch = w->first;
         while (ch != NULL) { // iterate child widgets
+            ch->x0 = w->x0;
+            ch->y0 = w->y0;
 
             // iterate the layout (will not work with nested layouts)
             if (w->features & WF_LAYOUT_H) {
                 ch->x0 = w->x0 + pt_x;
-                ch->y0 = w->y0;
                 pt_x += ch->w;
             }
+            else if (w->features & WF_LAYOUT_CX) {
+                ch->x0 = w->x0 + (w->w - ch->w) / 2;
+            }
+
             if (w->features & WF_LAYOUT_V) {
-                ch->x0 = w->x0;
                 ch->y0 = w->y0 + pt_y;
                 pt_y += ch->h;
             }
-            /*
-            if (w->parent && (w->parent->features & WF_LAYOUT_CH)) {
-                w->x0 = x0 + (w->parent->w - w->w) / 2;
+            else if (w->features & WF_LAYOUT_CY) {
+                ch->y0 = w->y0 + (w->h - ch->h) / 2;
             }
-            if (w->parent && (w->parent->features & WF_LAYOUT_CV)) {
-                w->y0 = y0 + (w->parent->h - w->h) / 2;
-            }
-            */
 
             // set the collision rect for next frame code-interleaved mouse collision
             ch->SetCollisionRectUsingX0Y0WH();
@@ -489,7 +492,7 @@ void UI_CoolPanel(u32 width, u32 height) {
     Widget *w = p_widgets->Alloc();
     w->frame_touched = 0;
     w->features |= WF_DRAW_BACKGROUND_AND_BORDER;
-    w->features |= WF_LAYOUT_CH;
+    w->features |= WF_LAYOUT_CX;
     w->features |= WF_LAYOUT_V;
     w->w = width;
     w->h = height;
@@ -501,16 +504,23 @@ void UI_CoolPanel(u32 width, u32 height) {
 }
 
 
-void UI_SpacePanel(u32 width, u32 height) {
+void UI_SpacePanelH(u32 width) {
     // no frame persistence
 
     Widget *w = p_widgets->Alloc();
     w->frame_touched = 0;
     w->w = width;
+
+    TreeSibling(w);
+}
+
+
+void UI_SpacePanelV(u32 height) {
+    // no frame persistence
+
+    Widget *w = p_widgets->Alloc();
+    w->frame_touched = 0;
     w->h = height;
-    w->sz_border = 20;
-    w->col_bckgrnd = ColorGray(0.9f);
-    w->col_border = ColorGray(0.7f);
 
     TreeSibling(w);
 }
