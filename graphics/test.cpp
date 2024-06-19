@@ -534,19 +534,25 @@ void TestUILayoutWidgetAPI() {
         my = g_mouse->y;
         frameno = loop->frameno;
 
-        if (false) {
+        UI_LayoutVertical();
+
+        if (true) {
             // builder code: nested horizontal layout in a vertical layout
             bool first_v = true;
             bool nested_h = true;
 
             if (first_v) {
-                UI_LayoutVert();
+                UI_LayoutVertical();
+
+                // TODO: this one breaks it
+                //UI_LayoutVerticalCenterX();
+
                 UI_Label("Vert");
                 UI_Label(" ical ");
                 UI_Label("text");
             }
             if (nested_h) {
-                UI_LayoutHoriz();
+                UI_LayoutHorizontal();
                 UI_Label("Horiz");
                 UI_Label(" ontal ");
                 UI_Label("label");
@@ -564,23 +570,23 @@ void TestUILayoutWidgetAPI() {
         if (true) {
             // builder code: also centering panels
             UI_CoolPanel(500, 500);
-            UI_SpacePanelV(30);
+            UI_SpaceV(30);
             UI_Label("A descriptive label");
-            UI_SpacePanelV(30);
+            UI_SpaceV(30);
             if (UI_Button("Ok")) {
                 printf("clicked Ok!\n");
             }
             UI_Pop();
 
             UI_CoolPanel(500, 500);
-            UI_SpacePanelV(30);
+            UI_SpaceV(30);
 
-            UI_LayoutHoriz();
+            UI_LayoutHorizontal();
             UI_Label("Evocative ");
             UI_Label("text");
             UI_Pop();
 
-            UI_SpacePanelV(30);
+            UI_SpaceV(30);
             if (UI_Button("Cancel")) {
                 printf("clicked Cancel!\n");
             }

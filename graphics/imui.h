@@ -268,7 +268,7 @@ void WidgetWrap_Rec(Widget *w, s32 *w_sum, s32 *h_sum, s32 *w_max, s32 *h_max) {
     }
 
     // assign sizes to current widget 
-    if (w->w == 0 || w->h == 0) {
+    if (w->w == 0 && w->h == 0) {
         if (w->features & WF_LAYOUT_H) {
             w->w = *w_sum;
             w->h = *h_max;
@@ -479,7 +479,6 @@ bool UI_Button(const char *text) {
         w->col_border = ColorBlack();     // border
     }
 
-    // add into widget tree
     TreeSibling(w);
 
     return clicked;
@@ -504,7 +503,7 @@ void UI_CoolPanel(u32 width, u32 height) {
 }
 
 
-void UI_SpacePanelH(u32 width) {
+void UI_SpaceH(u32 width) {
     // no frame persistence
 
     Widget *w = p_widgets->Alloc();
@@ -515,7 +514,7 @@ void UI_SpacePanelH(u32 width) {
 }
 
 
-void UI_SpacePanelV(u32 height) {
+void UI_SpaceV(u32 height) {
     // no frame persistence
 
     Widget *w = p_widgets->Alloc();
@@ -528,6 +527,7 @@ void UI_SpacePanelV(u32 height) {
 
 void UI_Label(const char *text) {
     // no frame persistence
+
     Widget *w = p_widgets->Alloc();
     w->frame_touched = 0;
     w->features |= WF_DRAW_TEXT;
@@ -548,26 +548,50 @@ void UI_Label(const char *text) {
 }
 
 
-void UI_LayoutHoriz() {
+Widget *UI_LayoutHorizontal() {
     Widget *w = p_widgets->Alloc();
     w->frame_touched = 0;
     w->features |= WF_LAYOUT_H;
 
     TreeBranch(w);
+    return w;
 }
 
 
-void UI_LayoutVert() {
+Widget *UI_LayoutVertical() {
     Widget *w = p_widgets->Alloc();
     w->frame_touched = 0;
     w->features |= WF_LAYOUT_V;
 
     TreeBranch(w);
+    return w;
 }
 
 
-void UI_LayoutHorizC() {}
-void UI_LayoutVertC() {}
+Widget *UI_LayoutVerticalCenterX() {
+    // no frame persistence
+
+    Widget *w = p_widgets->Alloc();
+    w->frame_touched = 0;
+    w->features |= WF_LAYOUT_CX;
+    w->features |= WF_LAYOUT_V;
+
+    TreeBranch(w);
+    return w;
+}
+
+
+Widget *UI_LayoutHorizontalCenterY() {
+    // no frame persistence
+
+    Widget *w = p_widgets->Alloc();
+    w->frame_touched = 0;
+    w->features |= WF_LAYOUT_CY;
+    w->features |= WF_LAYOUT_H;
+
+    TreeBranch(w);
+    return w;
+}
 
 
 void UI_Pop() {
