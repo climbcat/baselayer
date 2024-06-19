@@ -241,6 +241,64 @@ void UI_Init(u32 width = 1280, u32 height = 800) {
 }
 
 
+void WidgetWrap_Rec(Widget *w, s32 *w_sum, s32 *h_sum, s32 *w_max, s32 *h_max) {
+    //  -   returns widget size if set
+    //  -   otherwise; recurses child widgets to accumulate / max sizes
+
+    *w_sum = 0;
+    *h_sum = 0;
+    *w_max = 0;
+    *h_max = 0;
+
+    Widget *ch = w->first;
+    while (ch != NULL) { // iterate child widgets
+        s32 w_sum_ch;
+        s32 h_sum_ch;
+        s32 w_max_ch;
+        s32 h_max_ch;
+
+        WidgetWrap_Rec(ch, &w_sum_ch, &h_sum_ch, &w_max_ch, &h_max_ch);
+
+        *w_sum += ch->w;
+        *h_sum += ch->h;
+        *w_max = MaxS32(*w_max, ch->w);
+        *h_max = MaxS32(*h_max, ch->h);
+
+        ch = ch->next;
+    }
+
+    // assign sizes to current widget 
+    if (w->w == 0 || w->h == 0) {
+        if (w->features & WF_LAYOUT_H) {
+            w->w = *w_sum;
+            w->h = *h_max;
+        }
+        if (w->features & WF_LAYOUT_V) {
+            w->w = *w_max;
+            w->h = *h_sum;
+        }
+    }
+    // or keep pre-set sizes
+    else {
+        *w_sum = w->w;
+        *h_sum = w->h;
+        *w_max = w->w;
+        *h_max = w->h;
+    }
+
+    //printf("w: %d h: %d\n", w->w, w->h);
+
+}
+void WidgetWrap_Tree(Widget *root) {
+    s32 w_sum_ch;
+    s32 h_sum_ch;
+    s32 w_max_ch;
+    s32 h_max_ch;
+
+    WidgetWrap_Rec(root, &w_sum_ch, &h_sum_ch, &w_max_ch, &h_max_ch);
+}
+
+
 void UI_FrameEnd(MArena *a_tmp) {
     if (ml == false) {
         w_active = NULL;
@@ -248,53 +306,49 @@ void UI_FrameEnd(MArena *a_tmp) {
 
     // collect widgets during layout pass
     List<Widget*> all_widgets = InitList<Widget*>(a_tmp, 0);
-
-    // layout pass
     Widget *w = &_w_root;
-    Widget *layout = &_w_root;
+
+    // layout pass: sizing
+    WidgetWrap_Tree(w);
+
+    // layout pass: positioning
     while (w != NULL) {
         ArenaAlloc(a_tmp, sizeof(Widget*));
         all_widgets.Add(w);
 
+        s32 pt_x = 0;
+        s32 pt_y = 0;
 
-        s32 x0 = 0;
-        s32 y0 = 0;
-        if (w->parent) {
-            x0 = w->parent->x0;
-            y0 = w->parent->y0;
-        }
-        s32 *x = &w->parent->x;
-        s32 *y = &w->parent->y;
+        // since all sizes are known, each widget can lay out its children according to its settings
+        Widget *ch = w->first;
+        while (ch != NULL) { // iterate child widgets
 
-
-        if (w->features & WF_DRAW_TEXT) {
-            // auto-size if not set
-            if (w->h == 0 && w->w == 0) {
-                SetFontAndSize(w->sz_font);
-                w->w = TextLineWidth(g_text_plotter, w->text);;
-                w->h = g_text_plotter->ln_measured;
+            // iterate the layout (will not work with nested layouts)
+            if (w->features & WF_LAYOUT_H) {
+                ch->x0 = w->x0 + pt_x;
+                ch->y0 = w->y0;
+                pt_x += ch->w;
             }
-        }
+            if (w->features & WF_LAYOUT_V) {
+                ch->x0 = w->x0;
+                ch->y0 = w->y0 + pt_y;
+                pt_y += ch->h;
+            }
+            /*
+            if (w->parent && (w->parent->features & WF_LAYOUT_CH)) {
+                w->x0 = x0 + (w->parent->w - w->w) / 2;
+            }
+            if (w->parent && (w->parent->features & WF_LAYOUT_CV)) {
+                w->y0 = y0 + (w->parent->h - w->h) / 2;
+            }
+            */
 
-        // iterate the layout
-        if (w->parent && (w->parent->features & WF_LAYOUT_H)) {
-            w->x0 = *x + x0;
-            *x += w->w;
-        }
-        if (w->parent && (w->parent->features & WF_LAYOUT_V)) {
-            w->y0 = *y + y0;
-            *y += w->h;
-        }
-        if (w->parent && (w->parent->features & WF_LAYOUT_CH)) {
-            w->x0 = x0 + (w->parent->w - w->w) / 2;
-        }
-        if (w->parent && (w->parent->features & WF_LAYOUT_CV)) {
-            w->y0 = y0 + (w->parent->h - w->h) / 2;
-        }
+            // set the collision rect for next frame code-interleaved mouse collision
+            ch->SetCollisionRectUsingX0Y0WH();
 
-
-        // set the collision rect for next frame code-interleaved mouse collision
-        w->SetCollisionRectUsingX0Y0WH();
+            // iter
+            ch = ch->next;
+        }
 
 
         // iter
@@ -428,6 +482,7 @@ bool UI_Button(const char *text) {
     return clicked;
 }
 
+
 void UI_CoolPanel(u32 width, u32 height) {
     // no frame persistence
 
@@ -467,20 +522,44 @@ void UI_Label(const char *text) {
     w->frame_touched = 0;
     w->features |= WF_DRAW_TEXT;
 
-    w->w = 0;
-    w->h = 0;
     w->text = Str { (char*) text, _strlen( (char*) text) };
     w->sz_font = FS_48;
     w->col_bckgrnd = ColorGray(0.9f);
     w->col_border = ColorBlack();
     w->col_text = ColorBlack();
 
+    FontSize fs = GetFontSize();
+    SetFontAndSize(w->sz_font);
+    w->w = TextLineWidth(g_text_plotter, w->text);;
+    w->h = g_text_plotter->ln_measured;
+    SetFontAndSize(fs);
+
     TreeSibling(w);
 }
-void UI_LayoutHoriz(u64 key) {}
-void UI_LayoutVert(u64 key) {}
-void UI_LayoutHorizC(u64 key) {}
-void UI_LayoutVertC(u64 key) {}
+
+
+void UI_LayoutHoriz() {
+    Widget *w = p_widgets->Alloc();
+    w->frame_touched = 0;
+    w->features |= WF_LAYOUT_H;
+
+    TreeBranch(w);
+}
+
+
+void UI_LayoutVert() {
+    Widget *w = p_widgets->Alloc();
+    w->frame_touched = 0;
+    w->features |= WF_LAYOUT_V;
+
+    TreeBranch(w);
+}
+
+
+void UI_LayoutHorizC() {}
+void UI_LayoutVertC() {}
+
+
 void UI_Pop() {
     TreePop();
 }
