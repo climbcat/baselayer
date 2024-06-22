@@ -90,30 +90,30 @@ u8 *LoadFileMMAP(char *filepath, u64 *size_bytes) {
     return data;
 }
 StrLst *GetFilesInFolderPaths(MArena *a, char *rootpath) {
-    return NULL;
-
-    // TODO: fix according to linux version
+    StrLst *first = NULL;
 
 
-    /*
     WIN32_FIND_DATA fd_file;
-
     HANDLE h_find = FindFirstFile(rootpath, &fd_file);
-
     if (h_find == INVALID_HANDLE_VALUE) {
         printf("invalid: %s\n", rootpath);
     }
-
-    u32 rootpath_len = _strlen(rootpath);
-    bool needslash = rootpath[rootpath_len-1] != '/';
-    StrLst *lst = NULL;
-    StrLst *first = (StrLst*) ArenaAlloc(a, 0);
 
     char with_windows_star[200];
     sprintf(with_windows_star, "%s/*", rootpath);
     h_find = FindFirstFile(with_windows_star, &fd_file);
     if (h_find != NULL) {
-        do {
+        StrLst *lst = NULL;
+
+        Str path = StrLiteral(rootpath);
+        if (path.len == 1 && path.str[0] == '.') {
+            path.len = 0;
+        }
+        else if (path.str[path.len-1] != '/') {
+            path = StrCat(path, "/");
+        }
+
+        while (FindNextFile(h_find, &fd_file)) {
             // omit "." and ".."
             if (!_strcmp(fd_file.cFileName, ".") || !_strcmp(fd_file.cFileName, "..")) {
                 continue;
@@ -122,18 +122,16 @@ StrLst *GetFilesInFolderPaths(MArena *a, char *rootpath) {
             // next strlst node
             lst = StrLstPut(a, rootpath, lst);
 
-            // hot catenation
-            if (needslash) {
-                StrAppendHot(a, '/', lst);
+            Str dname = StrCat( path, StrLiteral(fd_file.cFileName) );
+            lst = StrLstPut(dname, lst);
+            if (first == NULL) {
+                first = lst;
             }
-            StrCatHot(a, fd_file.cFileName, lst);
         }
-        while (FindNextFile(h_find, &fd_file));
         FindClose(h_find);
     }
 
     return first;
-    */
 }
 bool SaveFile(char *filepath, u8 *data, u32 len) {
     std::ofstream outstream(filepath, std::ios::out | std::ios::binary);

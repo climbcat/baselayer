@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.13.0)
 project(geometry VERSION 0.1.0)
+set(NAME_EXE geometry)
 
 
 # linux:
@@ -23,23 +24,21 @@ target_link_libraries(geometry glfw)
 else()
 message("WIN32 configuration")
 
-set( LIB_GLFW glfw )
-set( LIB_GLEW glew )
 set( DIR_SCANNER_LIBS $ENV{PRESCANNING_LIBS_DIR} )
 
 # glfw
-include_directories( ${DIR_SCANNER_LIBS}/${LIB_GLFW}/include/ )
-link_directories( ${DIR_SCANNER_LIBS}/${LIB_GLFW}/lib/ )
+include_directories(${DIR_SCANNER_LIBS}/glfw/include/)
+link_directories(${DIR_SCANNER_LIBS}/glfw/lib/)
 
 # glew
-include_directories( ${DIR_SCANNER_LIBS}/${LIB_GLEW}/include/ )
-link_directories( ${DIR_SCANNER_LIBS}/${LIB_GLEW}/lib/ )
+include_directories(${DIR_SCANNER_LIBS}/glew/include/)
+link_directories(${DIR_SCANNER_LIBS}/glew/lib/)
 
 add_executable( ${PROJECT_NAME} main_geom.cpp )
 
 # link
-target_link_libraries( ${PROJECT_NAME} glfw3 )
-target_link_libraries( ${PROJECT_NAME} glew32 )
-target_link_libraries( ${PROJECT_NAME} OpenGL32 )
+target_link_libraries(${NAME_EXE} glfw3)
+target_link_libraries(${NAME_EXE} glew32)
+target_link_libraries(${NAME_EXE} OpenGL32)
 
 endif()
