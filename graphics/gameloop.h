@@ -124,14 +124,13 @@ struct GameLoopOne {
 
     // TODO: Rename to GameLoopFrameEnd()
     void CycleFrame(EntitySystem *es) {
-        // this frame
         cam.Update(mouse);
         mouse.FrameEnd(frameno);
+
         SwRenderFrame(&renderer, es, &cam.vp, frameno);
         glfwSwapBuffers(window);
-        frameno++;
 
-        // next frame
+        frameno++;
         XSleep(10);
     }
     void FrameStart2D(Color clear = { RGBA_BLACK }) {
@@ -144,6 +143,17 @@ struct GameLoopOne {
     void FrameEnd2D() {
         mouse.FrameEnd(frameno);
 
+        SR_Render();
+        ImageBufferDrawAndSwap();
+
+        frameno++;
+        XSleep(10);
+    }
+    void FrameEnd2DAnd3D(EntitySystem *es) {
+        cam.Update(mouse);
+        mouse.FrameEnd(frameno);
+
+        SwRenderFrame(&renderer, es, &cam.vp, frameno);
         SR_Render();
         ImageBufferDrawAndSwap();
 
