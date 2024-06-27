@@ -50,8 +50,18 @@ u32 LoadFileFSeek(char* filepath, u8* dest) {
 
 bool SaveFile(char *filepath, u8 *data, u32 len);
 bool SaveFile(const char *filepath, u8 *data, u32 len) {
+    // const char star
     return SaveFile((char *)filepath, data, len);
 }
+bool SaveFile(char *filepath, void *data, u32 len) {
+    // void star
+    return SaveFile((char *)filepath, (u8*)data, len);
+}
+bool SaveFile(const char *filepath, void *data, u32 len) {
+    // const char star and void star
+    return SaveFile((char *)filepath, (u8*)data, len);
+}
+
 bool ArenaSave(MArena *a, char *filename) {
     return SaveFile(filename, a->mem, (u32) a->used);
 }
@@ -175,6 +185,9 @@ FInfo FInfoGet(Str pathname) {
     info.basename = StrBasename(pathname);
     info.dirname = StrDirPath(pathname);
     return info;
+}
+FInfo InitFInfo(Str pathname) {
+    return FInfoGet(pathname);
 }
 inline
 FInfo FInfoGet(const char*pathname) {

@@ -606,10 +606,10 @@ void Test() {
     //TestVGROcTree(); // TODO: fix
     //TestQuaternionRotMult(); // TODO: fix
     //TestSlerpAndMat2Quat();
-    //TestPointCloudsBoxesAndSceneGraph();
+    TestPointCloudsBoxesAndSceneGraph();
     //TestIndexSetOperations();
     //TestLayoutGlyphQuads();
     //TestBrownianGlyphs();
     //TestUIDragPanel();
-    TestUILayoutWidgetAPI();
+    //TestUILayoutWidgetAPI();
 }

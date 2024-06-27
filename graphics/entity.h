@@ -4,7 +4,6 @@
 
 #include "../baselayer.h"
 #include "gtypes.h"
-#include "stream.h"
 #include "geometry.h"
 
 
@@ -91,9 +90,6 @@ struct Entity {
     Vector3f origo;
     Vector3f dims;
 
-    // stream data
-    StreamHeader *entity_stream;
-
     // external data
     List<Vector3f> *ext_points;
     List<Vector3f> ext_points_lst;
@@ -150,10 +146,7 @@ struct Entity {
         assert((tpe == ET_POINTCLOUD || tpe == ET_MESH || tpe == ET_POINTCLOUD_W_NORMALS));
 
         List<Vector3f> verts { NULL, 0 };
-        if (entity_stream != NULL) {
-            verts = entity_stream->GetDataVector3f();
-        }
-        else if (ext_points != NULL) {
+        if (ext_points != NULL) {
             verts = *ext_points;
         }
         else {
@@ -164,14 +157,16 @@ struct Entity {
     List<Vector3f> GetNormals() { 
         assert((tpe == ET_POINTCLOUD || tpe == ET_MESH || tpe == ET_POINTCLOUD_W_NORMALS));
 
+        // TODO: remove
+        //if (entity_stream != NULL) {
+        //    StreamHeader *stream = entity_stream->GetNextTypeSameId(ST_NORMALS);
+        //    if (stream != NULL) {
+        //        normals = stream->GetDataVector3f();
+        //    }
+        //} else
+
         List<Vector3f> normals { NULL, 0 };
-        if (entity_stream != NULL) {
-            StreamHeader *stream = entity_stream->GetNextTypeSameId(ST_NORMALS);
-            if (stream != NULL) {
-                normals = stream->GetDataVector3f();
-            }
-        }
-        else if (ext_normals != NULL) {
+        if (ext_normals != NULL) {
             normals = *ext_normals;
         }
         else {
@@ -190,29 +185,6 @@ struct Entity {
             colors = ext_point_colors_lst;
         }
         return colors;
-    }
-    void SetStreamVertexCount(u32 npoints) {
-        assert(tpe == ET_POINTCLOUD || tpe == ET_POINTCLOUD_W_NORMALS || tpe == ET_MESH);
-        if (entity_stream->tpe == ST_POINTS) {
-            entity_stream->SetVertexCount(npoints);
-        }
-        else {
-            assert(1 == 0 && "warning, inconsistent use of SetStreamVertexCount");
-        }
-        ext_points_lst = entity_stream->GetDataVector3f();
-        ext_points = &ext_points_lst;
-    }
-    void SetStreamNormalsCount(u32 npoints) {
-        assert(tpe == ET_POINTCLOUD_W_NORMALS || tpe == ET_MESH);
-        StreamHeader *nxt = entity_stream->GetNext(true);
-        if (nxt->tpe == ST_NORMALS) {
-            nxt->SetVertexCount(npoints);
-        }
-        else {
-            assert(1 == 0 && "warning, unrestricted use of SetStreamNormalsCount");
-        }
-        ext_normals_lst = nxt->GetDataVector3f();
-        ext_normals = &ext_normals_lst;
     }
     void SetTexture(ImageRGBX texture) {
         ext_texture_var = texture;
@@ -781,7 +753,6 @@ Entity *EntityBranchHandle(EntitySystem *es, Entity* branch) {
 Entity *EntityPoints(EntitySystem *es, Entity* branch, Matrix4f transform, List<Vector3f> points) {
     Entity *pc = es->AllocEntityChild(branch);
     pc->tpe = ET_POINTCLOUD;
-    pc->entity_stream = NULL;
     pc->ext_points_lst = points;
     pc->ext_points = &pc->ext_points_lst;
     pc->color  = { RGBA_GREEN };
@@ -795,7 +766,6 @@ Entity *EntityPoints(EntitySystem *es, Entity* branch, List<Vector3f> points) {
 Entity *EntityPointsNormals(EntitySystem *es, Entity* branch) {
     Entity *pc = es->AllocEntityChild(branch);
     pc->tpe = ET_POINTCLOUD_W_NORMALS;
-    pc->entity_stream = NULL;
     pc->ext_points_lst = { NULL, 0 };
     pc->ext_points = &pc->ext_points_lst;
     pc->ext_normals_lst = { NULL, 0 };
@@ -809,7 +779,6 @@ Entity *EntityPointsNormals(EntitySystem *es, Entity* branch) {
 Entity *EntityMesh(EntitySystem *es, Entity* branch) {
     Entity *pc = es->AllocEntityChild(branch);
     pc->tpe = ET_MESH;
-    pc->entity_stream = NULL;
     pc->ext_points_lst = { NULL, 0 };
     pc->ext_points = &pc->ext_points_lst;
     pc->ext_normals_lst = { NULL, 0 };
@@ -819,51 +788,6 @@ Entity *EntityMesh(EntitySystem *es, Entity* branch) {
     pc->transform = Matrix4f_Identity();
 
     return pc;
-}
-Entity *EntityStream(EntitySystem *es, Entity* branch, MArena *a_stream_bld, u32 npoints_max, u32 id, StreamHeader *prev, EntityType tpe, StreamType stpe) {
-    StreamHeader *hdr = StreamReserveChain(a_stream_bld, npoints_max, Matrix4f_Identity(), prev, id, stpe);
-    hdr->id = id;
-
-    Entity *pc = es->AllocEntityChild(branch);
-    pc->tpe = tpe;
-    pc->entity_stream = hdr;
-    pc->color  = { RGBA_GREEN };
-    pc->transform = hdr->transform;
-
-    return pc;
-}
-Entity *EntityStreamLoad(EntitySystem *es, Entity* branch, StreamHeader *data) {
-    Entity *ent = es->AllocEntityChild(branch);
-    if (data->tpe == ST_POINTS) {
-        // check if point cloud with normals:
-        StreamHeader *data_nxt = data->GetNext(true);
-        if (data_nxt != NULL && data_nxt->id == data->id && (data_nxt->tpe == ST_NORMALS || /*TODO: hax, remove:*/ data_nxt->tpe == ST_POINTS)) {
-            ent->tpe = ET_POINTCLOUD_W_NORMALS;
-
-            // assign ext data ptrs
-            ent->ext_points_lst = data->GetDataVector3f();
-            ent->ext_normals_lst = data_nxt->GetDataVector3f();
-            ent->ext_points = &ent->ext_points_lst;
-            ent->ext_normals = &ent->ext_normals_lst;
-
-            assert(ent->ext_normals->len == ent->ext_points->len);
-        }
-        else {
-            ent->tpe = ET_POINTCLOUD;
-        }
-
-        ent->color  = { RGBA_GREEN };
-        ent->transform = data->transform;
-    }
-    // NOTE: load mesh entity stream here, if needed
-
-    // assign stream ptr
-    ent->entity_stream = data;
-    if (ent->tpe == ET_POINTCLOUD_W_NORMALS) {
-        assert((void*) ent->entity_stream->GetData() == (void*) ent->ext_points->lst && "extra consistence check for pc_w_normals");
-    }
-
-    return ent;
 }
 
 
@@ -878,7 +802,6 @@ Entity *EntityBlitBox(EntitySystem *es, Entity* branch, Rect box, ImageRGBX src)
     bb->SetBlitBox(box);
 
     // TODO: use zero-is-initialization on all entities
-    bb->entity_stream = NULL;
     bb->ext_points_lst = { NULL, 0 };
     bb->ext_points = &bb->ext_points_lst;
     bb->ext_normals_lst = { NULL, 0 };
