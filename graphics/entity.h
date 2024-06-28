@@ -14,6 +14,7 @@
 enum EntityType {
     // lines etc.
     // TODO: collapse into just ET_LINES
+    // TODO: abandon "types" in favour of the "features"
     ET_AXES,
     ET_BOX,
     ET_CAMPOS,
@@ -156,14 +157,6 @@ struct Entity {
     }
     List<Vector3f> GetNormals() { 
         assert((tpe == ET_POINTCLOUD || tpe == ET_MESH || tpe == ET_POINTCLOUD_W_NORMALS));
-
-        // TODO: remove
-        //if (entity_stream != NULL) {
-        //    StreamHeader *stream = entity_stream->GetNextTypeSameId(ST_NORMALS);
-        //    if (stream != NULL) {
-        //        normals = stream->GetDataVector3f();
-        //    }
-        //} else
 
         List<Vector3f> normals { NULL, 0 };
         if (ext_normals != NULL) {
