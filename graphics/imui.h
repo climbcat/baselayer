@@ -437,7 +437,7 @@ bool UI_Button(const char *text) {
         w->w = 100;
         w->h = 50;
         w->text = Str { (char*) text, _strlen( (char*) text) };
-        w->sz_font = FS_36;
+        w->sz_font = FS_30;
 
         MapPut(map, key, w);
     }
