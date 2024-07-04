@@ -435,7 +435,9 @@ List<QuadHexaVertex> LayoutTextAutowrap(MArena *a_dest, GlyphPlotter *plt, Str t
 
     // only scale if absolutely necessary
     f32 scale = 1.0f;
-    ScaleTextInline(quads, scale, x0, y0, w, h);
+    if (scale != 1) {
+        ScaleTextInline(quads, scale, x0, y0, w, h);
+    }
 
     DrawCall dc;
     dc.texture = 0;

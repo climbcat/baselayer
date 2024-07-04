@@ -210,7 +210,7 @@ u8 SampleTexture(ImageB *tex, f32 x, f32 y) {
     return b;
 }
 void BlitQuads(DrawCall call, ImageRGBA *img) {
-    ImageB *texture = DC_GetTexture(call.texture);
+    ImageB *texture_b = DC_GetTexture(call.texture);
 
     for (u32 i = 0; i < call.quads.len; ++i) {
         QuadHexaVertex *q = call.quads.lst + i;
@@ -224,8 +224,12 @@ void BlitQuads(DrawCall call, ImageRGBA *img) {
         assert(img->width >= q_h);
 
         u32 stride_img = img->width;
-        Color color = q->GetColor();
-        if (texture != NULL && has_tex_coords == true) {
+
+        //
+        // byte-texture / font glyph blitting
+        //
+        Color color_quad = q->GetColor();
+        if (texture_b != NULL && has_tex_coords == true) {
 
             f32 q_scale_x = q->GetTextureScaleX(q_w);
             f32 q_scale_y = q->GetTextureScaleY(q_h);
@@ -248,14 +252,27 @@ void BlitQuads(DrawCall call, ImageRGBA *img) {
                     }
                     f32 x = q_u0 + i * q_scale_x;
                     f32 y = q_v0 + j * q_scale_y;
-                    if (u8 b = SampleTexture(texture, x, y)) {
-                        color.a = b;
+                    if (u8 alpha_byte = SampleTexture(texture_b, x, y)) {
+                        // rudimentary alpha-blending
                         u32 idx = j_img * stride_img + i_img;
-                        img->img[idx] = color;
+                        Color color_background = img->img[idx];
+
+                        f32 alpha = (1.0f * alpha_byte) / 255;
+                        Color color_blended;
+                        color_blended.r = floor( alpha*color_quad.r ) + floor( (1-alpha)*color_background.r );
+                        color_blended.g = floor( alpha*color_quad.g ) + floor( (1-alpha)*color_background.g );
+                        color_blended.b = floor( alpha*color_quad.b ) + floor( (1-alpha)*color_background.b );
+                        color_blended.a = 255;
+
+                        img->img[idx] = color_blended;
                     }
                 }
             }
         }
+
+        //
+        // mono-color quads
+        //
         else {
             s32 j_img;
             u32 i_img;
@@ -273,10 +290,14 @@ void BlitQuads(DrawCall call, ImageRGBA *img) {
                     }
 
                     idx = j_img * stride_img + i_img;
-                    img->img[idx] = color;
+                    img->img[idx] = color_quad;
                 }
             }
         }
+
+        //
+        // TODO: blit a full-color (32bit) texture
+        //
     }
 }
 

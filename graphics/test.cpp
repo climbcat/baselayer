@@ -418,7 +418,7 @@ void TestBrownianGlyphs() {
         }
     }
     List<QuadHexaVertex> quads_initial = ListCopy(ctx->a_life, quads);
-        SetFontAndSize(FS_30);
+    SetFontAndSize(FS_72);
 
     f32 magnitude = 0.8;
     while (loop->GameLoopRunning()) {
@@ -474,6 +474,7 @@ void TestUIDragPanel() {
     while (loop->GameLoopRunning()) {
         loop->FrameStart2D(ColorGray(0.9f));
 
+        SetFontAndSize(FS_72);
         LayoutTextLine("The quick brown fox jumps over the lazy dog", 50, 80, ColorBlack());
 
         // bordered drag-panel
@@ -496,7 +497,7 @@ void TestUIDragPanel() {
                 }
             }
             LayoutPanel(l, t, w, h, border, ColorBlack(), ColorGray(graynexx));
-            SetFontAndSize(FS_30);
+            SetFontAndSize(FS_48);
             LayoutTextLine("The other quick brown fox jumps over the other lazy dog", l, t, ColorBlack());
             // TODO: align, e.g. TAL_CENTER
         }
@@ -606,10 +607,10 @@ void Test() {
     //TestVGROcTree(); // TODO: fix
     //TestQuaternionRotMult(); // TODO: fix
     //TestSlerpAndMat2Quat();
-    TestPointCloudsBoxesAndSceneGraph();
+    //TestPointCloudsBoxesAndSceneGraph();
     //TestIndexSetOperations();
     //TestLayoutGlyphQuads();
     //TestBrownianGlyphs();
-    //TestUIDragPanel();
+    TestUIDragPanel();
     //TestUILayoutWidgetAPI();
 }
