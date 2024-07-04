@@ -185,7 +185,7 @@ struct DrawCall {
 // TODO: Have a ptr-map for associating ids with textures, which can be set on a drawcall.
 //      The textures can be set on the map whenever and independently.
 ImageB *g_active_texture;
-ImageB *DC_GetTexture(u32 id) {
+ImageB *GetGlyphAtlasByteTexture(u32 texture_id) {
     assert(g_active_texture != NULL && "init a texture first");
     return g_active_texture;
 }
@@ -210,7 +210,7 @@ u8 SampleTexture(ImageB *tex, f32 x, f32 y) {
     return b;
 }
 void BlitQuads(DrawCall call, ImageRGBA *img) {
-    ImageB *texture_b = DC_GetTexture(call.texture);
+    ImageB *texture_b = GetGlyphAtlasByteTexture(call.texture);
 
     for (u32 i = 0; i < call.quads.len; ++i) {
         QuadHexaVertex *q = call.quads.lst + i;
