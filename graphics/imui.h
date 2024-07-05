@@ -208,7 +208,7 @@ void TreePop() {
 }
 
 
-void UI_Init(u32 width = 1280, u32 height = 800) {
+void InitImUi(u32 width = 1280, u32 height = 800) {
     if (g_a_imui != NULL) {
         printf("WARN: imui re-initialize\nd");
 

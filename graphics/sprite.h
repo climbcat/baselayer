@@ -193,10 +193,6 @@ ImageB *GetGlyphAtlasByteTexture(u64 texture_id) {
     return result;
 }
 #define MAX_TEXTURE_B_CNT 1000
-void InitSprites() {
-    MContext *ctx = InitBaselayer();
-    g_texb_map = InitMap(ctx->a_life, MAX_TEXTURE_B_CNT);
-}
 
 
 inline
@@ -318,10 +314,10 @@ void SR_Clear() {
     ArenaClear(g_a_quadbuffer);
     g_quadbuffer = InitList<DrawCall>(g_a_quadbuffer, 0);
 }
-void SR_Init(ImageRGBA render_target) {
+void InitSpriteRenderer(ImageRGBA render_target) {
     assert(render_target.img != NULL);
-    g_render_target = render_target;
 
+    g_render_target = render_target;
     if (g_a_drawcalls == NULL) {
         _g_a_drawcalls = ArenaCreate();
         g_a_drawcalls = &_g_a_drawcalls;
@@ -347,6 +343,14 @@ void SR_Render() {
     for (u32 i = 0; i < g_drawcalls.len; ++i) {
         BlitQuads(g_drawcalls.lst[i], &g_render_target);
     }
+}
+
+
+void InitSprites(MContext *ctx, ImageRGBA render_target) {
+    if (g_texb_map.slots.len == 0) {
+        g_texb_map = InitMap(ctx->a_life, MAX_TEXTURE_B_CNT);
+    }
+    InitSpriteRenderer(render_target);
 }
 
 

@@ -383,7 +383,7 @@ void TestLayoutGlyphQuads() {
     printf("TestLayoutGlyphQuads\n");
 
     MContext *ctx = InitBaselayer();
-    GameLoopOne *loop = InitGraphics();
+    GameLoopOne *loop = InitGraphics(ctx);
 
     LayoutTextLine("The quick brown fox jumps over the lazy dog", 50, 100, ColorRandom());
     LayoutTextLine("The other quick brown fox jumps over the other lazy dog", 100, 200, ColorRandom());
@@ -397,7 +397,7 @@ void TestBrownianGlyphs() {
     printf("TestBrownianGlyphs\n");
 
     MContext *ctx = InitBaselayer();
-    GameLoopOne *loop = InitGraphics();
+    GameLoopOne *loop = InitGraphics(ctx);
 
 
     Color clbl = ColorRandom();
@@ -409,7 +409,9 @@ void TestBrownianGlyphs() {
 
     SetFontAndSize(FS_72);
     List<QuadHexaVertex> quads = LayoutTextAutowrap(ctx->a_pers, g_text_plotter, StrL("The quick brown fox jumps over the lazy dog"), 470, 300, 300, 300, ColorRandom(), TAL_CENTER);
-    DrawCall dc { 0, 0, quads };
+    DrawCall dc = {};
+    dc.texture_b = g_text_plotter->GetTextureBId();
+    dc.quads = quads;
     for (u32 i = 0; i < quads.len; ++i) {
         QuadHexaVertex *q = quads.lst + i;
         for (u32 j = 0; j < 6; ++j) {
@@ -460,7 +462,7 @@ void TestUIDragPanel() {
     printf("TestUIPanel\n");
 
     MContext *ctx = InitBaselayer();
-    GameLoopOne *loop = InitGraphics();
+    GameLoopOne *loop = InitGraphics(ctx);
 
     s32 l = 180;
     s32 t = 140;
@@ -521,9 +523,7 @@ void TestUILayoutWidgetAPI() {
     printf("TestUILayoutWidgetAPI\n");
 
     MContext *ctx = InitBaselayer();
-    GameLoopOne *loop = InitGraphics();
-
-    UI_Init();
+    GameLoopOne *loop = InitGraphics(ctx);
 
     while (loop->GameLoopRunning()) {
         loop->FrameStart2D(ColorGray(0.95f));
@@ -607,10 +607,10 @@ void Test() {
     //TestVGROcTree(); // TODO: fix
     //TestQuaternionRotMult(); // TODO: fix
     //TestSlerpAndMat2Quat();
-    //TestPointCloudsBoxesAndSceneGraph();
-    //TestIndexSetOperations();
-    //TestLayoutGlyphQuads();
-    //TestBrownianGlyphs();
+    TestPointCloudsBoxesAndSceneGraph();
+    TestIndexSetOperations();
+    TestLayoutGlyphQuads();
+    TestBrownianGlyphs();
     TestUIDragPanel();
-    //TestUILayoutWidgetAPI();
+    TestUILayoutWidgetAPI();
 }

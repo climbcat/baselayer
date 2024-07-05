@@ -21,11 +21,12 @@
 #include "gameloop.h"
 
 
-GameLoopOne *InitGraphics() {
+GameLoopOne *InitGraphics(MContext *ctx) {
     GameLoopOne *loop = InitGameLoopOne();
-    ImageRGBA img = loop->GetRenderer()->GetImageAsRGBA();
-    SR_Init(img);
-    InitFonts();
+    ImageRGBA render_target = loop->GetRenderer()->GetImageAsRGBA();
+    InitSprites(ctx, render_target);
+    InitFonts(ctx);
+    InitImUi();
 
     return loop;
 }

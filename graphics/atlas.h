@@ -215,14 +215,14 @@ FontSize GetFontSize() {
         default: return FS_CNT;
     }
 }
-void InitFonts() {
+void InitFonts(MContext *ctx) {
+    assert(g_texb_map.slots.len != 0 && "check sprites were initialized");
+
     if (g_font_map.slots.len != 0) {
         printf("WARN: re-init fonts\n");
         return;
     }
 
-    MContext *ctx = InitBaselayer();
-    InitSprites();
     StrLst *fonts = GetFilesExt("atlas");
     u32 font_cnt = StrListLen(fonts);
     printf("loading %u (.atlas) font files\n", font_cnt);
@@ -236,7 +236,6 @@ void InitFonts() {
         fonts = fonts->next;
     }
     SetFontAndSize(FS_48);
-
 }
 
 
