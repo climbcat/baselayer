@@ -237,6 +237,9 @@ MArena *StringCreateArena() {
     }
     return g_a_strings;
 }
+void StringInit() {
+    StringCreateArena();
+}
 void StringSetGlobalArena(MArena *a) {
     g_a_strings = a;
 }

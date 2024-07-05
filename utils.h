@@ -217,7 +217,7 @@ Str GetYYMMDD() {
 
 MContext *InitBaselayer() {
     RandInit();
-    StringCreateArena();
+    StringInit();
     return GetContext();
 }
 

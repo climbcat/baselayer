@@ -181,23 +181,26 @@ struct DrawCall {
     u32 texture;
     List<QuadHexaVertex> quads;
 };
-
-// TODO: Have a ptr-map for associating ids with textures, which can be set on a drawcall.
-//      The textures can be set on the map whenever and independently.
-ImageB *g_active_texture;
-ImageB *GetGlyphAtlasByteTexture(u32 texture_id) {
-    assert(g_active_texture != NULL && "init a texture first");
-    return g_active_texture;
-}
 DrawCall InitDrawCall(List<QuadHexaVertex> quads, u32 texture) {
     DrawCall dc;
     dc.quads = quads;
     dc.texture = texture;
     return dc;
 }
-DrawCall InitDrawCallEmpty() {
-    static DrawCall empty;
-    return empty;
+
+
+//
+//  Texture and byte-texture mapping
+//
+static HashMap g_texb_map;
+ImageB *GetGlyphAtlasByteTexture(u64 texture_id) {
+    ImageB *result = (ImageB*) MapGet(&g_texb_map, texture_id);
+    return result;
+}
+#define MAX_TEXTURE_B_CNT 1000
+void InitSprites() {
+    MContext *ctx = InitBaselayer();
+    g_texb_map = InitMap(ctx->a_life, MAX_TEXTURE_B_CNT);
 }
 
 

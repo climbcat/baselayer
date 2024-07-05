@@ -120,6 +120,10 @@ struct GlyphPlotter {
     List<u8> advance_x;
     List<QuadHexaVertex> cooked;
     ImageB texture;
+
+    u64 GetTextureBId() {
+        return sz_px;
+    }
 };
 GlyphPlotter *InitGlyphPlotter(MArena *a_dest, List<Glyph> glyphs, FontAtlas *atlas) {
     GlyphPlotter *plt = (GlyphPlotter *) ArenaAlloc(a_dest, sizeof(GlyphPlotter));
@@ -192,10 +196,8 @@ GlyphPlotter *SetFontAndSize(FontSize font_size /*, Font font_name*/) {
     u64 val = MapGet(&g_font_map, sz_px);
     g_text_plotter = (GlyphPlotter*) val;
 
-
-    // TODO: set an active font id, which would refer to a texture that has been set in the ptr-map in sprite.h
-    g_active_texture = &g_text_plotter->texture;
-
+    // put texture_b into the texture_b map
+    MapPut(&g_texb_map, sz_px, &g_text_plotter->texture);
 
     return g_text_plotter;
 }
@@ -220,6 +222,7 @@ void InitFonts() {
     }
 
     MContext *ctx = InitBaselayer();
+    InitSprites();
     StrLst *fonts = GetFilesExt("atlas");
     u32 font_cnt = StrListLen(fonts);
     printf("loading %u (.atlas) font files\n", font_cnt);
@@ -233,6 +236,7 @@ void InitFonts() {
         fonts = fonts->next;
     }
     SetFontAndSize(FS_48);
+
 }
 
 
@@ -440,7 +444,7 @@ List<QuadHexaVertex> LayoutTextAutowrap(MArena *a_dest, GlyphPlotter *plt, Str t
     }
 
     DrawCall dc;
-    dc.texture = 0;
+    dc.texture = plt->GetTextureBId();
     dc.quads = quads;
     SR_Push(dc);
 
@@ -507,7 +511,7 @@ List<QuadHexaVertex> LayoutTextLine(MArena *a_dest, GlyphPlotter *plt, Str txt, 
 
     // TODO: update this hack to be more organized
     DrawCall dc;
-    dc.texture = 0;
+    dc.texture = plt->GetTextureBId();
     dc.quads = quads;
     SR_Push(dc);
 
