@@ -443,8 +443,8 @@ List<QuadHexaVertex> LayoutTextAutowrap(MArena *a_dest, GlyphPlotter *plt, Str t
         ScaleTextInline(quads, scale, x0, y0, w, h);
     }
 
-    DrawCall dc;
-    dc.texture = plt->GetTextureBId();
+    DrawCall dc = {};
+    dc.texture_b = plt->GetTextureBId();
     dc.quads = quads;
     SR_Push(dc);
 
@@ -509,12 +509,12 @@ List<QuadHexaVertex> LayoutTextLine(MArena *a_dest, GlyphPlotter *plt, Str txt, 
     *sz_x = pt_x - x0;
 
 
-    // TODO: update this hack to be more organized
-    DrawCall dc;
-    dc.texture = plt->GetTextureBId();
+    // TODO: update this hack to be more organized -> e.g. put assembling the drawcall outside of
+    //      this function somehow, maybe in the UI_xxx calls.
+    DrawCall dc = {};
+    dc.texture_b = plt->GetTextureBId();
     dc.quads = quads;
     SR_Push(dc);
-
 
     return quads;
 }

@@ -178,15 +178,10 @@ void QuadOffset(QuadHexaVertex *q, f32 x, f32 y) {
 
 
 struct DrawCall {
+    u32 texture_b;
     u32 texture;
     List<QuadHexaVertex> quads;
 };
-DrawCall InitDrawCall(List<QuadHexaVertex> quads, u32 texture) {
-    DrawCall dc;
-    dc.quads = quads;
-    dc.texture = texture;
-    return dc;
-}
 
 
 //
@@ -213,7 +208,7 @@ u8 SampleTexture(ImageB *tex, f32 x, f32 y) {
     return b;
 }
 void BlitQuads(DrawCall call, ImageRGBA *img) {
-    ImageB *texture_b = GetGlyphAtlasByteTexture(call.texture);
+    ImageB *texture_b = GetGlyphAtlasByteTexture(call.texture_b);
 
     for (u32 i = 0; i < call.quads.len; ++i) {
         QuadHexaVertex *q = call.quads.lst + i;
