@@ -420,7 +420,7 @@ void TestBrownianGlyphs() {
         }
     }
     List<QuadHexaVertex> quads_initial = ListCopy(ctx->a_life, quads);
-    SetFontAndSize(FS_72);
+    SetFontAndSize(FS_48);
 
     f32 magnitude = 0.8;
     while (loop->GameLoopRunning()) {
@@ -607,10 +607,10 @@ void Test() {
     //TestVGROcTree(); // TODO: fix
     //TestQuaternionRotMult(); // TODO: fix
     //TestSlerpAndMat2Quat();
-    TestPointCloudsBoxesAndSceneGraph();
-    TestIndexSetOperations();
-    TestLayoutGlyphQuads();
+    //TestPointCloudsBoxesAndSceneGraph();
+    //TestIndexSetOperations();
+    //TestLayoutGlyphQuads();
     TestBrownianGlyphs();
-    TestUIDragPanel();
-    TestUILayoutWidgetAPI();
+    //TestUIDragPanel();
+    //TestUILayoutWidgetAPI();
 }
