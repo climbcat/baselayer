@@ -116,6 +116,18 @@ FontAtlas CreateCharAtlas(MArena *a_dest, u8 *font, s32 line_height) {
 }
 
 
+Str StrSprintf(Str dest, const char *s) {
+    sprintf(dest.str + dest.len, "%s", s);
+    dest.len += _strlen( (char*) s);
+    return dest;
+}
+Str StrSprintf(Str dest, Str small) {
+    sprintf(dest.str + dest.len, "%s", StrZeroTerm(small));
+    dest.len += small.len;
+    return dest;
+}
+
+
 int main (int argc, char **argv) {
     TimeProgram;
 
@@ -176,12 +188,50 @@ int main (int argc, char **argv) {
 
         // save/load/print again (should not appear jumbled on screen)
         FontAtlasSaveBinary128(ctx->a_tmp, StrZeroTerm(fname), atlas);
-        FontAtlas *loaded = FontAtlasLoadBinary128(ctx->a_pers, StrZeroTerm(fname));
+
+        u32 loaded_size;
+        FontAtlas *loaded = FontAtlasLoadBinary128(ctx->a_pers, StrZeroTerm(fname), &loaded_size);
         printf("atlas test loading from disk (glyphs chars 32-%u):\n", loaded->glyphs.len);
         for (u32 i = 32; i < loaded->glyphs.len; ++i) {
             Glyph g = loaded->glyphs.lst[i];
             printf("%c ", g.c);
         }
         printf("\n");
+
+
+        //
+        //  WARN: coding in progress ...
+        //
+
+        if (sz_px != 48) {
+            continue;
+        }
+
+        printf("\n");
+        printf("DEBUG Printing to hex\n");
+
+        u8 *data = (u8*) loaded;
+        Str dest = {};
+        dest.str = (char*) ArenaAlloc(ctx->a_tmp, 3*loaded_size);
+
+        const char *nibble_to_hex = "0123456789ABCDEF";
+        dest = StrSprintf(dest, "\nconst char *hexed_atlas = \"");
+
+        for (int i = 0; i < loaded_size; ++i) {
+            u8 byte = data[i];
+            char a = nibble_to_hex[byte >> 4];
+            char b = nibble_to_hex[byte & 0x0F];
+
+            sprintf(dest.str + dest.len, "%c%c", a, b);
+            dest.len += 2;
+        }
+        dest = StrSprintf(dest, "\";\n");
+        StrPrint(dest);
+        SaveFile("hexed.cpp", dest.str, dest.len);
+
+        printf("%u\n", loaded_size);
+
+        printf("DEBUG breaking early\n");
+        exit(0);
     }
 }

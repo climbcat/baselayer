@@ -76,7 +76,23 @@ struct FontAtlas {
         printf("\n");
     }
 };
-FontAtlas *FontAtlasLoadBinary128(MArena *a_dest, char *filename) {
+FontAtlas *FontAtlasLoadBinaryStream(u8 *data, u32 sz_data) {
+    u8 *base_ptr = data;
+    FontAtlas *atlas = (FontAtlas*) base_ptr;
+
+    u32 sz_base = sizeof(FontAtlas);
+    u32 sz_glyphs = 128 * sizeof(Glyph);
+    u32 sz_bitmap = atlas->texture.width * atlas->texture.height;
+
+    assert(sz_data == sz_base + sz_glyphs + sz_bitmap && "sanity check loaded file size");
+
+    // set pointers
+    atlas->glyphs.lst = (Glyph*) (base_ptr + sz_base);
+    atlas->texture.img = base_ptr + sz_base + sz_glyphs;
+
+    return atlas;
+};
+FontAtlas *FontAtlasLoadBinary128(MArena *a_dest, char *filename, u32 *sz = NULL) {
     u64 sz_file;
     u8 *base_ptr = (u8*) LoadFileMMAP(filename, &sz_file);
     base_ptr = (u8*) ArenaPush(a_dest, base_ptr, sz_file); // move to read-write memory location
@@ -92,6 +108,9 @@ FontAtlas *FontAtlasLoadBinary128(MArena *a_dest, char *filename) {
     atlas->glyphs.lst = (Glyph*) (base_ptr + sz_base);
     atlas->texture.img = base_ptr + sz_base + sz_glyphs;
 
+    if (sz != NULL) {
+        *sz = (u32) sz_file;
+    }
     return atlas;
 };
 void FontAtlasSaveBinary128(MArena *a_tmp, char *filename, FontAtlas atlas) {
@@ -111,6 +130,10 @@ void FontAtlasSaveBinary128(MArena *a_tmp, char *filename, FontAtlas atlas) {
 }
 
 
+// TODO: just have one object, the FontAtlas. We do not need a separate "glyph plotter", it just slows us down and complicates
+//      things. With these two objects, we need to do a lot more code, loading stuff, setting pointers,
+//      duplicating some values, having more types in the system, and the confusion of what goes where.
+//      And for what benefit: Just some saved bytes somewhere, or some terseness in the type fields of extremely dubious utility.
 struct GlyphPlotter {
     s32 sz_px;
     s32 ln_height;
@@ -122,10 +145,17 @@ struct GlyphPlotter {
     ImageB texture;
 
     u64 GetTextureBId() {
+        // TODO: replace by keying system
         return sz_px;
     }
+    u64 GetKey() {
+        // TODO: we need to return a key, assembled from the font name and size, e.g. "cmunrm_36" keyed into a u64.
+        //      We will be able to get the font by string-key / name, as well as by enum. Reason is that we do not know
+        //      the names of fonts in lib code.
+        return 0;
+    }
 };
-GlyphPlotter *InitGlyphPlotter(MArena *a_dest, List<Glyph> glyphs, FontAtlas *atlas) {
+GlyphPlotter *InitGlyphPlotter(MArena *a_dest, FontAtlas *atlas) {
     GlyphPlotter *plt = (GlyphPlotter *) ArenaAlloc(a_dest, sizeof(GlyphPlotter));
     plt->advance_x = InitList<u8>(a_dest, 128);
     plt->advance_x.len = 128;
@@ -139,7 +169,7 @@ GlyphPlotter *InitGlyphPlotter(MArena *a_dest, List<Glyph> glyphs, FontAtlas *at
     plt->ln_descend = atlas->ln_descend;
 
     for (u32 i = 0; i < 128; ++i) {
-        Glyph g = glyphs.lst[i];
+        Glyph g = atlas->glyphs.lst[i];
         QuadHexaVertex q = GlyphQuadCook(g);
         plt->cooked.lst[i] = q;
         plt->advance_x.lst[i] = g.adv_x;
@@ -230,13 +260,33 @@ void InitFonts(MContext *ctx) {
     g_font_map = InitMap(ctx->a_life, font_cnt);
     while (fonts != NULL) {
         FontAtlas *atlas = FontAtlasLoadBinary128(ctx->a_life, StrZeroTerm( fonts->GetStr() ));
-        GlyphPlotter *plt = InitGlyphPlotter(ctx->a_life, atlas->glyphs, atlas);
+        GlyphPlotter *plt = InitGlyphPlotter(ctx->a_life, atlas);
 
         MapPut(&g_font_map, atlas->sz_px, plt);
         fonts = fonts->next;
     }
     SetFontAndSize(FS_48);
 }
+
+
+/*
+#include "resource.h"
+#include "atlasgen/cmunrm.cpp"
+
+void InitFonts_new(MContext *ctx) {
+    assert(g_texb_map.slots.len != 0 && "check sprites were initialized");
+    if (g_font_map.slots.len != 0) {
+        printf("WARN: re-init fonts\n");
+        return;
+    }
+
+    // WARN: hacked test code
+    g_font_map = InitMap(ctx->a_life, 10);
+    GlyphPlotter *plt = LoadResource(ctx->a_life, cmunrm);
+    MapPut(&g_font_map, plt->sz_px, plt);
+    SetFontAndSize(FS_48);
+}
+*/
 
 
 //
