@@ -59,11 +59,26 @@ struct FontAtlas {
     ImageB texture;
     u32 sz_px;
     u32 cell_width;
-    u32 ln_height;
-    u32 ln_measured;
-    u32 ln_ascend;
-    u32 ln_descend;
     List<Glyph> glyphs;
+
+    // previously known as da GLYPH PLOTTA !
+    s32 ln_height;
+    s32 ln_measured;
+    s32 ln_ascend;
+    s32 ln_descend;
+    List<u8> advance_x;
+    List<QuadHexaVertex> cooked;
+
+    u64 GetTextureBId() {
+        // TODO: replace by keying system
+        return sz_px;
+    }
+    u64 GetKey() {
+        // TODO: we need to return a key, assembled from the font name and size, e.g. "cmunrm_36" keyed into a u64.
+        //      We will be able to get the font by string-key / name, as well as by enum. Reason is that we do not know
+        //      the names of fonts in lib code.
+        return 0;
+    }
 
     void Print() {
         printf("font_sz %u, bitmap_sz %u %u, cell_w %u, ln_height %u, ln_ascend %u, glyphs %u, data ptrs %p %p\n", sz_px, texture.width, texture.height, cell_width, ln_height, ln_ascend, glyphs.len, glyphs.lst, texture.img);
@@ -77,20 +92,7 @@ struct FontAtlas {
     }
 };
 FontAtlas *FontAtlasLoadBinaryStream(u8 *data, u32 sz_data) {
-    u8 *base_ptr = data;
-    FontAtlas *atlas = (FontAtlas*) base_ptr;
-
-    u32 sz_base = sizeof(FontAtlas);
-    u32 sz_glyphs = 128 * sizeof(Glyph);
-    u32 sz_bitmap = atlas->texture.width * atlas->texture.height;
-
-    assert(sz_data == sz_base + sz_glyphs + sz_bitmap && "sanity check loaded file size");
-
-    // set pointers
-    atlas->glyphs.lst = (Glyph*) (base_ptr + sz_base);
-    atlas->texture.img = base_ptr + sz_base + sz_glyphs;
-
-    return atlas;
+    // TODO: impl. / copy code here
 };
 FontAtlas *FontAtlasLoadBinary128(MArena *a_dest, char *filename, u32 *sz = NULL) {
     u64 sz_file;
@@ -107,6 +109,17 @@ FontAtlas *FontAtlasLoadBinary128(MArena *a_dest, char *filename, u32 *sz = NULL
     // set pointers
     atlas->glyphs.lst = (Glyph*) (base_ptr + sz_base);
     atlas->texture.img = base_ptr + sz_base + sz_glyphs;
+
+    atlas->advance_x = InitList<u8>(a_dest, 128);
+    atlas->advance_x.len = 128;
+    atlas->cooked = InitList<QuadHexaVertex>(a_dest, 128 * sizeof(QuadHexaVertex));
+    atlas->cooked.len = 128;
+    for (u32 i = 0; i < 128; ++i) {
+        Glyph g = atlas->glyphs.lst[i];
+        QuadHexaVertex q = GlyphQuadCook(g);
+        atlas->cooked.lst[i] = q;
+        atlas->advance_x.lst[i] = g.adv_x;
+    }
 
     if (sz != NULL) {
         *sz = (u32) sz_file;
@@ -130,54 +143,7 @@ void FontAtlasSaveBinary128(MArena *a_tmp, char *filename, FontAtlas atlas) {
 }
 
 
-// TODO: just have one object, the FontAtlas. We do not need a separate "glyph plotter", it just slows us down and complicates
-//      things. With these two objects, we need to do a lot more code, loading stuff, setting pointers,
-//      duplicating some values, having more types in the system, and the confusion of what goes where.
-//      And for what benefit: Just some saved bytes somewhere, or some terseness in the type fields of extremely dubious utility.
-struct GlyphPlotter {
-    s32 sz_px;
-    s32 ln_height;
-    s32 ln_measured;
-    s32 ln_ascend;
-    s32 ln_descend;
-    List<u8> advance_x;
-    List<QuadHexaVertex> cooked;
-    ImageB texture;
-
-    u64 GetTextureBId() {
-        // TODO: replace by keying system
-        return sz_px;
-    }
-    u64 GetKey() {
-        // TODO: we need to return a key, assembled from the font name and size, e.g. "cmunrm_36" keyed into a u64.
-        //      We will be able to get the font by string-key / name, as well as by enum. Reason is that we do not know
-        //      the names of fonts in lib code.
-        return 0;
-    }
-};
-GlyphPlotter *InitGlyphPlotter(MArena *a_dest, FontAtlas *atlas) {
-    GlyphPlotter *plt = (GlyphPlotter *) ArenaAlloc(a_dest, sizeof(GlyphPlotter));
-    plt->advance_x = InitList<u8>(a_dest, 128);
-    plt->advance_x.len = 128;
-    plt->cooked = InitList<QuadHexaVertex>(a_dest, 128 * sizeof(QuadHexaVertex));
-    plt->cooked.len = 128;
-    plt->texture = atlas->texture;
-    plt->sz_px = atlas->sz_px;
-    plt->ln_height = atlas->ln_height;
-    plt->ln_measured = atlas->ln_measured;
-    plt->ln_ascend = atlas->ln_ascend;
-    plt->ln_descend = atlas->ln_descend;
-
-    for (u32 i = 0; i < 128; ++i) {
-        Glyph g = atlas->glyphs.lst[i];
-        QuadHexaVertex q = GlyphQuadCook(g);
-        plt->cooked.lst[i] = q;
-        plt->advance_x.lst[i] = g.adv_x;
-    }
-
-    return plt;
-}
-void GlyphPlotterPrint(GlyphPlotter *plt) {
+void GlyphPlotterPrint(FontAtlas *plt) {
     printf("ln_height: %d\n", plt->ln_height);
     printf("ln_ascend: %d\n", plt->ln_ascend);
     for (u32 i = 0; i - plt->advance_x.len; ++i) {
@@ -209,8 +175,8 @@ enum FontSize {
 //  When fonts are loaded dynamically, there will be 8 * nfonts entries in the pointer list, and 
 //  a slightly more complicated keying. Maybe we can just add 8*font_idx to the font_size.
 static HashMap g_font_map;
-static GlyphPlotter *g_text_plotter;
-GlyphPlotter *SetFontAndSize(FontSize font_size /*, Font font_name*/) {
+static FontAtlas *g_text_plotter;
+FontAtlas *SetFontAndSize(FontSize font_size /*, Font font_name*/) {
     u64 sz_px = 0;
     switch (font_size) {
         case FS_18: sz_px = 18; break;
@@ -224,7 +190,7 @@ GlyphPlotter *SetFontAndSize(FontSize font_size /*, Font font_name*/) {
         default: break;
     }
     u64 val = MapGet(&g_font_map, sz_px);
-    g_text_plotter = (GlyphPlotter*) val;
+    g_text_plotter = (FontAtlas*) val;
 
     // put texture_b into the texture_b map
     MapPut(&g_texb_map, sz_px, &g_text_plotter->texture);
@@ -260,9 +226,8 @@ void InitFonts(MContext *ctx) {
     g_font_map = InitMap(ctx->a_life, font_cnt);
     while (fonts != NULL) {
         FontAtlas *atlas = FontAtlasLoadBinary128(ctx->a_life, StrZeroTerm( fonts->GetStr() ));
-        GlyphPlotter *plt = InitGlyphPlotter(ctx->a_life, atlas);
 
-        MapPut(&g_font_map, atlas->sz_px, plt);
+        MapPut(&g_font_map, atlas->sz_px, atlas);
         fonts = fonts->next;
     }
     SetFontAndSize(FS_48);
@@ -411,7 +376,7 @@ void AlignQuadsH(List<QuadHexaVertex> line_quads, s32 cx, TextAlign ta) {
 //
 // TODO: un-retire autowrap function at some point !
 
-List<QuadHexaVertex> LayoutTextAutowrap(MArena *a_dest, GlyphPlotter *plt, Str txt, s32 x0, s32 y0, s32 w, s32 h, Color color, TextAlign ta) {
+List<QuadHexaVertex> LayoutTextAutowrap(MArena *a_dest, FontAtlas *plt, Str txt, s32 x0, s32 y0, s32 w, s32 h, Color color, TextAlign ta) {
     assert(g_text_plotter != NULL && "init text plotters first");
 
 
@@ -507,7 +472,7 @@ s32 GetLineCenterVOffset() {
 }
 
 
-s32 TextLineWidth(GlyphPlotter *plt, Str txt) {
+s32 TextLineWidth(FontAtlas *plt, Str txt) {
     s32 pt_x = 0;
     s32 w_space = plt->advance_x.lst[' '];
 
@@ -530,7 +495,7 @@ s32 TextLineWidth(GlyphPlotter *plt, Str txt) {
 }
 
 
-List<QuadHexaVertex> LayoutTextLine(MArena *a_dest, GlyphPlotter *plt, Str txt, s32 x0, s32 y0, s32 *sz_x, Color color) {
+List<QuadHexaVertex> LayoutTextLine(MArena *a_dest, FontAtlas *plt, Str txt, s32 x0, s32 y0, s32 *sz_x, Color color) {
     assert(g_text_plotter != NULL && "init text plotters first");
 
     s32 pt_x = x0;
