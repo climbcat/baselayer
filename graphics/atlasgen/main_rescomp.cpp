@@ -11,7 +11,7 @@
 void RunProgram() {
     TimeFunction;
     MContext *ctx = InitBaselayer();
-    LoadResource(ctx->a_life, cmunrm);
+    ResourceStreamLoad(ctx->a_life, cmunrm);
 }
 
 

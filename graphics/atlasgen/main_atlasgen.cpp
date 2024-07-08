@@ -4,6 +4,7 @@
 #include "../../baselayer.h"
 #include "../gtypes.h"
 #include "../atlas.h"
+#include "../resource.h"
 
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -161,6 +162,9 @@ int main (int argc, char **argv) {
         exit(0);
     }
 
+    // data stream linked list & save file handle
+    ResourceStreamHandle stream = {};
+
     s32 line_sizes[8] = { 18, 24, 30, 36, 48, 60, 72, 84 };
     for (u32 i = 0; i < 8; ++i) {
         s32 sz_px = line_sizes[i];
@@ -199,41 +203,10 @@ int main (int argc, char **argv) {
         printf("\n");
 
 
-        /*
-        //
-        //  WARN: coding in progress ...
-        //
+        // TODO: inlined texture -> can we be suar
 
-        if (sz_px != 48) {
-            continue;
-        }
-
-        printf("\n");
-        printf("DEBUG Printing to hex\n");
-
-        u8 *data = (u8*) loaded;
-        Str dest = {};
-        dest.str = (char*) ArenaAlloc(ctx->a_tmp, 3*loaded_size);
-
-        const char *nibble_to_hex = "0123456789ABCDEF";
-        dest = StrSprintf(dest, "\nconst char *hexed_atlas = \"");
-
-        for (int i = 0; i < loaded_size; ++i) {
-            u8 byte = data[i];
-            char a = nibble_to_hex[byte >> 4];
-            char b = nibble_to_hex[byte & 0x0F];
-
-            sprintf(dest.str + dest.len, "%c%c", a, b);
-            dest.len += 2;
-        }
-        dest = StrSprintf(dest, "\";\n");
-        StrPrint(dest);
-        SaveFile("hexed.cpp", dest.str, dest.len);
-
-        printf("%u\n", loaded_size);
-
-        printf("DEBUG breaking early\n");
-        exit(0);
-        */
+        // push to stream
+        ResourceStreamPushData(ctx->a_life, &stream, RT_FONT, loaded->GetKeyName(), &atlas, sizeof(atlas));
     }
+    ResourceStreamSave(&stream);
 }

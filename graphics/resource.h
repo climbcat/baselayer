@@ -10,95 +10,64 @@ enum ResourceType {
     RT_FONT,
     RT_SPRITE,
 
-    RT_CNT,
-
-    RT_RESOURCE_CNT,
-    RT_RESOURCE_DATA,
-    RT_RESOURCE_NAME
+    RT_CNT
 };
 
 
-struct HexResourceHdr {
+struct ResourceHdr {
     ResourceType tpe;
-    u32 size;
-    const char *name;
+    u32 data_sz;
+    u32 next;
+    char name[200];
 };
 
 
+struct ResourceStreamHandle {
+    ResourceHdr *first;
+    ResourceHdr *last;
+};
 
-GlyphPlotter *LoadResource(MArena *a_dest, HexResourceHdr *resource) {
+
+void ResourceStreamPushData(MArena *a_dest, ResourceStreamHandle *stream, ResourceType tpe, char *name, void *data, u32 data_sz) {
+    assert(stream != NULL);
+
+    ResourceHdr *hdr = (ResourceHdr*) ArenaAlloc(a_dest, sizeof(ResourceHdr));
+    hdr->tpe = tpe;
+    hdr->data_sz = data_sz;
+    _strcmp(hdr->name, name);
+    if (stream->last) {
+        stream->last->next = (u32) ((u8*) stream->last - (u8*) hdr);
+    }
+    stream->last = hdr;
+    if (stream->first == NULL) {
+        stream->first = hdr;
+    }
+
+    // push the data section
+    ArenaPush(a_dest, data, data_sz);
+}
+
+
+void ResourceStreamSave(ResourceStreamHandle *stream) {
+    assert(stream->first != NULL);
+    assert(stream->last != NULL);
+
+    void *data = stream->first;
+    u32 last_sz = stream->last->data_sz + sizeof(ResourceHdr);
+    u32 data_sz = (u32) ((u8*) stream->last - (u8*) stream->first + last_sz);
+
+    SaveFile("all.res", data, data_sz);
+}
+
+
+void ResourceStreamLoad(MArena *a_dest, ResourceHdr *resource) {
+    // TODO: try and have only inlined data, e.g. no areana needed to expand / unpack anything during initialization
+    //      (FontAtlas I am looking at u).
     assert(resource != NULL);
 
-    HexResourceHdr *res = resource;
-    HexResourceHdr *entries = resource + 2;
-
-    // resource headers count
-    assert(res->tpe == RT_RESOURCE_CNT);
-    u32 cnt = res->size;
-    res++;
-
-    // resource name as a string
-    assert(res->tpe == RT_RESOURCE_NAME);
-    const char *res_name = res->name;
-    res++;
-
-    // resource headers
-    u32 size_accum = 0;
-    for (u32 i = 0; i < cnt; ++i) {
-        size_accum += res[i].size;
-    }
-
-    // resource raw data
-    assert(res[cnt].tpe == RT_RESOURCE_DATA);
-    assert(res[cnt].size == 2 * size_accum); // there are two chars per hex-encoded byte
-    char *data = (char*) res[cnt].name;
-
-
-    // TODO: create the map of objects
-    
-
-    // set map entries
-    for (u32 j = 0; j < cnt; ++j) {
-
-        // TODO: init and register the object into a map
-        if (entries[j].tpe == RT_FONT) {
-            u32 size = entries[j].size;
-            u8* data_dest = (u8*) ArenaAlloc(a_dest, size);
-
-            const char *nibble_to_hex = "0123456789ABCDEF";
-
-            {
-                TimeBlock("hex_parse");
-                
-                for (u32 i = 0; i < size; ++i) {
-                    // TODO: replace with impl. at the second anaswer at s.o. 3408706, which is homebrew and indeed 10x faster
-                    sscanf(data + 2*i, "%2hhx", data_dest + i);
-
-                    /*
-                    // DEBUG print:
-                    printf("%c%c", *(data + 2*i), *(data + 2*i + 1));
-                    u8 byte = data_dest[i];
-                    char a = nibble_to_hex[byte >> 4];
-                    char b = nibble_to_hex[byte & 0x0F];
-                    printf(" --> %c%c\n", a, b);
-                    */
-                }
-            }
-
-
-            FontAtlas *font = FontAtlasLoadBinaryStream(data_dest, size);
-            GlyphPlotter * plt = InitGlyphPlotter(a_dest, font);
-
-            printf("loaded a plotter ! \n");
-
-            GlyphPlotterPrint(plt);
-
-            return plt;
-            // TODO: enter the plotter thing into the thing
-        }
-
-        // inc the object pointer
-    }
+    // TODO: init every data object (inline !)
+    // TODO: put every data object type in its own map
+    // TODO: don't over do this, we don't have any sprites as of yet
 }
 
 

@@ -69,14 +69,20 @@ struct FontAtlas {
     List<u8> advance_x;
     List<QuadHexaVertex> cooked;
 
+    QuadHexaVertex cooked_mem[128];
+    u8 advance_x_mem[128];
+
     u64 GetTextureBId() {
         // TODO: replace by keying system
         return sz_px;
     }
-    u64 GetKey() {
+    char *GetKeyName() {
         // TODO: we need to return a key, assembled from the font name and size, e.g. "cmunrm_36" keyed into a u64.
         //      We will be able to get the font by string-key / name, as well as by enum. Reason is that we do not know
         //      the names of fonts in lib code.
+        return (char*) "cmunrm_48";
+    }
+    u64 GetKey() {
         return 0;
     }
 
@@ -92,7 +98,8 @@ struct FontAtlas {
     }
 };
 FontAtlas *FontAtlasLoadBinaryStream(u8 *data, u32 sz_data) {
-    // TODO: impl. / copy code here
+    // TODO: impl. / copy code
+    return NULL;
 };
 FontAtlas *FontAtlasLoadBinary128(MArena *a_dest, char *filename, u32 *sz = NULL) {
     u64 sz_file;
@@ -109,11 +116,8 @@ FontAtlas *FontAtlasLoadBinary128(MArena *a_dest, char *filename, u32 *sz = NULL
     // set pointers
     atlas->glyphs.lst = (Glyph*) (base_ptr + sz_base);
     atlas->texture.img = base_ptr + sz_base + sz_glyphs;
-
-    atlas->advance_x = InitList<u8>(a_dest, 128);
-    atlas->advance_x.len = 128;
-    atlas->cooked = InitList<QuadHexaVertex>(a_dest, 128 * sizeof(QuadHexaVertex));
-    atlas->cooked.len = 128;
+    atlas->advance_x = { &atlas->advance_x_mem[0], 128 };
+    atlas->cooked = { &atlas->cooked_mem[0], 128 };
     for (u32 i = 0; i < 128; ++i) {
         Glyph g = atlas->glyphs.lst[i];
         QuadHexaVertex q = GlyphQuadCook(g);
