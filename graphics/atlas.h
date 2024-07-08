@@ -115,7 +115,7 @@ FontAtlas *FontAtlasLoadBinary128(MArena *a_dest, char *filename, u32 *sz = NULL
     assert(sz_file == sz_base + sz_glyphs + sz_bitmap && "sanity check loaded file size");
 
     // set pointers
-    atlas->glyphs.lst = (Glyph*) (base_ptr + sz_base);
+    atlas->glyphs = { atlas->glyphs_mem, 128 };
     atlas->texture.img = base_ptr + sz_base + sz_glyphs;
     atlas->advance_x = { &atlas->advance_x_mem[0], 128 };
     atlas->cooked = { &atlas->cooked_mem[0], 128 };

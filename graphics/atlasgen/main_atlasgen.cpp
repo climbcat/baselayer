@@ -26,7 +26,9 @@ FontAtlas CreateCharAtlas(MArena *a_dest, u8 *font, s32 line_height) {
     u32 ascii_offset = 32;
     u32 nchars = ascii_range - ascii_offset;
     //List<Glyph> glyphs = InitList<Glyph>(a_dest, sizeof(Glyph) * ascii_range);
-    List<Glyph> glyphs = InitList<Glyph>(a_dest, sizeof(Glyph) * ascii_range);
+
+    FontAtlas atlas = {};
+    atlas.glyphs = { &atlas.glyphs_mem[0], 0 };
 
     printf("\n");
     printf("line height, scale: %d %f\n", line_height, scale);
@@ -37,7 +39,6 @@ FontAtlas CreateCharAtlas(MArena *a_dest, u8 *font, s32 line_height) {
     s32 max_descent = 0;
 
     char c = 0;
-    //while (c >= ascii_offset && c < ascii_range) {
     while (c < ascii_range) {
         // glyph metrics
         s32 x0, y0, x1, y1;
@@ -57,7 +58,7 @@ FontAtlas CreateCharAtlas(MArena *a_dest, u8 *font, s32 line_height) {
         gl.w = x1 - x0;
         gl.h = y1 - y0;
         gl.adv_x = advance_x;
-        glyphs.Add(gl);
+        atlas.glyphs.Add(gl);
 
         max_adv = MaxS32(advance_x, max_adv);
         max_ascent = MinS32(y0, max_ascent);
@@ -72,8 +73,6 @@ FontAtlas CreateCharAtlas(MArena *a_dest, u8 *font, s32 line_height) {
     printf("ascii-wide advance, ascent, descent: %d %d %d\n", max_adv, max_ascent, max_descent);
     printf("\n");
 
-    FontAtlas atlas;
-    _memzero(&atlas, sizeof(FontAtlas));
     atlas.sz_px = line_height;
     atlas.cell_width = max_adv;
     atlas.ln_height = line_height;
@@ -83,13 +82,12 @@ FontAtlas CreateCharAtlas(MArena *a_dest, u8 *font, s32 line_height) {
     atlas.texture.width = atlas.cell_width * 16;
     atlas.texture.height = atlas.ln_height * 6;
     atlas.texture.img = (u8*) ArenaAlloc(a_dest, atlas.texture.width * atlas.texture.height * sizeof(u8), true);
-    atlas.glyphs = glyphs;
 
     f32 tex_scale_x = 1.0f / atlas.texture.width;
     f32 tex_scale_y = 1.0f / atlas.texture.height;
     u32 aidx = 0;
     for (u32 ascii = ascii_offset; ascii < ascii_range; ++ascii) {
-        Glyph *g = glyphs.lst + ascii;
+        Glyph *g = atlas.glyphs.lst + ascii;
 
         s32 x = (aidx % 16) * atlas.cell_width;
         s32 y = (aidx / 16) * atlas.ln_height + atlas.ln_height - max_descent;
