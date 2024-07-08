@@ -60,6 +60,8 @@ struct FontAtlas {
     u32 sz_px;
     u32 cell_width;
     List<Glyph> glyphs;
+    char font_name[32];
+    char key_name[32];
 
     // previously known as da GLYPH PLOTTA !
     s32 ln_height;
@@ -76,15 +78,6 @@ struct FontAtlas {
     u64 GetTextureBId() {
         // TODO: replace by keying system
         return sz_px;
-    }
-    char *GetKeyName() {
-        // TODO: we need to return a key, assembled from the font name and size, e.g. "cmunrm_36" keyed into a u64.
-        //      We will be able to get the font by string-key / name, as well as by enum. Reason is that we do not know
-        //      the names of fonts in lib code.
-        return (char*) "cmunrm_48";
-    }
-    u64 GetKey() {
-        return 0;
     }
 
     void Print() {

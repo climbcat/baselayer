@@ -146,10 +146,9 @@ int main (int argc, char **argv) {
         printf("TODO: impl. --size\n");
     }
     
-    
-    const char *font_filename = "fonts/cmunrm.ttf";
-
     InitBaselayer();
+
+    const char *font_filename = "fonts/cmunrm.ttf";
     Str name = StrBasename( (char*) font_filename);
     StrPrint("", name, "\n");
     //char *font_filename = CLAGetFirstArg(argc, argv);
@@ -169,6 +168,11 @@ int main (int argc, char **argv) {
         s32 sz_px = line_sizes[i];
 
         FontAtlas atlas = CreateCharAtlas(ctx->a_pers, font, sz_px);
+        sprintf(atlas.font_name, "%s", StrZeroTerm(name));
+        sprintf(atlas.key_name, "%s", atlas.font_name);
+        sprintf(atlas.key_name + strlen(atlas.key_name), "_%d", atlas.sz_px);
+        printf("font_name: %s\n", atlas.font_name);
+        printf("key_name: %s\n", atlas.key_name);
 
         // mini test
         printf("\n");
@@ -205,7 +209,7 @@ int main (int argc, char **argv) {
         // TODO: inlined texture -> can we be suar
 
         // push to stream
-        ResourceStreamPushData(ctx->a_life, &stream, RT_FONT, loaded->GetKeyName(), &atlas, sizeof(atlas));
+        ResourceStreamPushData(ctx->a_life, &stream, RT_FONT, loaded->key_name, &atlas, sizeof(atlas));
     }
     ResourceStreamSave(&stream);
 }
