@@ -77,10 +77,10 @@ inline void _memcpy(void *dest, const void *src, size_t size) {
         d[i] = s[i];
     }
 }
-inline u32 _strcmp(const char *str1, const char *str2) {
+inline u32 _strcmp(const char *dest, const char *src) {
     u32 i = 0;
-    while (str1[i] != '\0' || str2[i] != '\0') {
-        if (str1[i] != str2[i]) {
+    while (dest[i] != '\0' || src[i] != '\0') {
+        if (dest[i] != src[i]) {
             return 1;
         }
         ++i;
