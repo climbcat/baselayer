@@ -69,8 +69,9 @@ struct FontAtlas {
     List<u8> advance_x;
     List<QuadHexaVertex> cooked;
 
-    QuadHexaVertex cooked_mem[128];
+    Glyph glyphs_mem[128];
     u8 advance_x_mem[128];
+    QuadHexaVertex cooked_mem[128];
 
     u64 GetTextureBId() {
         // TODO: replace by keying system

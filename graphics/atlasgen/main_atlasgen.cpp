@@ -25,6 +25,7 @@ FontAtlas CreateCharAtlas(MArena *a_dest, u8 *font, s32 line_height) {
     u32 ascii_range = 128;
     u32 ascii_offset = 32;
     u32 nchars = ascii_range - ascii_offset;
+    //List<Glyph> glyphs = InitList<Glyph>(a_dest, sizeof(Glyph) * ascii_range);
     List<Glyph> glyphs = InitList<Glyph>(a_dest, sizeof(Glyph) * ascii_range);
 
     printf("\n");
