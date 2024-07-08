@@ -210,6 +210,7 @@ int main (int argc, char **argv) {
 
         // push to stream
         ResourceStreamPushData(ctx->a_life, &stream, RT_FONT, loaded->key_name, &atlas, sizeof(atlas));
+        ResourceStreamPushDataRaw(ctx->a_life, atlas.texture.img, atlas.texture.width * atlas.texture.height);
     }
     ResourceStreamSave(&stream);
 }

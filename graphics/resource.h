@@ -47,6 +47,11 @@ void ResourceStreamPushData(MArena *a_dest, ResourceStreamHandle *stream, Resour
     ArenaPush(a_dest, data, data_sz);
 }
 
+void ResourceStreamPushDataRaw(MArena *a_dest, void *data, u32 data_sz) {
+    ArenaPush(a_dest, data, data_sz);
+}
+
+
 
 void ResourceStreamSave(ResourceStreamHandle *stream) {
     assert(stream->first != NULL);
