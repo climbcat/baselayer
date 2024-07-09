@@ -17,7 +17,7 @@ List<QuadHexaVertex> LayoutPanel(
     }
 
     DrawCall dc = {};
-    dc.texture_b = 0;
+    dc.texture_b_key = 0;
     dc.quads = InitList<QuadHexaVertex>(a_dest, 2);
     {
         Quad q;

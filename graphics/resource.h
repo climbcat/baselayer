@@ -78,7 +78,9 @@ void ResourceStreamSave(ResourceStreamHandle *stream) {
     SaveFile("all.res", data, data_sz);
 }
 
-void ResourceStreamLoad(MArena *a_dest, u8 *resource_data, HashMap *map_fonts) {
+// NOTE: this function is imagined to take up to one map arg per resource type in existence:
+//      Currently, we have: fontatlas, byte texture. rgba-textures are expected, and perhaps sound resources
+void ResourceStreamLoad(MArena *a_dest, u8 *resource_data, HashMap *map_fonts, HashMap *map_texture_bs) {
     assert(resource_data != NULL);
 
     ResourceHdr *resource = (ResourceHdr*) resource_data;
@@ -89,7 +91,8 @@ void ResourceStreamLoad(MArena *a_dest, u8 *resource_data, HashMap *map_fonts) {
 
             FontAtlas *font = FontAtlasLoadBinaryStream(resource->GetInlinedData(), resource->data_sz);
             
-            MapPut(&g_font_map, font->GetKey(), font);
+            MapPut(map_fonts, font->GetKey(), font);
+            MapPut(map_texture_bs, font->GetKey(), &font->texture);
         }
         else {
             printf("WARN: non-font resource detected\n");

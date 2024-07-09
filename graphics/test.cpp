@@ -410,7 +410,7 @@ void TestBrownianGlyphs() {
     SetFontAndSize(FS_72);
     List<QuadHexaVertex> quads = LayoutTextAutowrap(ctx->a_pers, g_text_plotter, StrL("The quick brown fox jumps over the lazy dog"), 470, 300, 300, 300, ColorRandom(), TAL_CENTER);
     DrawCall dc = {};
-    dc.texture_b = g_text_plotter->GetTextureBId();
+    dc.texture_b_key = g_text_plotter->GetKey();
     dc.quads = quads;
     for (u32 i = 0; i < quads.len; ++i) {
         QuadHexaVertex *q = quads.lst + i;

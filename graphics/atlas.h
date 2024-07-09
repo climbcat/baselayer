@@ -75,10 +75,6 @@ struct FontAtlas {
     u8 advance_x_mem[128];
     QuadHexaVertex cooked_mem[128];
 
-    u64 GetTextureBId() {
-        // TODO: replace by keying system
-        return sz_px;
-    }
     u64 GetKey() {
         return HashStringValue(key_name);
     }
@@ -188,7 +184,6 @@ FontAtlas *SetFontAndSize(FontSize font_size) {
     g_text_plotter = (FontAtlas*) val;
 
     // put texture_b into the texture_b map
-    MapPut(&g_texb_map, sz_px, &g_text_plotter->texture);
     return g_text_plotter;
 }
 FontSize GetFontSize() {
@@ -217,19 +212,17 @@ void InitFonts(MContext *ctx) {
         return;
     }
 
-    // WARN: hacked test code
     g_font_map = InitMap(ctx->a_life, 10);
-
 
     u64 sz_file;
     u8 *readonly_data = (u8*) LoadFileMMAP("all.res", &sz_file);
     u8 *resource_data = (u8*) ArenaPush(ctx->a_life, readonly_data, sz_file);
-    
+
     if (resource_data == NULL) {
         printf("please supply an 'all.res' font resource file with the executable, exiting ...\n");
         exit(0);
     }
-    ResourceStreamLoad(ctx->a_life, resource_data, &g_font_map);
+    ResourceStreamLoad(ctx->a_life, resource_data, &g_font_map, &g_texb_map);
 
     // TODO: put atlas textures into the texture map, using the u64 keys
 
@@ -442,7 +435,7 @@ List<QuadHexaVertex> LayoutTextAutowrap(MArena *a_dest, FontAtlas *plt, Str txt,
     }
 
     DrawCall dc = {};
-    dc.texture_b = plt->GetTextureBId();
+    dc.texture_b_key = plt->GetKey();
     dc.quads = quads;
     SR_Push(dc);
 
@@ -510,7 +503,7 @@ List<QuadHexaVertex> LayoutTextLine(MArena *a_dest, FontAtlas *plt, Str txt, s32
     // TODO: update this hack to be more organized -> e.g. put assembling the drawcall outside of
     //      this function somehow, maybe in the UI_xxx calls.
     DrawCall dc = {};
-    dc.texture_b = plt->GetTextureBId();
+    dc.texture_b_key = plt->GetKey();
     dc.quads = quads;
     SR_Push(dc);
 

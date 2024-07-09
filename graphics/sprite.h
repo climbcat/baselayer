@@ -178,8 +178,8 @@ void QuadOffset(QuadHexaVertex *q, f32 x, f32 y) {
 
 
 struct DrawCall {
-    u32 texture_b;
-    u32 texture;
+    u64 texture_b_key;
+    u64 texture_key;
     List<QuadHexaVertex> quads;
 };
 
@@ -188,8 +188,8 @@ struct DrawCall {
 //  Texture and byte-texture mapping
 //
 static HashMap g_texb_map;
-ImageB *GetGlyphAtlasByteTexture(u64 texture_id) {
-    ImageB *result = (ImageB*) MapGet(&g_texb_map, texture_id);
+ImageB *GetTextureB(u64 key) {
+    ImageB *result = (ImageB*) MapGet(&g_texb_map, key);
     return result;
 }
 #define MAX_TEXTURE_B_CNT 1000
@@ -204,7 +204,7 @@ u8 SampleTexture(ImageB *tex, f32 x, f32 y) {
     return b;
 }
 void BlitQuads(DrawCall call, ImageRGBA *img) {
-    ImageB *texture_b = GetGlyphAtlasByteTexture(call.texture_b);
+    ImageB *texture_b = GetTextureB(call.texture_b_key);
 
     for (u32 i = 0; i < call.quads.len; ++i) {
         QuadHexaVertex *q = call.quads.lst + i;
