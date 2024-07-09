@@ -19,60 +19,84 @@ struct ResourceHdr {
     u32 data_sz;
     u32 next;
     char name[200];
+
+    ResourceHdr *GetInlinedNext() {
+        if (next == 0) {
+            return NULL;
+        }
+        ResourceHdr *nxt =  (ResourceHdr*) ((u8*) this + next);
+        return nxt;
+    }
+    u8 *GetInlinedData() {
+        u8 *dta =  (u8*) this + sizeof(ResourceHdr);
+        assert( (dta + data_sz) == (u8*) GetInlinedNext() || GetInlinedNext() == NULL );
+
+        return dta;
+    }
 };
 
 
 struct ResourceStreamHandle {
     ResourceHdr *first;
-    ResourceHdr *last;
+    ResourceHdr *prev;
+    ResourceHdr *current;
 };
 
 
 void ResourceStreamPushData(MArena *a_dest, ResourceStreamHandle *stream, ResourceType tpe, char *name, void *data, u32 data_sz) {
     assert(stream != NULL);
 
-    ResourceHdr *hdr = (ResourceHdr*) ArenaAlloc(a_dest, sizeof(ResourceHdr));
-    hdr->tpe = tpe;
-    hdr->data_sz = data_sz;
-    _strcmp(hdr->name, name);
-    if (stream->last) {
-        stream->last->next = (u32) ((u8*) stream->last - (u8*) hdr);
+    stream->current = (ResourceHdr*) ArenaAlloc(a_dest, sizeof(ResourceHdr));
+    stream->current->tpe = tpe;
+    stream->current->data_sz = data_sz;
+    _strcmp(stream->current->name, name);
+    if (stream->prev) {
+        stream->prev->next = (u32) ((u8*) stream->current - (u8*) stream->prev);
     }
-    stream->last = hdr;
+    stream->prev = stream->current;
     if (stream->first == NULL) {
-        stream->first = hdr;
+        stream->first = stream->current;
     }
 
     // push the data section
     ArenaPush(a_dest, data, data_sz);
 }
 
-void ResourceStreamPushDataRaw(MArena *a_dest, void *data, u32 data_sz) {
+void ResourceStreamPushDataExtra(MArena *a_dest, ResourceStreamHandle *stream, void *data, u32 data_sz) {
     ArenaPush(a_dest, data, data_sz);
+    stream->current->data_sz += data_sz;
 }
-
-
 
 void ResourceStreamSave(ResourceStreamHandle *stream) {
     assert(stream->first != NULL);
-    assert(stream->last != NULL);
+    assert(stream->prev != NULL);
 
     void *data = stream->first;
-    u32 last_sz = stream->last->data_sz + sizeof(ResourceHdr);
-    u32 data_sz = (u32) ((u8*) stream->last - (u8*) stream->first + last_sz);
+    u32 last_sz = stream->prev->data_sz + sizeof(ResourceHdr);
+    u32 data_sz = (u32) ((u8*) stream->prev - (u8*) stream->first + last_sz);
 
     SaveFile("all.res", data, data_sz);
 }
 
+void ResourceStreamLoad(MArena *a_dest, u8 *resource_data, HashMap *map_fonts) {
+    assert(resource_data != NULL);
 
-void ResourceStreamLoad(MArena *a_dest, ResourceHdr *resource) {
-    // TODO: try and have only inlined data, e.g. no areana needed to expand / unpack anything during initialization
-    //      (FontAtlas I am looking at u).
-    assert(resource != NULL);
+    ResourceHdr *resource = (ResourceHdr*) resource_data;
 
-    // TODO: init every data object (inline !)
-    // TODO: put every data object type in its own map
-    // TODO: don't over do this, we don't have any sprites as of yet
+    s32 font_cnt = 0;
+    while (resource) {
+        if (resource->tpe == RT_FONT) {
+
+            FontAtlas *font = FontAtlasLoadBinaryStream(resource->GetInlinedData(), resource->data_sz);
+            
+            MapPut(&g_font_map, font->GetKey(), font);
+        }
+        else {
+            printf("WARN: non-font resource detected\n");
+        }
+        resource = resource->GetInlinedNext();
+    }
+    printf("loaded %d resources\n", font_cnt);
 }
 
 

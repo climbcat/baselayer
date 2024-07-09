@@ -79,6 +79,9 @@ struct FontAtlas {
         // TODO: replace by keying system
         return sz_px;
     }
+    u64 GetKey() {
+        return HashStringValue(key_name);
+    }
 
     void Print() {
         printf("font_sz %u, bitmap_sz %u %u, cell_w %u, ln_height %u, ln_ascend %u, glyphs %u, data ptrs %p %p\n", sz_px, texture.width, texture.height, cell_width, ln_height, ln_ascend, glyphs.len, glyphs.lst, texture.img);
@@ -91,38 +94,38 @@ struct FontAtlas {
         printf("\n");
     }
 };
-FontAtlas *FontAtlasLoadBinaryStream(u8 *data, u32 sz_data) {
-    // TODO: impl. / copy code
-    return NULL;
-};
-FontAtlas *FontAtlasLoadBinary128(MArena *a_dest, char *filename, u32 *sz = NULL) {
-    u64 sz_file;
-    u8 *base_ptr = (u8*) LoadFileMMAP(filename, &sz_file);
-    base_ptr = (u8*) ArenaPush(a_dest, base_ptr, sz_file); // move to read-write memory location
+FontAtlas *FontAtlasLoadBinaryStream(u8 *base_ptr, u32 sz_data) {
     FontAtlas *atlas = (FontAtlas*) base_ptr;
-
     u32 sz_base = sizeof(FontAtlas);
-    u32 sz_glyphs = 128 * sizeof(Glyph);
+    u32 sz_glyphs = 0;
     u32 sz_bitmap = atlas->texture.width * atlas->texture.height;
 
-    assert(sz_file == sz_base + sz_glyphs + sz_bitmap && "sanity check loaded file size");
+    assert(sz_data == sz_base + sz_bitmap && "sanity check data size");
 
     // set pointers
     atlas->glyphs = { atlas->glyphs_mem, 128 };
     atlas->texture.img = base_ptr + sz_base + sz_glyphs;
     atlas->advance_x = { &atlas->advance_x_mem[0], 128 };
     atlas->cooked = { &atlas->cooked_mem[0], 128 };
+
+    // TODO: move into the generator code
     for (u32 i = 0; i < 128; ++i) {
         Glyph g = atlas->glyphs.lst[i];
         QuadHexaVertex q = GlyphQuadCook(g);
         atlas->cooked.lst[i] = q;
         atlas->advance_x.lst[i] = g.adv_x;
     }
-
+    return atlas;
+};
+FontAtlas *FontAtlasLoadBinary128(MArena *a_dest, char *filename, u32 *sz = NULL) {
+    u64 sz_file;
+    u8 *base_ptr = (u8*) LoadFileMMAP(filename, &sz_file);
+    base_ptr = (u8*) ArenaPush(a_dest, base_ptr, sz_file); // move to read-write memory location
     if (sz != NULL) {
         *sz = (u32) sz_file;
     }
-    return atlas;
+
+    return FontAtlasLoadBinaryStream(base_ptr, sz_file);
 };
 void FontAtlasSaveBinary128(MArena *a_tmp, char *filename, FontAtlas atlas) {
     u32 sz_base = sizeof(FontAtlas);
@@ -174,8 +177,8 @@ enum FontSize {
 //  a slightly more complicated keying. Maybe we can just add 8*font_idx to the font_size.
 static HashMap g_font_map;
 static FontAtlas *g_text_plotter;
-FontAtlas *SetFontAndSize(FontSize font_size /*, Font font_name*/) {
-    u64 sz_px = 0;
+FontAtlas *SetFontAndSize(FontSize font_size) {
+    u32 sz_px = 0;
     switch (font_size) {
         case FS_18: sz_px = 18; break;
         case FS_24: sz_px = 24; break;
@@ -187,12 +190,16 @@ FontAtlas *SetFontAndSize(FontSize font_size /*, Font font_name*/) {
         case FS_84: sz_px = 84; break;
         default: break;
     }
-    u64 val = MapGet(&g_font_map, sz_px);
+
+    char buff[8];
+    sprintf(buff, "%.2u", sz_px);
+    Str key_name = StrCat(StrL("cmunrm_"), StrL(buff));
+    u64 key = HashStringValue(StrZeroTerm(key_name));
+    u64 val = MapGet(&g_font_map, key);
     g_text_plotter = (FontAtlas*) val;
 
     // put texture_b into the texture_b map
     MapPut(&g_texb_map, sz_px, &g_text_plotter->texture);
-
     return g_text_plotter;
 }
 FontSize GetFontSize() {
@@ -209,34 +216,12 @@ FontSize GetFontSize() {
         default: return FS_CNT;
     }
 }
-void InitFonts(MContext *ctx) {
-    assert(g_texb_map.slots.len != 0 && "check sprites were initialized");
-
-    if (g_font_map.slots.len != 0) {
-        printf("WARN: re-init fonts\n");
-        return;
-    }
-
-    StrLst *fonts = GetFilesExt("atlas");
-    u32 font_cnt = StrListLen(fonts);
-    printf("loading %u (.atlas) font files\n", font_cnt);
-
-    g_font_map = InitMap(ctx->a_life, font_cnt);
-    while (fonts != NULL) {
-        FontAtlas *atlas = FontAtlasLoadBinary128(ctx->a_life, StrZeroTerm( fonts->GetStr() ));
-
-        MapPut(&g_font_map, atlas->sz_px, atlas);
-        fonts = fonts->next;
-    }
-    SetFontAndSize(FS_48);
-}
 
 
-/*
 #include "resource.h"
-#include "atlasgen/cmunrm.cpp"
 
-void InitFonts_new(MContext *ctx) {
+
+void InitFonts(MContext *ctx) {
     assert(g_texb_map.slots.len != 0 && "check sprites were initialized");
     if (g_font_map.slots.len != 0) {
         printf("WARN: re-init fonts\n");
@@ -245,11 +230,23 @@ void InitFonts_new(MContext *ctx) {
 
     // WARN: hacked test code
     g_font_map = InitMap(ctx->a_life, 10);
-    GlyphPlotter *plt = LoadResource(ctx->a_life, cmunrm);
-    MapPut(&g_font_map, plt->sz_px, plt);
+
+
+    u64 sz_file;
+    u8 *readonly_data = (u8*) LoadFileMMAP("all.res", &sz_file);
+    u8 *resource_data = (u8*) ArenaPush(ctx->a_life, readonly_data, sz_file);
+    
+    if (resource_data == NULL) {
+        printf("please supply an 'all.res' font resource file with the executable, exiting ...\n");
+        exit(0);
+    }
+    ResourceStreamLoad(ctx->a_life, resource_data, &g_font_map);
+
+    // TODO: put atlas textures into the texture map, using the u64 keys
+
     SetFontAndSize(FS_48);
 }
-*/
+
 
 
 //
