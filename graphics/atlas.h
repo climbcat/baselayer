@@ -97,24 +97,15 @@ struct FontAtlas {
 FontAtlas *FontAtlasLoadBinaryStream(u8 *base_ptr, u32 sz_data) {
     FontAtlas *atlas = (FontAtlas*) base_ptr;
     u32 sz_base = sizeof(FontAtlas);
-    u32 sz_glyphs = 0;
     u32 sz_bitmap = atlas->texture.width * atlas->texture.height;
-
     assert(sz_data == sz_base + sz_bitmap && "sanity check data size");
 
     // set pointers
     atlas->glyphs = { atlas->glyphs_mem, 128 };
-    atlas->texture.img = base_ptr + sz_base + sz_glyphs;
+    atlas->texture.img = base_ptr + sz_base;
     atlas->advance_x = { &atlas->advance_x_mem[0], 128 };
     atlas->cooked = { &atlas->cooked_mem[0], 128 };
 
-    // TODO: move into the generator code
-    for (u32 i = 0; i < 128; ++i) {
-        Glyph g = atlas->glyphs.lst[i];
-        QuadHexaVertex q = GlyphQuadCook(g);
-        atlas->cooked.lst[i] = q;
-        atlas->advance_x.lst[i] = g.adv_x;
-    }
     return atlas;
 };
 FontAtlas *FontAtlasLoadBinary128(MArena *a_dest, char *filename, u32 *sz = NULL) {
@@ -129,18 +120,16 @@ FontAtlas *FontAtlasLoadBinary128(MArena *a_dest, char *filename, u32 *sz = NULL
 };
 void FontAtlasSaveBinary128(MArena *a_tmp, char *filename, FontAtlas atlas) {
     u32 sz_base = sizeof(FontAtlas);
-    u32 sz_glyphs = 128 * sizeof(Glyph);
     u32 sz_bitmap = atlas.texture.width * atlas.texture.height;
 
     FontAtlas *atlas_inlined = (FontAtlas*) ArenaPush(a_tmp, &atlas, sz_base);
-    ArenaPush(a_tmp, atlas_inlined->glyphs.lst, sz_glyphs);
     ArenaPush(a_tmp, atlas_inlined->texture.img, sz_bitmap);
 
     // invalidate pointers
     atlas_inlined->glyphs.lst = 0;
     atlas_inlined->texture.img = 0;
 
-    SaveFile(filename, (u8*) atlas_inlined, sz_base + sz_glyphs + sz_bitmap);
+    SaveFile(filename, (u8*) atlas_inlined, sz_base + sz_bitmap);
 }
 
 

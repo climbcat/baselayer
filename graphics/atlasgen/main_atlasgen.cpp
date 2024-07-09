@@ -107,6 +107,19 @@ FontAtlas CreateCharAtlas(MArena *a_dest, u8 *font, s32 line_height) {
 
         ++aidx;
     }
+
+
+    // set up convenient helper data; cooked quads and advance_x list
+    atlas.advance_x = { &atlas.advance_x_mem[0], 128 };
+    atlas.cooked = { &atlas.cooked_mem[0], 128 };
+    for (u32 i = 0; i < 128; ++i) {
+        Glyph g = atlas.glyphs.lst[i];
+        QuadHexaVertex q = GlyphQuadCook(g);
+        atlas.cooked.lst[i] = q;
+        atlas.advance_x.lst[i] = g.adv_x;
+    }
+
+
     stbi_write_png("atlas.png", atlas.texture.width, atlas.texture.height, 1, atlas.texture.img, atlas.texture.width);
     printf("\n");
     printf("wrote atlas image to atlas.png\n");
@@ -152,6 +165,7 @@ int main (int argc, char **argv) {
     Str name = StrBasename( (char*) font_filename);
     StrPrint("", name, "\n");
     //char *font_filename = CLAGetFirstArg(argc, argv);
+
 
     MContext *ctx = InitBaselayer();
     u64 sz;
