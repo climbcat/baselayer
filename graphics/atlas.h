@@ -178,7 +178,8 @@ FontAtlas *SetFontAndSize(FontSize font_size) {
 
     char buff[8];
     sprintf(buff, "%.2u", sz_px);
-    Str key_name = StrCat(StrL("cmunrm_"), StrL(buff));
+    //Str key_name = StrCat(StrL("cmunrm_"), StrL(buff));
+    Str key_name = StrCat(StrL("courierprime_"), StrL(buff));
     u64 key = HashStringValue(StrZeroTerm(key_name));
     u64 val = MapGet(&g_font_map, key);
     g_text_plotter = (FontAtlas*) val;

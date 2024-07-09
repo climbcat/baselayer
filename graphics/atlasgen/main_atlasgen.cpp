@@ -161,7 +161,8 @@ int main (int argc, char **argv) {
     
     InitBaselayer();
 
-    const char *font_filename = "fonts/cmunrm.ttf";
+    //const char *font_filename = "fonts/cmunrm.ttf";
+    const char *font_filename = "fonts/courierprime.ttf";
     Str name = StrBasename( (char*) font_filename);
     StrPrint("", name, "\n");
     //char *font_filename = CLAGetFirstArg(argc, argv);
