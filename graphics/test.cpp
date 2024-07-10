@@ -612,5 +612,5 @@ void Test() {
     //TestLayoutGlyphQuads();
     TestBrownianGlyphs();
     //TestUIDragPanel();
-    //TestUILayoutWidgetAPI();
+    TestUILayoutWidgetAPI();
 }
