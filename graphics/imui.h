@@ -434,7 +434,7 @@ bool UI_Button(const char *text) {
         w->features |= WF_DRAW_TEXT;
         w->features |= WF_DRAW_BACKGROUND_AND_BORDER;
 
-        w->w = 100;
+        w->w = 120;
         w->h = 50;
         w->text = Str { (char*) text, _strlen( (char*) text) };
         w->sz_font = FS_24;
