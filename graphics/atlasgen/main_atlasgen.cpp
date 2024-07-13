@@ -141,49 +141,13 @@ Str StrSprintf(Str dest, Str small) {
 }
 
 
-int main (int argc, char **argv) {
-    TimeProgram;
-
-    bool do_test = true;
-
-    if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv)) {
-        printf("usage: supply .ttf font file as the first arg\n");
-        printf("\n");
-        printf("--help:          display help (this text)\n");
-        printf("--size [size]    generated font size / line height in pixels\n");
-    }
-    else if (argc < 2 && !do_test) {
-        printf("Input a true type font to generate atlas\n");
-    }
-    else if (CLAContainsArg("--size", argc, argv) || CLAContainsArg("-h", argc, argv)) {
-        printf("TODO: impl. --size\n");
-    }
-    
-    InitBaselayer();
-
-    //const char *font_filename = "fonts/cmunrm.ttf";
-    const char *font_filename = "fonts/courierprime.ttf";
-    Str name = StrBasename( (char*) font_filename);
-    StrPrint("", name, "\n");
-    //char *font_filename = CLAGetFirstArg(argc, argv);
-
-
-    MContext *ctx = InitBaselayer();
-    u64 sz;
-    u8* font = LoadFileMMAP(font_filename, &sz);
-    if (font == NULL) {
-        exit(0);
-    }
-
-    // data stream linked list & save file handle
-    ResourceStreamHandle stream = {};
-
+void CompileFontAndPushToStream(MArena *a_tmp, MArena *a_stream, ResourceStreamHandle *stream, Str font_name, u8* font_data) {
     s32 line_sizes[8] = { 18, 24, 30, 36, 48, 60, 72, 84 };
     for (u32 i = 0; i < 8; ++i) {
         s32 sz_px = line_sizes[i];
 
-        FontAtlas atlas = CreateCharAtlas(ctx->a_pers, font, sz_px);
-        sprintf(atlas.font_name, "%s", StrZeroTerm(name));
+        FontAtlas atlas = CreateCharAtlas(a_tmp, font_data, sz_px);
+        sprintf(atlas.font_name, "%s", StrZeroTerm(font_name));
         sprintf(atlas.key_name, "%s", atlas.font_name);
         sprintf(atlas.key_name + strlen(atlas.key_name), "_%d", atlas.sz_px);
         printf("font_name: %s\n", atlas.font_name);
@@ -204,15 +168,15 @@ int main (int argc, char **argv) {
 
         char buff[200];
         sprintf(buff, "_%d", sz_px);
-        Str fname = StrCat(name, buff);
+        Str fname = StrCat(font_name, buff);
         fname = StrCat(fname, ext);
         StrPrint("", fname, "\n");
 
         // save/load/print again (should not appear jumbled on screen)
-        FontAtlasSaveBinary128(ctx->a_tmp, StrZeroTerm(fname), atlas);
+        FontAtlasSaveBinary128(a_tmp, StrZeroTerm(fname), atlas);
 
         u32 loaded_size;
-        FontAtlas *loaded = FontAtlasLoadBinary128(ctx->a_pers, StrZeroTerm(fname), &loaded_size);
+        FontAtlas *loaded = FontAtlasLoadBinary128(a_tmp, StrZeroTerm(fname), &loaded_size);
         printf("atlas test loading from disk (glyphs chars 32-%u):\n", loaded->glyphs.len);
         for (u32 i = 32; i < loaded->glyphs.len; ++i) {
             Glyph g = loaded->glyphs.lst[i];
@@ -224,8 +188,55 @@ int main (int argc, char **argv) {
         // TODO: inlined texture -> can we be suar
 
         // push to stream
-        ResourceStreamPushData(ctx->a_life, &stream, RT_FONT, loaded->key_name, &atlas, sizeof(atlas));
-        ResourceStreamPushDataExtra(ctx->a_life, &stream, atlas.texture.img, atlas.texture.width * atlas.texture.height);
+        ResourceStreamPushData(a_stream, stream, RT_FONT, loaded->key_name, &atlas, sizeof(atlas));
+        ResourceStreamPushDataExtra(a_stream, stream, atlas.texture.img, atlas.texture.width * atlas.texture.height);
     }
+}
+
+void RunProgram() {
+    InitBaselayer();
+
+    //const char *font_filename = "fonts/cmunrm.ttf";
+    const char *font_filename = "fonts/courierprime.ttf";
+
+    Str name = StrBasename( (char*) font_filename);
+    StrPrint("", name, "\n");
+    //char *font_filename = CLAGetFirstArg(argc, argv);
+
+
+    MContext *ctx = InitBaselayer();
+    u64 sz;
+    u8* font = LoadFileMMAP(font_filename, &sz);
+    if (font == NULL) {
+        exit(0);
+    }
+
+    // data stream linked list & save file handle
+    ResourceStreamHandle stream = {};
+    CompileFontAndPushToStream(ctx->a_tmp, ctx->a_life, &stream, name, font);
+
     ResourceStreamSave(&stream);
+}
+
+
+int main (int argc, char **argv) {
+    TimeProgram;
+
+    bool do_test = true;
+
+    if (CLAContainsArg("--help", argc, argv) || CLAContainsArg("-h", argc, argv)) {
+        printf("usage: supply .ttf font file as the first arg\n");
+        printf("\n");
+        printf("--help:          display help (this text)\n");
+        printf("--size [size]    generated font size / line height in pixels\n");
+    }
+    else if (argc < 2 && !do_test) {
+        printf("Input a true type font to generate atlas\n");
+    }
+    else if (CLAContainsArg("--size", argc, argv) || CLAContainsArg("-h", argc, argv)) {
+        printf("TODO: impl. --size\n");
+    }
+    else  {
+        RunProgram();
+    }
 }
