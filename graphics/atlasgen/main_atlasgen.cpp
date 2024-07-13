@@ -194,26 +194,26 @@ void CompileFontAndPushToStream(MArena *a_tmp, MArena *a_stream, ResourceStreamH
 }
 
 void RunProgram() {
-    InitBaselayer();
-
-    //const char *font_filename = "fonts/cmunrm.ttf";
-    const char *font_filename = "fonts/courierprime.ttf";
-
-    Str name = StrBasename( (char*) font_filename);
-    StrPrint("", name, "\n");
-    //char *font_filename = CLAGetFirstArg(argc, argv);
-
-
     MContext *ctx = InitBaselayer();
-    u64 sz;
-    u8* font = LoadFileMMAP(font_filename, &sz);
-    if (font == NULL) {
-        exit(0);
-    }
+    u64 filesize;
+
 
     // data stream linked list & save file handle
     ResourceStreamHandle stream = {};
-    CompileFontAndPushToStream(ctx->a_tmp, ctx->a_life, &stream, name, font);
+
+    {
+        const char *filename = "fonts/courierprime.ttf";
+        u8* font = LoadFileMMAP( filename, &filesize );
+        if (font == NULL) { exit(0); }
+        CompileFontAndPushToStream(ctx->a_tmp, ctx->a_life, &stream, StrBasename(StrL(filename)), font);
+    }
+    {
+        const char *filename = "fonts/cmunrm.ttf";
+        u8* font = LoadFileMMAP( filename, &filesize );
+        if (font == NULL) { exit(0); }
+        CompileFontAndPushToStream(ctx->a_tmp, ctx->a_life, &stream, StrBasename(StrL(filename)), font);
+    }
+
 
     ResourceStreamSave(&stream);
 }
