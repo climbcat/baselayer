@@ -93,6 +93,8 @@ void ResourceStreamLoad(MArena *a_dest, u8 *resource_data, HashMap *map_fonts, H
             
             MapPut(map_fonts, font->GetKey(), font);
             MapPut(map_texture_bs, font->GetKey(), &font->texture);
+
+            printf("loaded font resource: %s\n", font->key_name);
         }
         else {
             printf("WARN: non-font resource detected\n");

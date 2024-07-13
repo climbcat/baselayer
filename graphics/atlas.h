@@ -176,15 +176,21 @@ FontAtlas *SetFontAndSize(FontSize font_size) {
         default: break;
     }
 
+    // TODO: Fix this mini-disaster of code quality and elegance <3
+    //      How do we set the font? Could we do it by enum for now, hardcoding all known fonts?
+    //      We could also do it by index, and have a function that returnd the font name by index.
+    //      (This index is set by the resource loaded, encountering font names, adding unique
+    //      strings into a list).
+
     char buff[8];
     sprintf(buff, "%.2u", sz_px);
     //Str key_name = StrCat(StrL("cmunrm_"), StrL(buff));
     Str key_name = StrCat(StrL("courierprime_"), StrL(buff));
+
+
     u64 key = HashStringValue(StrZeroTerm(key_name));
     u64 val = MapGet(&g_font_map, key);
     g_text_plotter = (FontAtlas*) val;
-
-    // put texture_b into the texture_b map
     return g_text_plotter;
 }
 FontSize GetFontSize() {
