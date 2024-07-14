@@ -5,6 +5,7 @@
 #include "geometry.h"
 #include "gtypes.h"
 #include "sprite.h"
+#include "resource.h"
 
 
 //
@@ -78,7 +79,9 @@ struct FontAtlas {
     u64 GetKey() {
         return HashStringValue(key_name);
     }
-
+    Str GetFontName() {
+        return Str { this->font_name, _strlen(this->font_name) };
+    }
     void Print() {
         printf("font_sz %u, bitmap_sz %u %u, cell_w %u, ln_height %u, ln_ascend %u, glyphs %u, data ptrs %p %p\n", sz_px, texture.width, texture.height, cell_width, ln_height, ln_ascend, glyphs.len, glyphs.lst, texture.img);
     }
@@ -155,14 +158,7 @@ enum FontSize {
 
     FS_CNT,
 };
-//  Notes on fonts and sizes: 
-//
-//  ATM, there are 8 different sizes, and only one font. 
-//  When fonts are loaded dynamically, there will be 8 * nfonts entries in the pointer list, and 
-//  a slightly more complicated keying. Maybe we can just add 8*font_idx to the font_size.
-static HashMap g_font_map;
-static FontAtlas *g_text_plotter;
-FontAtlas *SetFontAndSize(FontSize font_size) {
+u32 FontSizeToPx(FontSize font_size) {
     u32 sz_px = 0;
     switch (font_size) {
         case FS_18: sz_px = 18; break;
@@ -175,23 +171,50 @@ FontAtlas *SetFontAndSize(FontSize font_size) {
         case FS_84: sz_px = 84; break;
         default: break;
     }
+    return sz_px;
+}
+FontSize FontSizeFromPx(u32 sz_px) {
+    FontSize fs = FS_18;
+    switch (sz_px) {
+        case 18 : fs = FS_18; break;
+        case 24 : fs = FS_24; break;
+        case 30 : fs = FS_30; break;
+        case 36 : fs = FS_36; break;
+        case 48 : fs = FS_48; break;
+        case 60 : fs = FS_60; break;
+        case 72 : fs = FS_72; break;
+        case 84 : fs = FS_84; break;
+        default: break;
+    }
+    return fs;
+}
+static HashMap g_font_map;
+static StrLst *g_font_names;
+static FontAtlas *g_text_plotter;
+FontAtlas *SetFontAndSize(FontSize font_size, Str font_name) {
+    // font name
+    font_name = StrCat(font_name, "_");
 
-    // TODO: Fix this mini-disaster of code quality and elegance <3
-    //      How do we set the font? Could we do it by enum for now, hardcoding all known fonts?
-    //      We could also do it by index, and have a function that returnd the font name by index.
-    //      (This index is set by the resource loaded, encountering font names, adding unique
-    //      strings into a list).
-
+    // size
     char buff[8];
-    sprintf(buff, "%.2u", sz_px);
-    //Str key_name = StrCat(StrL("cmunrm_"), StrL(buff));
-    Str key_name = StrCat(StrL("courierprime_"), StrL(buff));
+    sprintf(buff, "%.2u", FontSizeToPx(font_size));
+    Str key_name = StrCat(font_name, StrL(buff));
 
-
+    // get by key
     u64 key = HashStringValue(StrZeroTerm(key_name));
     u64 val = MapGet(&g_font_map, key);
     g_text_plotter = (FontAtlas*) val;
     return g_text_plotter;
+}
+FontAtlas *SetFont(Str font_name) {
+    assert(g_text_plotter != NULL);
+
+    return SetFontAndSize( FontSizeFromPx(g_text_plotter->sz_px), font_name);
+}
+FontAtlas *SetFontSize(FontSize font_size) {
+    assert(g_text_plotter != NULL);
+
+    return SetFontAndSize( font_size, g_text_plotter->GetFontName());
 }
 FontSize GetFontSize() {
     s32 sz_px = g_text_plotter->sz_px;
@@ -209,7 +232,28 @@ FontSize GetFontSize() {
 }
 
 
-#include "resource.h"
+#define ATLAS_MAX_CNT 100
+
+
+void ResourceStreamLoad(ResourceHdr *resource, HashMap *map_fonts, HashMap *map_texture_bs) {
+    s32 font_cnt = 0;
+    while (resource) {
+        if (resource->tpe == RT_FONT) {
+
+            FontAtlas *font = FontAtlasLoadBinaryStream(resource->GetInlinedData(), resource->data_sz);
+            
+            MapPut(map_fonts, font->GetKey(), font);
+            MapPut(map_texture_bs, font->GetKey(), &font->texture);
+
+            printf("loaded font resource: %s\n", font->key_name);
+        }
+        else {
+            printf("WARN: non-font resource detected\n");
+        }
+        resource = resource->GetInlinedNext();
+    }
+    printf("loaded %d resources\n", font_cnt);
+}
 
 
 void InitFonts(MContext *ctx) {
@@ -219,7 +263,7 @@ void InitFonts(MContext *ctx) {
         return;
     }
 
-    g_font_map = InitMap(ctx->a_life, 10);
+    g_font_map = InitMap(ctx->a_life, ATLAS_MAX_CNT);
 
     u64 sz_file;
     u8 *readonly_data = (u8*) LoadFileMMAP("all.res", &sz_file);
@@ -229,11 +273,53 @@ void InitFonts(MContext *ctx) {
         printf("please supply an 'all.res' font resource file with the executable, exiting ...\n");
         exit(0);
     }
-    ResourceStreamLoad(ctx->a_life, resource_data, &g_font_map, &g_texb_map);
+    ResourceStreamLoad((ResourceHdr*) resource_data, &g_font_map, &g_texb_map);
 
-    // TODO: put atlas textures into the texture map, using the u64 keys
 
-    SetFontAndSize(FS_48);
+    // TODO: semantic compression
+
+
+    List<u64> fn_hashes = InitList<u64>(ctx->a_tmp, ATLAS_MAX_CNT);
+    StrLst *font_names_iter = NULL;
+
+    // iterate through all keys (put this into the hash.h file)
+    for (u32 i = 0; i < g_font_map.slots.len; ++i) {
+        HashMapKeyVal kv = g_font_map.slots.lst[i];
+        if (kv.key != 0) {
+            FontAtlas *atlas = (FontAtlas*) g_font_map.slots.lst[i].val;
+            printf("slot: %s\n", atlas->font_name);
+
+            if (fn_hashes.AddUnique(HashStringValue(atlas->font_name)) != NULL) {
+                Str entry = { atlas->font_name, _strlen(atlas->font_name) };
+                font_names_iter = StrLstPut(entry, font_names_iter);
+                if (g_font_names == NULL) {
+                    g_font_names = font_names_iter;
+                }
+            }
+        }
+    }
+    for (u32 i = 0; i < g_font_map.colls.len; ++i) {
+        HashMapKeyVal kv = g_font_map.colls.lst[i];
+        if (kv.key != 0) {
+            FontAtlas *atlas = (FontAtlas*) g_font_map.colls.lst[i].val;
+            printf("coll: %s\n", atlas->font_name);
+
+            if (fn_hashes.AddUnique(HashStringValue(atlas->font_name)) != NULL) {
+                Str entry = { atlas->font_name, _strlen(atlas->font_name) };
+                font_names_iter = StrLstPut(entry, font_names_iter);
+                if (g_font_names == NULL) {
+                    g_font_names = font_names_iter;
+                }
+            }
+        }
+    }
+    StrLstPrint(g_font_names);
+
+
+    //
+
+
+    SetFontAndSize(FS_48, g_font_names->GetStr());
 }
 
 

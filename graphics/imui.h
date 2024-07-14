@@ -378,7 +378,7 @@ void UI_FrameEnd(MArena *a_tmp) {
         }
 
         if (w->features & WF_DRAW_TEXT) {
-            SetFontAndSize(w->sz_font);
+            SetFontSize(w->sz_font);
             s32 w_out;
             s32 h_out;
             List<QuadHexaVertex> txt_quads = LayoutTextLine(w->text, w->x0, w->y0, &w_out, &h_out, w->col_text);
@@ -539,10 +539,10 @@ void UI_Label(const char *text) {
     w->col_text = ColorBlack();
 
     FontSize fs = GetFontSize();
-    SetFontAndSize(w->sz_font);
+    SetFontSize(w->sz_font);
     w->w = TextLineWidth(g_text_plotter, w->text);;
     w->h = g_text_plotter->ln_measured;
-    SetFontAndSize(fs);
+    SetFontSize(fs);
 
     TreeSibling(w);
 }
