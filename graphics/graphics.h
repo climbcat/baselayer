@@ -9,13 +9,13 @@
 #include "geometry.h"
 #include "sprite.h"
 #include "atlas.h"
-#include "imui.h"
 
 #include "indices.h"
 #include "octree.h"
 
 #include "shaders.h"
 #include "ui.h"
+#include "imui.h"
 #include "entity.h"
 #include "swrender.h"
 #include "gameloop.h"
@@ -26,7 +26,7 @@ GameLoopOne *InitGraphics(MContext *ctx) {
     ImageRGBA render_target = loop->GetRenderer()->GetImageAsRGBA();
     InitSprites(ctx, render_target);
     InitFonts(ctx);
-    InitImUi();
+    InitImUi(render_target.width, render_target.height, g_mouse, &loop->frameno);
 
     return loop;
 }

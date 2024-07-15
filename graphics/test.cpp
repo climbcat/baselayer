@@ -528,13 +528,6 @@ void TestUILayoutWidgetAPI() {
     while (loop->GameLoopRunning()) {
         loop->FrameStart2D(ColorGray(0.95f));
 
-        mlclicked = g_mouse->ClickedRecently();
-        mdl = g_mouse->dl;
-        ml = g_mouse->l;
-        mx = g_mouse->x;
-        my = g_mouse->y;
-        frameno = loop->frameno;
-
         UI_LayoutVertical();
 
         if (false) {

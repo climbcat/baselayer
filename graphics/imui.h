@@ -2,6 +2,9 @@
 #define __IMUI_H__
 
 
+#include "ui.h"
+
+
 //
 //  UI Panel quad layout
 //
@@ -156,20 +159,14 @@ static MPoolT<Widget> _p_widgets;
 static MPoolT<Widget> *p_widgets;
 static Stack<Widget*> _s_widgets;
 static Stack<Widget*> *s_widgets;
-static HashMap _map;
-static HashMap *map;
+static HashMap _m_widgets;
+static HashMap *m_widgets;
 static Widget _w_root;
 static Widget *w_layout;
 static Widget *w_hot;
 static Widget *w_active;
-
-
-s32 mdl;
-bool ml;
-bool mlclicked;
-s32 mx;
-s32 my;
-u64 frameno;
+static u64 *g_frameno_imui;
+static MouseTrap *g_mouse_imui;
 
 
 void TreeSibling(Widget *w) {
@@ -208,13 +205,18 @@ void TreePop() {
 }
 
 
-void InitImUi(u32 width = 1280, u32 height = 800) {
+void InitImUi(u32 width, u32 height, MouseTrap *mouse, u64 *frameno) {
     if (g_a_imui != NULL) {
         printf("WARN: imui re-initialize\nd");
 
         // TODO: reset / clear
     }
     else {
+        assert(mouse != NULL);
+        assert(frameno != NULL);
+        g_mouse_imui = mouse;
+        g_frameno_imui = frameno;
+
         MArena _g_a_imui = ArenaCreate();
         g_a_imui = &_g_a_imui;
 
@@ -226,8 +228,8 @@ void InitImUi(u32 width = 1280, u32 height = 800) {
         s_widgets = &_s_widgets;
 
         // TODO: It seems we do need to remove from the hash-map, thus impl. MapDelete()
-        _map = InitMap(g_a_imui, max_widgets);
-        map = &_map;
+        _m_widgets = InitMap(g_a_imui, max_widgets);
+        m_widgets = &_m_widgets;
 
         _w_root = {};
         _w_root.features |= WF_LAYOUT_H;
@@ -304,7 +306,7 @@ void WidgetWrap_Tree(Widget *root) {
 
 
 void UI_FrameEnd(MArena *a_tmp) {
-    if (ml == false) {
+    if (g_mouse_imui->l == false) {
         w_active = NULL;
     }
 
@@ -397,14 +399,14 @@ void UI_FrameEnd(MArena *a_tmp) {
 
 
     // clean up pass
-    _w_root.frame_touched = frameno;
+    _w_root.frame_touched = *g_frameno_imui;
     w_layout = &_w_root;
     for (u32 i = 0; i < all_widgets.len; ++i) {
         Widget *w = all_widgets.lst[i];
 
         // prune
-        if (w->frame_touched < frameno) {
-            MapRemove(map, w->hash_key, w);
+        if (w->frame_touched < *g_frameno_imui) {
+            MapRemove(m_widgets, w->hash_key, w);
             p_widgets->Free(w);
         }
         // clean
@@ -428,7 +430,7 @@ void UI_FrameEnd(MArena *a_tmp) {
 bool UI_Button(const char *text) {
     u64 key = HashStringValue(text);
 
-    Widget *w = (Widget*) MapGet(map, key);
+    Widget *w = (Widget*) MapGet(m_widgets, key);
     if (w == NULL) {
         w = p_widgets->Alloc();
         w->features |= WF_DRAW_TEXT;
@@ -439,18 +441,18 @@ bool UI_Button(const char *text) {
         w->text = Str { (char*) text, _strlen( (char*) text) };
         w->sz_font = FS_24;
 
-        MapPut(map, key, w);
+        MapPut(m_widgets, key, w);
     }
-    w->frame_touched = frameno;
+    w->frame_touched = *g_frameno_imui;
 
-    bool hot = w->rect.DidCollide( mx, my ) && (w_active == NULL || w_active == w);
+    bool hot = w->rect.DidCollide( g_mouse_imui->x, g_mouse_imui->y ) && (w_active == NULL || w_active == w);
     if (hot) {
-        if (ml) {
+        if (g_mouse_imui->l) {
             w_active = w;
         }
     }
     bool active = (w_active == w);
-    bool clicked = active && hot && (mdl == 1 || mlclicked);
+    bool clicked = active && hot && (g_mouse_imui->dl == 1 || g_mouse_imui->ClickedRecently());
 
     if (active) {
         // ACTIVE: mouse-down was engaged on this element
@@ -533,7 +535,7 @@ void UI_Label(const char *text) {
     w->features |= WF_DRAW_TEXT;
 
     w->text = Str { (char*) text, _strlen( (char*) text) };
-    w->sz_font = FS_48;
+    w->sz_font = GetFontSize();
     w->col_bckgrnd = ColorGray(0.9f);
     w->col_border = ColorBlack();
     w->col_text = ColorBlack();

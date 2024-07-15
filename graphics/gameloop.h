@@ -118,7 +118,7 @@ struct GameLoopOne {
         _is_running = !(exit_click || exit_esc || _exit_request);
         return _is_running;
     }
-    bool IsRunning() {
+    bool GetIsRunning() {
         return _is_running;
     }
 
