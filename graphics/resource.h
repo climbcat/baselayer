@@ -57,8 +57,6 @@ void ResourceStreamPushData(MArena *a_dest, ResourceStreamHandle *stream, Resour
     if (stream->first == NULL) {
         stream->first = stream->current;
     }
-
-    // push the data section
     ArenaPush(a_dest, data, data_sz);
 }
 

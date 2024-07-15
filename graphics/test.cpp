@@ -537,7 +537,7 @@ void TestUILayoutWidgetAPI() {
 
         UI_LayoutVertical();
 
-        if (true) {
+        if (false) {
             // builder code: nested horizontal layout in a vertical layout
             bool first_v = true;
             bool nested_h = true;
@@ -570,8 +570,10 @@ void TestUILayoutWidgetAPI() {
 
 
         if (true) {
+            UI_Pop();
+
             // builder code: also centering panels
-            UI_CoolPanel(500, 500);
+            UI_CoolPanel(600, 600);
             UI_SpaceV(30);
             UI_Label("A descriptive label");
             UI_SpaceV(30);
@@ -611,7 +613,7 @@ void Test() {
     //TestPointCloudsBoxesAndSceneGraph();
     //TestIndexSetOperations();
     //TestLayoutGlyphQuads();
-    TestBrownianGlyphs();
+    //TestBrownianGlyphs();
     //TestUIDragPanel();
     TestUILayoutWidgetAPI();
 }

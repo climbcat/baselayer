@@ -245,7 +245,7 @@ void ResourceStreamLoad(ResourceHdr *resource, HashMap *map_fonts, HashMap *map_
             MapPut(map_fonts, font->GetKey(), font);
             MapPut(map_texture_bs, font->GetKey(), &font->texture);
 
-            printf("loaded font resource: %s\n", font->key_name);
+            font_cnt++;
         }
         else {
             printf("WARN: non-font resource detected\n");
@@ -287,7 +287,6 @@ void InitFonts(MContext *ctx) {
         HashMapKeyVal kv = g_font_map.slots.lst[i];
         if (kv.key != 0) {
             FontAtlas *atlas = (FontAtlas*) g_font_map.slots.lst[i].val;
-            printf("slot: %s\n", atlas->font_name);
 
             if (fn_hashes.AddUnique(HashStringValue(atlas->font_name)) != NULL) {
                 Str entry = { atlas->font_name, _strlen(atlas->font_name) };
@@ -302,7 +301,6 @@ void InitFonts(MContext *ctx) {
         HashMapKeyVal kv = g_font_map.colls.lst[i];
         if (kv.key != 0) {
             FontAtlas *atlas = (FontAtlas*) g_font_map.colls.lst[i].val;
-            printf("coll: %s\n", atlas->font_name);
 
             if (fn_hashes.AddUnique(HashStringValue(atlas->font_name)) != NULL) {
                 Str entry = { atlas->font_name, _strlen(atlas->font_name) };
@@ -313,6 +311,8 @@ void InitFonts(MContext *ctx) {
             }
         }
     }
+
+    printf("loaded %d fonts: \n", StrListLen(g_font_names));
     StrLstPrint(g_font_names);
 
 
