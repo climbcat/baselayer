@@ -228,7 +228,6 @@ int main (int argc, char **argv) {
         printf("usage: supply .ttf font file as the first arg\n");
         printf("\n");
         printf("--help:          display help (this text)\n");
-        printf("--size [size]    generated font size / line height in pixels\n");
     }
     else if (argc < 2 && !do_test) {
         printf("Input a true type font to generate atlas\n");
