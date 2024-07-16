@@ -3,7 +3,6 @@
 
 
 #include "../baselayer.h"
-#include "atlas.h"
 
 
 enum ResourceType {

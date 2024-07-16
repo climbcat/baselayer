@@ -6,17 +6,19 @@
 #include <assert.h>
 
 #include "gtypes.h"
+#include "entity.h"
 #include "geometry.h"
+
+#include "ui.h"
 #include "sprite.h"
+#include "resource.h"
 #include "atlas.h"
+#include "imui.h"
 
 #include "indices.h"
 #include "octree.h"
 
 #include "shaders.h"
-#include "ui.h"
-#include "imui.h"
-#include "entity.h"
 #include "swrender.h"
 #include "gameloop.h"
 
