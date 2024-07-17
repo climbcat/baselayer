@@ -3,7 +3,7 @@
 #include "test.cpp"
 
 
-void RunProgram() {
+void ExtractAliens() {
     printf("Soft rendering demo ...\n");
 
     GameLoopOne *loop = InitGameLoopOne();
@@ -45,7 +45,7 @@ int main (int argc, char **argv) {
         Test();
     }
     else {
-        RunProgram();
+        ExtractAliens();
     }
 
     return 0;

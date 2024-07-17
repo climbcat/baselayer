@@ -193,7 +193,7 @@ void CompileFontAndPushToStream(MArena *a_tmp, MArena *a_stream, ResourceStreamH
     }
 }
 
-void RunProgram() {
+void ExtractAliens() {
     MContext *ctx = InitBaselayer();
     u64 filesize;
 
@@ -236,6 +236,6 @@ int main (int argc, char **argv) {
         printf("TODO: impl. --size\n");
     }
     else  {
-        RunProgram();
+        ExtractAliens();
     }
 }
