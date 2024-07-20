@@ -26,8 +26,8 @@ struct Vector3i {
     u32 i3;
 };
 struct Vector2i {
-    u32 i1;
-    u32 i2;
+    s32 i1;
+    s32 i2;
 };
 struct Vector2u {
     u32 i1;
