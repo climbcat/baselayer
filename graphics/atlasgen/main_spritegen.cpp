@@ -4,6 +4,7 @@
 #include "../../baselayer.h"
 #include "../gtypes.h"
 #include "../atlas.h"
+#include "../sprite.h"
 #include "../resource.h"
 
 
@@ -11,17 +12,6 @@
 #include "stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
-
-
-struct Sprite {
-    s32 w;
-    s32 h;
-    f32 u0;
-    f32 u1;
-    f32 v0;
-    f32 v1;
-    u32 tex_id;
-};
 
 
 List<Sprite> CreateGridSprites(MArena *a_dest, u8* data, s32 nx, s32 ny, s32 sprite_w, s32 sprite_h, s32 bitmap_w, s32 bitmap_h, u32 texture_id) {

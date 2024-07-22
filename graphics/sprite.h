@@ -2,6 +2,17 @@
 #define __SPRITE_H__
 
 
+struct Sprite {
+    s32 w;
+    s32 h;
+    f32 u0;
+    f32 u1;
+    f32 v0;
+    f32 v1;
+    u32 tex_id; // <-- sprite should not hold a texture id ??
+};
+
+
 //
 //  Quads
 
