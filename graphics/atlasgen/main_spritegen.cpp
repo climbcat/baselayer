@@ -74,18 +74,17 @@ Color SampleTextureRGBA(ImageRGBA *tex, f32 x, f32 y) {
     return b;
 }
 inline
-Color SampleTextureRGBASafe(ImageRGBA *tex, f32 x, f32 y) {
+Color SampleTextureRGBASafe(ImageRGBA *tex, f32 x, f32 y, Color col_default) {
     s32 i = (s32) round(tex->width * x);
     s32 j = (s32) round(tex->height * y);
     if (i < 0 || i >= tex->width || j < 0 || j >= tex->height) {
-        return Color { 0, 0, 0, 255 };
+        return col_default;
     }
     u32 idx = tex->width * j + i;
     Color b = tex->img[idx];
     return b;
 }
 void BlitSprite(Sprite s, s32 x0, s32 y0, ImageRGBA *img_dest, ImageRGBA *img_src) {
-
     s32 q_w = s.size.i1;
     s32 q_h = s.size.i2;
     s32 q_x0 = x0;
@@ -118,8 +117,9 @@ void BlitSprite(Sprite s, s32 x0, s32 y0, ImageRGBA *img_dest, ImageRGBA *img_sr
             f32 x = q_u0 + i * q_scale_x;
             f32 y = q_v0 + j * q_scale_y;
 
-            //Color color_src = SampleTextureRGBA(img_src, x, y);
-            Color color_src = SampleTextureRGBASafe(img_src, x, y);
+            // TODO: how do we regularize this code?
+            Color color_src = SampleTextureRGBASafe(img_src, x, y, Color { 0, 0, 0, 255 });
+
             if (color_src.a != 0) {
                 // rudimentary alpha-blending
                 u32 idx = j_img * stride_img + i_img;
@@ -247,6 +247,14 @@ void ExtractAliens() {
 
     SpriteMap *smap = CompileSpriteMapInline(ctx->a_pers, sprites, &textures);
 
+    // manually set all black pixels to transparant
+    Color black = Color { 0, 0, 0, 255 };
+    for (u32 i = 0; i < smap->texture.width * smap->texture.height; ++i) {
+        Color col = smap->texture.img[i];
+        if ((col.r == 0) && (col.g == 0) && (col.b == 0)) {
+            smap->texture.img[i].a = 0;
+        }
+    }
 
     //stbi_write_bmp("spritemap.bmp", bitmap_w_01, bitmap_h_01, 3, data_02);
     stbi_write_bmp("spritemap.bmp", smap->texture.width, smap->texture.height, 4, smap->texture.img);
