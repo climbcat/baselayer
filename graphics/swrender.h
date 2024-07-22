@@ -278,8 +278,8 @@ struct SwRenderer {
     bool initialized;
 
     // settings
-    u32 w;
-    u32 h;
+    s32 w;
+    s32 h;
     float aspect;
     u32 nchannels;
 
