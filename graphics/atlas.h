@@ -13,32 +13,26 @@
 
 
 struct Glyph {
-    u32 c; // represents ascii char
-
-    s32 x0; // left side bearing
-    s32 y0; // y ascent (most often < 0)
-    s32 w; // glyph width
-    s32 h; // glyph height
-    s32 adv_x; // advance to next glyph
-
-    f32 tx0; // texture coords
+    s32 w;
+    s32 h;
+    f32 tx0;
     f32 ty0;
     f32 tx1;
     f32 ty1;
 };
-QuadHexaVertex GlyphQuadCook(Glyph g) {
+QuadHexaVertex GlyphQuadCook(Glyph g, s32 x0, s32 y0) {
     QuadHexaVertex q;
 
-    Vector2f ulc_pos { (f32) g.x0, (f32) g.y0 };
+    Vector2f ulc_pos { (f32) x0, (f32) y0 };
     Vector2f ulc_tex { (f32) g.tx0, (f32) g.ty0 };
 
-    Vector2f urc_pos { (f32) g.x0 + g.w, (f32) g.y0 };
+    Vector2f urc_pos { (f32) x0 + g.w, (f32) y0 };
     Vector2f urc_tex { (f32) g.tx1, (f32) g.ty0 };
     
-    Vector2f lrc_pos { (f32) g.x0 + g.w, (f32) g.y0 + g.h };
+    Vector2f lrc_pos { (f32) x0 + g.w, (f32) y0 + g.h };
     Vector2f lrc_tex { (f32) g.tx1, (f32) g.ty1 };
 
-    Vector2f llc_pos { (f32) g.x0, (f32) g.y0 + g.h };
+    Vector2f llc_pos { (f32) x0, (f32) y0 + g.h };
     Vector2f llc_tex { (f32) g.tx0, (f32) g.ty1 };
 
     q.verts[0] = QuadVertex { urc_pos, urc_tex };
@@ -70,10 +64,14 @@ struct FontAtlas {
     s32 ln_ascend;
     s32 ln_descend;
     List<u8> advance_x;
+    List<u8> x_lsb;
+    List<s8> y_ascend;
     List<QuadHexaVertex> cooked;
 
     Glyph glyphs_mem[128];
     u8 advance_x_mem[128];
+    u8 x_lsb_mem[128];
+    s8 y_ascend_mem[128];
     QuadHexaVertex cooked_mem[128];
 
     u64 GetKey() {
@@ -84,13 +82,6 @@ struct FontAtlas {
     }
     void Print() {
         printf("font_sz %u, bitmap_sz %u %u, cell_w %u, ln_height %u, ln_ascend %u, glyphs %u, data ptrs %p %p\n", sz_px, texture.width, texture.height, cell_width, ln_height, ln_ascend, glyphs.len, glyphs.lst, texture.img);
-    }
-    void PrintGlyphsQuick() {
-        for (u32 i = 32; i < glyphs.len; ++i) {
-            Glyph g = glyphs.lst[i];
-            printf("%c ", g.c);
-        }
-        printf("\n");
     }
 };
 FontAtlas *FontAtlasLoadBinaryStream(u8 *base_ptr, u32 sz_data) {
@@ -103,6 +94,8 @@ FontAtlas *FontAtlasLoadBinaryStream(u8 *base_ptr, u32 sz_data) {
     atlas->glyphs = { atlas->glyphs_mem, 128 };
     atlas->texture.img = base_ptr + sz_base;
     atlas->advance_x = { &atlas->advance_x_mem[0], 128 };
+    atlas->x_lsb = { &atlas->x_lsb_mem[0], 128 };
+    atlas->y_ascend = { &atlas->y_ascend_mem[0], 128 };
     atlas->cooked = { &atlas->cooked_mem[0], 128 };
 
     return atlas;
@@ -126,7 +119,11 @@ void FontAtlasSaveBinary128(MArena *a_tmp, char *filename, FontAtlas atlas) {
 
     // invalidate pointers
     atlas_inlined->glyphs.lst = 0;
+    atlas_inlined->advance_x.lst = 0;
+    atlas_inlined->x_lsb.lst = 0;
+    atlas_inlined->y_ascend.lst = 0;
     atlas_inlined->texture.img = 0;
+    atlas_inlined->cooked.lst = 0;
 
     SaveFile(filename, (u8*) atlas_inlined, sz_base + sz_bitmap);
 }

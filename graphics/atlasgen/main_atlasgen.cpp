@@ -25,10 +25,13 @@ FontAtlas CreateCharAtlas(MArena *a_dest, u8 *font, s32 line_height) {
     u32 ascii_range = 128;
     u32 ascii_offset = 32;
     u32 nchars = ascii_range - ascii_offset;
-    //List<Glyph> glyphs = InitList<Glyph>(a_dest, sizeof(Glyph) * ascii_range);
 
     FontAtlas atlas = {};
     atlas.glyphs = { &atlas.glyphs_mem[0], 0 };
+    atlas.advance_x = { &atlas.advance_x_mem[0], 128 };
+    atlas.x_lsb = { &atlas.x_lsb_mem[0], 128 };
+    atlas.y_ascend = { &atlas.y_ascend_mem[0], 128 };
+    atlas.cooked = { &atlas.cooked_mem[0], 128 };
 
     printf("\n");
     printf("line height, scale: %d %f\n", line_height, scale);
@@ -50,15 +53,14 @@ FontAtlas CreateCharAtlas(MArena *a_dest, u8 *font, s32 line_height) {
         advance_x = roundf(scale * advance_x);
         lsb = roundf(scale * lsb);
 
-        // put metrics into glyph struct
         Glyph gl;
-        gl.c = c;
-        gl.x0 = lsb;
-        gl.y0 = y0;
         gl.w = x1 - x0;
         gl.h = y1 - y0;
-        gl.adv_x = advance_x;
         atlas.glyphs.Add(gl);
+
+        atlas.advance_x.lst[c] = advance_x;
+        atlas.x_lsb.lst[c] = lsb;
+        atlas.y_ascend.lst[c] = y0;
 
         max_adv = MaxS32(advance_x, max_adv);
         max_ascent = MinS32(y0, max_ascent);
@@ -92,31 +94,28 @@ FontAtlas CreateCharAtlas(MArena *a_dest, u8 *font, s32 line_height) {
         s32 x = (aidx % 16) * atlas.cell_width;
         s32 y = (aidx / 16) * atlas.ln_height + atlas.ln_height - max_descent;
 
-        x += g->x0;
-        y += g->y0;
+        x += atlas.x_lsb.lst[ascii];
+        y += atlas.y_ascend.lst[ascii];
 
         s32 offset = y * atlas.texture.width + x;
-        stbtt_MakeCodepointBitmap(&info, atlas.texture.img + offset, g->w, g->h, atlas.texture.width, scale, scale, g->c);
+        stbtt_MakeCodepointBitmap(&info, atlas.texture.img + offset, g->w, g->h, atlas.texture.width, scale, scale, ascii);
 
         // record texture coords
         g->tx0 = (f32) x * tex_scale_x;
         g->ty0 = (f32) y * tex_scale_y;
         g->tx1 = (f32) (x + g->w) * tex_scale_x;
         g->ty1 = (f32) (y + g->h) * tex_scale_y;
-        printf("%c: tex coords %.2f %.2f %.2f %.2f\n",g->c, g->tx0, g->ty0, g->tx1, g->ty1);
+        printf("%c: tex coords %.2f %.2f %.2f %.2f\n", ascii, g->tx0, g->ty0, g->tx1, g->ty1);
 
         ++aidx;
     }
 
 
     // set up convenient helper data; cooked quads and advance_x list
-    atlas.advance_x = { &atlas.advance_x_mem[0], 128 };
-    atlas.cooked = { &atlas.cooked_mem[0], 128 };
     for (u32 i = 0; i < 128; ++i) {
         Glyph g = atlas.glyphs.lst[i];
-        QuadHexaVertex q = GlyphQuadCook(g);
+        QuadHexaVertex q = GlyphQuadCook(g, atlas.x_lsb.lst[i], atlas.y_ascend.lst[i]);
         atlas.cooked.lst[i] = q;
-        atlas.advance_x.lst[i] = g.adv_x;
     }
 
 
@@ -158,7 +157,7 @@ void CompileFontAndPushToStream(MArena *a_tmp, MArena *a_stream, ResourceStreamH
         printf("atlas to save:\n");
         for (u32 i = 32; i < atlas.glyphs.len; ++i) {
             Glyph g = atlas.glyphs.lst[i];
-            printf("%c ", g.c);
+            printf("%c ", i);
         }
         printf("\n");
         printf("\n");
@@ -180,12 +179,9 @@ void CompileFontAndPushToStream(MArena *a_tmp, MArena *a_stream, ResourceStreamH
         printf("atlas test loading from disk (glyphs chars 32-%u):\n", loaded->glyphs.len);
         for (u32 i = 32; i < loaded->glyphs.len; ++i) {
             Glyph g = loaded->glyphs.lst[i];
-            printf("%c ", g.c);
+            printf("%c ", i);
         }
         printf("\n");
-
-
-        // TODO: inlined texture -> can we be suar
 
         // push to stream
         ResourceStreamPushData(a_stream, stream, RT_FONT, loaded->key_name, &atlas, sizeof(atlas));
