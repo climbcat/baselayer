@@ -15,25 +15,25 @@
 struct Glyph {
     s32 w;
     s32 h;
-    f32 tx0;
-    f32 ty0;
-    f32 tx1;
-    f32 ty1;
+    f32 u0;
+    f32 u1;
+    f32 v0;
+    f32 v1;
 };
 QuadHexaVertex GlyphQuadCook(Glyph g, s32 x0, s32 y0) {
     QuadHexaVertex q;
 
     Vector2f ulc_pos { (f32) x0, (f32) y0 };
-    Vector2f ulc_tex { (f32) g.tx0, (f32) g.ty0 };
+    Vector2f ulc_tex { (f32) g.u0, (f32) g.v0 };
 
     Vector2f urc_pos { (f32) x0 + g.w, (f32) y0 };
-    Vector2f urc_tex { (f32) g.tx1, (f32) g.ty0 };
+    Vector2f urc_tex { (f32) g.u1, (f32) g.v0 };
     
     Vector2f lrc_pos { (f32) x0 + g.w, (f32) y0 + g.h };
-    Vector2f lrc_tex { (f32) g.tx1, (f32) g.ty1 };
+    Vector2f lrc_tex { (f32) g.u1, (f32) g.v1 };
 
     Vector2f llc_pos { (f32) x0, (f32) y0 + g.h };
-    Vector2f llc_tex { (f32) g.tx0, (f32) g.ty1 };
+    Vector2f llc_tex { (f32) g.u0, (f32) g.v1 };
 
     q.verts[0] = QuadVertex { urc_pos, urc_tex };
     q.verts[1] = QuadVertex { lrc_pos, lrc_tex };

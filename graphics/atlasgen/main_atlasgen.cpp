@@ -101,11 +101,11 @@ FontAtlas CreateCharAtlas(MArena *a_dest, u8 *font, s32 line_height) {
         stbtt_MakeCodepointBitmap(&info, atlas.texture.img + offset, g->w, g->h, atlas.texture.width, scale, scale, ascii);
 
         // record texture coords
-        g->tx0 = (f32) x * tex_scale_x;
-        g->ty0 = (f32) y * tex_scale_y;
-        g->tx1 = (f32) (x + g->w) * tex_scale_x;
-        g->ty1 = (f32) (y + g->h) * tex_scale_y;
-        printf("%c: tex coords %.2f %.2f %.2f %.2f\n", ascii, g->tx0, g->ty0, g->tx1, g->ty1);
+        g->u0 = (f32) x * tex_scale_x;
+        g->v0 = (f32) y * tex_scale_y;
+        g->u1 = (f32) (x + g->w) * tex_scale_x;
+        g->v1 = (f32) (y + g->h) * tex_scale_y;
+        printf("%c: tex coords %.2f %.2f %.2f %.2f\n", ascii, g->u0, g->v0, g->u1, g->v1);
 
         ++aidx;
     }
