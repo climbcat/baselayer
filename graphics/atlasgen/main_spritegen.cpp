@@ -21,12 +21,10 @@ struct Sprite {
 };
 
 
-List<Sprite> CreateGridSprites(MArena *a_dest, u8* data, s32 bitmap_w, s32 bitmap_h, u32 texture_id) {
+List<Sprite> CreateGridSprites(MArena *a_dest, u8* data, s32 nx, s32 ny, s32 sprite_w, s32 sprite_h, s32 bitmap_w, s32 bitmap_h, u32 texture_id) {
     // config vars
-    s32 sprite_w2 = 10; // w2 == half width
-    s32 sprite_h2 = 10; // h2 == half height
-    s32 nx = 11;
-    s32 ny = 6;
+    s32 sprite_w2 = sprite_w / 2; // w2 == half width
+    s32 sprite_h2 = sprite_h / 2; // h2 == half height
 
     // auto vars
     s32 cell_w = bitmap_w / nx;
@@ -68,16 +66,137 @@ List<Sprite> CreateGridSprites(MArena *a_dest, u8* data, s32 bitmap_w, s32 bitma
 }
 
 
+
+
+inline
+Color SampleTextureRGBA(ImageRGBA *tex, f32 x, f32 y) {
+    u32 i = (s32) round(tex->width * x);
+    u32 j = (s32) round(tex->height * y);
+    u32 idx = tex->width * j + i;
+    Color b = tex->img[idx];
+    return b;
+}
+void BlitSprite(Sprite s, s32 x0, s32 y0, ImageRGBA *img_dest, ImageRGBA *img_src) {
+
+    s32 q_w = s.size.i1; // q->GetWidth();
+    s32 q_h = s.size.i2; //q->GetHeight();
+    s32 q_x0 = x0; // q->GetX0();
+    s32 q_y0 = y0; // q->GetY0();
+
+    assert(img_dest->height >= q_w);
+    assert(img_dest->width >= q_h);
+
+    u32 stride_img = img_dest->width;
+
+    f32 q_scale_x = (s.tex_1.x - s.tex_0.x) / q_w; // q->GetTextureScaleX(q_w);
+    f32 q_scale_y = (s.tex_1.y - s.tex_0.y) / q_h; // // q->GetTextureScaleY(q_h);
+    f32 q_u0 = s.tex_0.x; // q->GetTextureU0();
+    f32 q_v0 = s.tex_0.y; // q->GetTextureV0();
+
+    // i,j          : target coords
+    // i_img, j_img : img coords
+
+    for (u32 j = 0; j < q_h; ++j) {
+        s32 j_img = j + q_y0;
+        if (j_img < 0 || j_img > img_dest->height) {
+            continue;
+        }
+
+        for (u32 i = 0; i < q_w; ++i) {
+            u32 i_img = q_x0 + i;
+            if (i_img < 0 || i_img > img_dest->width) {
+                continue;
+            }
+            f32 x = q_u0 + i * q_scale_x;
+            f32 y = q_v0 + j * q_scale_y;
+
+            Color color_src = SampleTextureRGBA(img_src, x, y);
+            if (color_src.a != 0) {
+                // rudimentary alpha-blending
+                u32 idx = j_img * stride_img + i_img;
+                Color color_background = img_dest->img[idx];
+
+                f32 alpha = (1.0f * color_src.a) / 255;
+                Color color_blended;
+                color_blended.r = floor( alpha*color_src.r ) + floor( (1-alpha)*color_background.r );
+                color_blended.g = floor( alpha*color_src.g ) + floor( (1-alpha)*color_background.g );
+                color_blended.b = floor( alpha*color_src.b ) + floor( (1-alpha)*color_background.b );
+                color_blended.a = 255;
+
+                img_dest->img[idx] = color_blended;
+            }
+        }
+    }
+}
+
+
+
+
 struct SpriteMap {
     char map_name[32];
     char key_name[32];
     List<Sprite> sprites;
     ImageRGBA texture;
 };
-SpriteMap CompileSpriteMapInline(MArena *a_dest, List<Sprite> sprites, HashMap *texture_map) {
-    SpriteMap smap;
+SpriteMap *CompileSpriteMapInline(MArena *a_dest, List<Sprite> sprites, HashMap *texture_map) {
+    u32 nx = floor( sqrt(sprites.len) );
+    u32 ny = sprites.len / nx + 1;
+    assert(sprites.len <= nx * ny);
+    printf("sprites count x: %u, y: %u \n", nx, ny);
 
-    // TODO: impl.
+    // calc bitmap size
+    s32 bm_w = 0;
+    s32 bm_h = 0;
+    for (u32 j = 0; j < ny; ++j) {
+        s32 row_w = 0;
+        s32 row_max_h = 0;
+        for (u32 i = 0; i < nx; ++i) {
+            u32 idx = i + j*nx;
+            if (idx < sprites.len) {
+                Sprite s = sprites.lst[idx];
+                row_w += s.size.i1;
+                row_max_h = MaxS32(row_max_h, s.size.i2);
+            }
+        }
+
+        bm_w = MaxS32(bm_w, row_w);
+        bm_h += row_max_h;
+    }
+    printf("comp. bitmap size: %d %d\n", bm_w, bm_h);
+
+    // alloc sprite map memory
+    SpriteMap *smap = (SpriteMap*) ArenaAlloc(a_dest, sizeof(SpriteMap));
+    smap->sprites.len = sprites.len;
+    smap->sprites.lst = (Sprite*) ArenaAlloc(a_dest, sizeof(Sprite) * sprites.len);
+
+    smap->texture.width = bm_w;
+    smap->texture.height = bm_h;
+    smap->texture.img = (Color*) ArenaAlloc(a_dest, sizeof(Color) * bm_w * bm_h);
+
+    // copy data to sprites & texture
+    s32 x = 0;
+    s32 y = 0;
+    for (u32 j = 0; j < ny; ++j) {
+        s32 row_max_h = 0;
+        for (u32 i = 0; i < nx; ++i) {
+            u32 idx = i + j*nx;
+            if (idx < sprites.len) {
+                Sprite s = sprites.lst[idx];
+                
+                ImageRGBA *texture = (ImageRGBA*) MapGet(texture_map, s.tex_id);
+
+                BlitSprite(s, x, y, &smap->texture, texture);
+                x += s.size.i1;
+                row_max_h = MaxS32(row_max_h, s.size.i2);
+
+                //s.tex_id = 0;
+                //smap->sprites.lst[idx] = s;
+            }
+        }
+        x = 0;
+        y += row_max_h;
+    }
+
 
     return smap;
 }
@@ -87,40 +206,42 @@ void ExtractAliens() {
 
     MContext *ctx = InitBaselayer();
 
-    s32 bitmap_w;
-    s32 bitmap_h;
+    s32 bitmap_w_01;
+    s32 bitmap_h_01;
     s32 bitmap_w_02;
     s32 bitmap_h_02;
     s32 channels_in_file_01;
     s32 channels_in_file_02;
-    u8 *data_01 = stbi_load("aliens_01.png", &bitmap_w, &bitmap_h, &channels_in_file_01, 3);
-    printf("%d %d %d\n", bitmap_w, bitmap_h, channels_in_file_01);
-    u8 *data_02 = stbi_load("aliens_02.png", &bitmap_w, &bitmap_h, &channels_in_file_02, 3);
+    u8 *data_01 = stbi_load("aliens_01.png", &bitmap_w_01, &bitmap_h_01, &channels_in_file_01, 4);
+    u8 *data_02 = stbi_load("aliens_02.png", &bitmap_w_02, &bitmap_h_02, &channels_in_file_02, 4);
+    printf("%d %d %d\n", bitmap_w_01, bitmap_h_01, channels_in_file_01);
     printf("%d %d %d\n", bitmap_w_02, bitmap_h_02, channels_in_file_02);
 
     assert(channels_in_file_01 == channels_in_file_02);
-    assert(bitmap_w == bitmap_w_02);
-    assert(bitmap_h == bitmap_h_02);
+    assert(bitmap_w_01 == bitmap_w_02);
+    assert(bitmap_h_01 == bitmap_h_02);
 
-    ImageRGBA tex_01 { bitmap_w, bitmap_h, (Color*) data_01};
-    ImageRGBA tex_02 { bitmap_w, bitmap_h, (Color*) data_02};
+    ImageRGBA tex_01 { bitmap_w_01, bitmap_h_01, (Color*) data_01};
+    ImageRGBA tex_02 { bitmap_w_01, bitmap_h_01, (Color*) data_02};
 
     // organize the two bitmap textures by id
     // TODO: get rid of the double de-referencing (first the map, then the *img) to access data
     HashMap textures = InitMap(ctx->a_life, 2);
-    MapPut(&textures, 0, (u64) &tex_01);
-    MapPut(&textures, 1, (u64) &tex_02);
+    MapPut(&textures, 1, (u64) &tex_01);
+    MapPut(&textures, 2, (u64) &tex_02);
 
     // lay out sprites
-    List<Sprite> sprites = CreateGridSprites(ctx->a_pers, data_01, bitmap_w, bitmap_h, 0);
-    CreateGridSprites(ctx->a_pers, data_01, bitmap_w, bitmap_h, 1);
+    List<Sprite> sprites = CreateGridSprites(ctx->a_pers, data_01, 11, 6, 36, 36, bitmap_w_01, bitmap_h_01, 1);
+                           CreateGridSprites(ctx->a_pers, data_01, 11, 6, 36, 36, bitmap_w_01, bitmap_h_01, 2);
     sprites.len *= 2; // merge lists
 
+    printf("\n");
 
-    SpriteMap smap = CompileSpriteMapInline(ctx->a_pers, sprites, &textures);
+    SpriteMap *smap = CompileSpriteMapInline(ctx->a_pers, sprites, &textures);
 
 
-    stbi_write_bmp("spritemap.bmp", bitmap_w, bitmap_h, 3, data_02);
+    //stbi_write_bmp("spritemap.bmp", bitmap_w_01, bitmap_h_01, 3, data_02);
+    stbi_write_bmp("spritemap.bmp", smap->texture.width, smap->texture.height, 4, smap->texture.img);
 }
 
 

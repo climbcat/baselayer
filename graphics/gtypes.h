@@ -133,8 +133,8 @@ Rect RectangleCrop(Rect us, Rect other) {
 
 
 struct ImageB {
-    u32 width;
-    u32 height;
+    s32 width;
+    s32 height;
     u8 *img;
 };
 
@@ -154,20 +154,14 @@ ImageRGBX InitImageRGBX(void *data, u32 width, u32 height, u32 pixel_size) {
 }
 
 struct ImageRGBA {
-    u32 width;
-    u32 height;
+    s32 width;
+    s32 height;
     Color *img;
 };
 
 struct ImageF32 {
-    u32 width;
-    u32 height;
-    f32 *data;
-};
-
-struct ImageU32 {
-    u32 width;
-    u32 height;
+    s32 width;
+    s32 height;
     f32 *data;
 };
 
