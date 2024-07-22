@@ -14,9 +14,12 @@
 
 
 struct Sprite {
-    Vector2i size;
-    Vector2f tex_0;
-    Vector2f tex_1;
+    s32 w;
+    s32 h;
+    f32 u0;
+    f32 u1;
+    f32 v0;
+    f32 v1;
     u32 tex_id;
 };
 
@@ -28,9 +31,9 @@ List<Sprite> CreateGridSprites(MArena *a_dest, u8* data, s32 nx, s32 ny, s32 spr
 
     // auto vars
     s32 cell_w = bitmap_w / nx;
-    s32 cell_h = bitmap_h / ny + 4;
-    f32 uw = sprite_w2 * 2.0f / bitmap_w;
-    f32 vw = sprite_h2 * 2.0f / bitmap_h;
+    s32 cell_h = bitmap_h / ny;
+    f32 uw = 1.0f * sprite_w / bitmap_w;
+    f32 vw = 1.0f * sprite_h / bitmap_h;
 
     // return var
     List<Sprite> sprites = InitList<Sprite>(a_dest, nx * ny);
@@ -54,9 +57,12 @@ List<Sprite> CreateGridSprites(MArena *a_dest, u8* data, s32 nx, s32 ny, s32 spr
 
             Sprite s = {};
             s.tex_id = texture_id;
-            s.size = Vector2i { sprite_w2 * 2, sprite_h2 * 2 };
-            s.tex_0 = Vector2f { u0, v0 };
-            s.tex_1 = Vector2f { u1, v1 };
+            s.w = sprite_w;
+            s.h = sprite_h;
+            s.u0 = u0;
+            s.u1 = u1;
+            s.v0 = v0;
+            s.v1 = v1;
 
             sprites.Add(s);
         }
@@ -85,8 +91,8 @@ Color SampleTextureRGBASafe(ImageRGBA *tex, f32 x, f32 y, Color col_default) {
     return b;
 }
 void BlitSprite(Sprite s, s32 x0, s32 y0, ImageRGBA *img_dest, ImageRGBA *img_src) {
-    s32 q_w = s.size.i1;
-    s32 q_h = s.size.i2;
+    s32 q_w = s.w;
+    s32 q_h = s.h;
     s32 q_x0 = x0;
     s32 q_y0 = y0;
 
@@ -95,10 +101,10 @@ void BlitSprite(Sprite s, s32 x0, s32 y0, ImageRGBA *img_dest, ImageRGBA *img_sr
 
     u32 stride_img = img_dest->width;
 
-    f32 q_scale_x = (s.tex_1.x - s.tex_0.x) / q_w;
-    f32 q_scale_y = (s.tex_1.y - s.tex_0.y) / q_h;
-    f32 q_u0 = s.tex_0.x;
-    f32 q_v0 = s.tex_0.y;
+    f32 q_scale_x = (s.u1 - s.u0) / q_w;
+    f32 q_scale_y = (s.v1 - s.v0) / q_h;
+    f32 q_u0 = s.u0;
+    f32 q_v0 = s.v0;
 
     // i,j          : target coords
     // i_img, j_img : img coords
@@ -161,8 +167,8 @@ SpriteMap *CompileSpriteMapInline(MArena *a_dest, List<Sprite> sprites, HashMap 
             u32 idx = i + j*nx;
             if (idx < sprites.len) {
                 Sprite s = sprites.lst[idx];
-                row_w += s.size.i1;
-                row_max_h = MaxS32(row_max_h, s.size.i2);
+                row_w += s.w;
+                row_max_h = MaxS32(row_max_h, s.h);
             }
         }
 
@@ -193,9 +199,10 @@ SpriteMap *CompileSpriteMapInline(MArena *a_dest, List<Sprite> sprites, HashMap 
                 ImageRGBA *texture = (ImageRGBA*) MapGet(texture_map, s.tex_id);
 
                 BlitSprite(s, x, y, &smap->texture, texture);
-                x += s.size.i1;
-                row_max_h = MaxS32(row_max_h, s.size.i2);
+                x += s.w;
+                row_max_h = MaxS32(row_max_h, s.h);
 
+                // TODO: finish the sprite map generation
                 //s.tex_id = 0;
                 //smap->sprites.lst[idx] = s;
             }
