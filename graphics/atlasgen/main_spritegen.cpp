@@ -28,7 +28,7 @@ List<Sprite> CreateGridSprites(MArena *a_dest, u8* data, s32 nx, s32 ny, s32 spr
 
     // auto vars
     s32 cell_w = bitmap_w / nx;
-    s32 cell_h = bitmap_h / ny;
+    s32 cell_h = bitmap_h / ny + 4;
     f32 uw = sprite_w2 * 2.0f / bitmap_w;
     f32 vw = sprite_h2 * 2.0f / bitmap_h;
 
@@ -61,37 +61,45 @@ List<Sprite> CreateGridSprites(MArena *a_dest, u8* data, s32 nx, s32 ny, s32 spr
             sprites.Add(s);
         }
     }
-
     return sprites;
 }
 
 
-
-
 inline
 Color SampleTextureRGBA(ImageRGBA *tex, f32 x, f32 y) {
-    u32 i = (s32) round(tex->width * x);
-    u32 j = (s32) round(tex->height * y);
+    s32 i = (s32) round(tex->width * x);
+    s32 j = (s32) round(tex->height * y);
+    u32 idx = tex->width * j + i;
+    Color b = tex->img[idx];
+    return b;
+}
+inline
+Color SampleTextureRGBASafe(ImageRGBA *tex, f32 x, f32 y) {
+    s32 i = (s32) round(tex->width * x);
+    s32 j = (s32) round(tex->height * y);
+    if (i < 0 || i >= tex->width || j < 0 || j >= tex->height) {
+        return Color { 0, 0, 0, 255 };
+    }
     u32 idx = tex->width * j + i;
     Color b = tex->img[idx];
     return b;
 }
 void BlitSprite(Sprite s, s32 x0, s32 y0, ImageRGBA *img_dest, ImageRGBA *img_src) {
 
-    s32 q_w = s.size.i1; // q->GetWidth();
-    s32 q_h = s.size.i2; //q->GetHeight();
-    s32 q_x0 = x0; // q->GetX0();
-    s32 q_y0 = y0; // q->GetY0();
+    s32 q_w = s.size.i1;
+    s32 q_h = s.size.i2;
+    s32 q_x0 = x0;
+    s32 q_y0 = y0;
 
     assert(img_dest->height >= q_w);
     assert(img_dest->width >= q_h);
 
     u32 stride_img = img_dest->width;
 
-    f32 q_scale_x = (s.tex_1.x - s.tex_0.x) / q_w; // q->GetTextureScaleX(q_w);
-    f32 q_scale_y = (s.tex_1.y - s.tex_0.y) / q_h; // // q->GetTextureScaleY(q_h);
-    f32 q_u0 = s.tex_0.x; // q->GetTextureU0();
-    f32 q_v0 = s.tex_0.y; // q->GetTextureV0();
+    f32 q_scale_x = (s.tex_1.x - s.tex_0.x) / q_w;
+    f32 q_scale_y = (s.tex_1.y - s.tex_0.y) / q_h;
+    f32 q_u0 = s.tex_0.x;
+    f32 q_v0 = s.tex_0.y;
 
     // i,j          : target coords
     // i_img, j_img : img coords
@@ -110,7 +118,8 @@ void BlitSprite(Sprite s, s32 x0, s32 y0, ImageRGBA *img_dest, ImageRGBA *img_sr
             f32 x = q_u0 + i * q_scale_x;
             f32 y = q_v0 + j * q_scale_y;
 
-            Color color_src = SampleTextureRGBA(img_src, x, y);
+            //Color color_src = SampleTextureRGBA(img_src, x, y);
+            Color color_src = SampleTextureRGBASafe(img_src, x, y);
             if (color_src.a != 0) {
                 // rudimentary alpha-blending
                 u32 idx = j_img * stride_img + i_img;
@@ -128,8 +137,6 @@ void BlitSprite(Sprite s, s32 x0, s32 y0, ImageRGBA *img_dest, ImageRGBA *img_sr
         }
     }
 }
-
-
 
 
 struct SpriteMap {
@@ -195,8 +202,9 @@ SpriteMap *CompileSpriteMapInline(MArena *a_dest, List<Sprite> sprites, HashMap 
         }
         x = 0;
         y += row_max_h;
-    }
 
+        printf("row_h: %d\n", row_max_h);
+    }
 
     return smap;
 }
