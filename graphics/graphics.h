@@ -119,14 +119,14 @@ void InitFonts(MContext *ctx) {
 
 
 
-void PrintResourceType(ResourceType tpe, void *data, u32 data_size) {
+void __PrintResourceType(ResourceType tpe, void *data, u32 data_size) {
     if (tpe == RT_FONT) {
         printf("font\n");
     }
     else if (tpe == RT_SPRITE) {
         // TODO: move down into dependant
-        //SpriteMap *smap = SpriteMapLoadStream((u8*) data, data_size);
-        //printf("sprite map: %s, %s, count: %u, atlas w: %u, atlas h: %u\n", smap->map_name, smap->key_name, smap->sprites.len, smap->texture.width, smap->texture.height);
+        SpriteMap *smap = SpriteMapLoadStream((u8*) data, data_size);
+        printf("sprite map: %s, %s, count: %u, atlas w: %u, atlas h: %u\n", smap->map_name, smap->key_name, smap->sprites.len, smap->texture.width, smap->texture.height);
 
         /*
         List<Sprite> ss = smap->sprites;

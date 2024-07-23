@@ -118,8 +118,8 @@ void ExtractAliens() {
 
     // save to stream
     printf("saving to stream ...\n");
-    ResourceStreamHandle hdl = ResourceStreamLoadAndOpen(ctx->a_life, "all.res");
-    ResourceStreamPushData(ctx->a_life, &hdl, RT_SPRITE, "", smap, smap->size_tot);
+    ResourceStreamHandle hdl = ResourceStreamLoadAndOpen(ctx->a_life, "all.res", true);
+    ResourceStreamPushData(ctx->a_life, &hdl, RT_SPRITE, smap->key_name, smap, smap->size_tot);
     ResourceStreamSave(&hdl, "alt.res");
 }
 

@@ -42,13 +42,33 @@ struct ResourceStreamHandle {
 };
 
 
-ResourceStreamHandle ResourceStreamLoadAndOpen(MArena *a_dest, const char *filename) {    
+
+void PrintResourceType(ResourceType tpe) {
+    if (tpe == RT_FONT) {
+        printf("font\n");
+    }
+    else if (tpe == RT_SPRITE) {
+        printf("sprite map\n");
+    }
+    else {
+        printf("_unknown_\n");
+    }
+}
+
+
+ResourceStreamHandle ResourceStreamLoadAndOpen(MArena *a_dest, const char *filename, bool db_print_keys) {    
     ResourceStreamHandle hdl = {};
     hdl.first = (ResourceHdr *) LoadFileFSeek(a_dest, (char*) filename);
 
     ResourceHdr *res = hdl.first;
     while (res) {
         hdl.prev = res;
+
+        if (db_print_keys) {
+            printf("key: %s - ", res->key_name);
+            PrintResourceType(res->tpe);
+        }
+
         res = res->GetInlinedNext();
     }
 
@@ -62,7 +82,7 @@ void ResourceStreamPushData(MArena *a_dest, ResourceStreamHandle *stream, Resour
     stream->current = (ResourceHdr*) ArenaAlloc(a_dest, sizeof(ResourceHdr));
     stream->current->tpe = tpe;
     stream->current->data_sz = data_sz;
-    _strcmp(stream->current->key_name, key_name);
+    _memcpy(stream->current->key_name, key_name, _strlen(key_name));
     if (stream->prev) {
         stream->prev->next = (u32) ((u8*) stream->current - (u8*) stream->prev);
     }
