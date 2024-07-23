@@ -2,6 +2,10 @@
 #define __INDICES_H__
 
 
+#include "../baselayer.h"
+#include "../graphics/geometry.h"
+
+
 //
 //  Preserves the order of indices.
 //  Preserves the number of indices.
@@ -14,6 +18,9 @@
 //
 //  Append-indices may be negative, enabling stitching-like operations.
 //
+
+
+// TODO: move geometry.h using functions to user code
 
 
 void IndicesAppend(

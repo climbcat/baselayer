@@ -15,9 +15,6 @@
 #include "font.h"
 #include "imui.h"
 
-#include "indices.h"
-#include "octree.h"
-
 #include "shaders.h"
 #include "swrender.h"
 #include "gameloop.h"

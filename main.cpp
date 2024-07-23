@@ -1,5 +1,7 @@
 #include "baselayer.h"
 #include "graphics/geometry.h"
+#include "algos/octree.h"
+#include "algos/indices.h"
 
 
 struct PoolTestEntity {
