@@ -12,15 +12,7 @@
 // Glyph
 
 
-struct Glyph {
-    s32 w;
-    s32 h;
-    f32 u0;
-    f32 u1;
-    f32 v0;
-    f32 v1;
-};
-QuadHexaVertex GlyphQuadCook(Glyph g, s32 x0, s32 y0) {
+QuadHexaVertex GlyphQuadCook(Sprite g, s32 x0, s32 y0) {
     QuadHexaVertex q;
 
     Vector2f ulc_pos { (f32) x0, (f32) y0 };
@@ -54,7 +46,7 @@ struct FontAtlas {
     ImageB texture;
     u32 sz_px;
     u32 cell_width;
-    List<Glyph> glyphs;
+    List<Sprite> glyphs;
     char font_name[32];
     char key_name[32];
 
@@ -68,7 +60,7 @@ struct FontAtlas {
     List<s8> y_ascend;
     List<QuadHexaVertex> cooked;
 
-    Glyph glyphs_mem[128];
+    Sprite glyphs_mem[128];
     u8 advance_x_mem[128];
     u8 x_lsb_mem[128];
     s8 y_ascend_mem[128];

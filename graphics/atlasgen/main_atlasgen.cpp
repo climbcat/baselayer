@@ -53,7 +53,7 @@ FontAtlas CreateCharAtlas(MArena *a_dest, u8 *font, s32 line_height) {
         advance_x = roundf(scale * advance_x);
         lsb = roundf(scale * lsb);
 
-        Glyph gl;
+        Sprite gl;
         gl.w = x1 - x0;
         gl.h = y1 - y0;
         atlas.glyphs.Add(gl);
@@ -89,7 +89,7 @@ FontAtlas CreateCharAtlas(MArena *a_dest, u8 *font, s32 line_height) {
     f32 tex_scale_y = 1.0f / atlas.texture.height;
     u32 aidx = 0;
     for (u32 ascii = ascii_offset; ascii < ascii_range; ++ascii) {
-        Glyph *g = atlas.glyphs.lst + ascii;
+        Sprite *g = atlas.glyphs.lst + ascii;
 
         s32 x = (aidx % 16) * atlas.cell_width;
         s32 y = (aidx / 16) * atlas.ln_height + atlas.ln_height - max_descent;
@@ -113,7 +113,7 @@ FontAtlas CreateCharAtlas(MArena *a_dest, u8 *font, s32 line_height) {
 
     // set up convenient helper data; cooked quads and advance_x list
     for (u32 i = 0; i < 128; ++i) {
-        Glyph g = atlas.glyphs.lst[i];
+        Sprite g = atlas.glyphs.lst[i];
         QuadHexaVertex q = GlyphQuadCook(g, atlas.x_lsb.lst[i], atlas.y_ascend.lst[i]);
         atlas.cooked.lst[i] = q;
     }
@@ -156,7 +156,7 @@ void CompileFontAndPushToStream(MArena *a_tmp, MArena *a_stream, ResourceStreamH
         printf("\n");
         printf("atlas to save:\n");
         for (u32 i = 32; i < atlas.glyphs.len; ++i) {
-            Glyph g = atlas.glyphs.lst[i];
+            Sprite g = atlas.glyphs.lst[i];
             printf("%c ", i);
         }
         printf("\n");
@@ -178,7 +178,7 @@ void CompileFontAndPushToStream(MArena *a_tmp, MArena *a_stream, ResourceStreamH
         FontAtlas *loaded = FontAtlasLoadBinary128(a_tmp, StrZeroTerm(fname), &loaded_size);
         printf("atlas test loading from disk (glyphs chars 32-%u):\n", loaded->glyphs.len);
         for (u32 i = 32; i < loaded->glyphs.len; ++i) {
-            Glyph g = loaded->glyphs.lst[i];
+            Sprite g = loaded->glyphs.lst[i];
             printf("%c ", i);
         }
         printf("\n");
@@ -192,7 +192,6 @@ void CompileFontAndPushToStream(MArena *a_tmp, MArena *a_stream, ResourceStreamH
 void ExtractAliens() {
     MContext *ctx = InitBaselayer();
     u64 filesize;
-
 
     // data stream linked list & save file handle
     ResourceStreamHandle stream = {};
@@ -209,7 +208,6 @@ void ExtractAliens() {
         if (font == NULL) { exit(0); }
         CompileFontAndPushToStream(ctx->a_tmp, ctx->a_life, &stream, StrBasename(StrL(filename)), font);
     }
-
 
     ResourceStreamSave(&stream);
 }

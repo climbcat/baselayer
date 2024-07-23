@@ -9,7 +9,6 @@ struct Sprite {
     f32 u1;
     f32 v0;
     f32 v1;
-    u32 tex_id; // <-- sprite should not hold a texture id ??
 };
 
 
