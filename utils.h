@@ -29,7 +29,18 @@ StrLst *GetFilesInFolderPaths(MArena *a, const char *rootpath) {
     return GetFilesInFolderPaths(a, (char*) rootpath);
 }
 
-u32 LoadFileFSeek(char* filepath, u8* dest) {
+u32 LoadFileGetSize(char* filepath) {
+    FILE * f = fopen(filepath, "r");
+    fseek(f, 0, SEEK_END);
+    u32 len = ftell(f);
+    return len;
+}
+
+u32 LoadFileGetSize(const char* filepath) {
+    return LoadFileGetSize((char*) filepath);
+}
+
+u32 LoadFileFSeek(char* filepath, void* dest) {
     assert(dest != NULL && "data destination must be valid");
     u32 len = 0;
 
@@ -46,6 +57,21 @@ u32 LoadFileFSeek(char* filepath, u8* dest) {
     }
 
     return len;
+}
+
+void *LoadFileFSeek(MArena *a_dest, char *filepath, u32 *size = NULL) {
+    u32 sz = LoadFileGetSize(filepath);
+    void *dest = ArenaAlloc(a_dest, sz);
+    LoadFileFSeek(filepath, dest);
+
+    if (size != NULL) {
+        *size = sz;
+    }
+    return dest;
+}
+
+void *LoadFileFSeek(MArena *a_dest, const char *filepath, u32 *size = NULL) {
+    return LoadFileFSeek(a_dest, (char*) filepath, size);
 }
 
 bool SaveFile(char *filepath, u8 *data, u32 len);
