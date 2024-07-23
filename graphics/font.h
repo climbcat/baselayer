@@ -1,41 +1,11 @@
-#ifndef __ATLAS_H__
-#define __ATLAS_H__
+#ifndef __FONT_H__
+#define __FONT_H__
 
 
 #include "geometry.h"
 #include "gtypes.h"
 #include "sprite.h"
 #include "resource.h"
-
-
-//
-// Glyph
-
-
-QuadHexaVertex GlyphQuadCook(Sprite g, s32 x0, s32 y0) {
-    QuadHexaVertex q;
-
-    Vector2f ulc_pos { (f32) x0, (f32) y0 };
-    Vector2f ulc_tex { (f32) g.u0, (f32) g.v0 };
-
-    Vector2f urc_pos { (f32) x0 + g.w, (f32) y0 };
-    Vector2f urc_tex { (f32) g.u1, (f32) g.v0 };
-    
-    Vector2f lrc_pos { (f32) x0 + g.w, (f32) y0 + g.h };
-    Vector2f lrc_tex { (f32) g.u1, (f32) g.v1 };
-
-    Vector2f llc_pos { (f32) x0, (f32) y0 + g.h };
-    Vector2f llc_tex { (f32) g.u0, (f32) g.v1 };
-
-    q.verts[0] = QuadVertex { urc_pos, urc_tex };
-    q.verts[1] = QuadVertex { lrc_pos, lrc_tex };
-    q.verts[2] = QuadVertex { llc_pos, llc_tex };
-    q.verts[3] = QuadVertex { llc_pos, llc_tex };
-    q.verts[4] = QuadVertex { ulc_pos, ulc_tex };
-    q.verts[5] = QuadVertex { urc_pos, urc_tex };
-
-    return q;
-}
 
 
 //
@@ -76,6 +46,7 @@ struct FontAtlas {
         printf("font_sz %u, bitmap_sz %u %u, cell_w %u, ln_height %u, ln_ascend %u, glyphs %u, data ptrs %p %p\n", sz_px, texture.width, texture.height, cell_width, ln_height, ln_ascend, glyphs.len, glyphs.lst, texture.img);
     }
 };
+
 FontAtlas *FontAtlasLoadBinaryStream(u8 *base_ptr, u32 sz_data) {
     FontAtlas *atlas = (FontAtlas*) base_ptr;
     u32 sz_base = sizeof(FontAtlas);
@@ -92,6 +63,7 @@ FontAtlas *FontAtlasLoadBinaryStream(u8 *base_ptr, u32 sz_data) {
 
     return atlas;
 };
+
 FontAtlas *FontAtlasLoadBinary128(MArena *a_dest, char *filename, u32 *sz = NULL) {
     u64 sz_file;
     u8 *base_ptr = (u8*) LoadFileMMAP(filename, &sz_file);
@@ -102,6 +74,7 @@ FontAtlas *FontAtlasLoadBinary128(MArena *a_dest, char *filename, u32 *sz = NULL
 
     return FontAtlasLoadBinaryStream(base_ptr, sz_file);
 };
+
 void FontAtlasSaveBinary128(MArena *a_tmp, char *filename, FontAtlas atlas) {
     u32 sz_base = sizeof(FontAtlas);
     u32 sz_bitmap = atlas.texture.width * atlas.texture.height;
@@ -119,7 +92,6 @@ void FontAtlasSaveBinary128(MArena *a_tmp, char *filename, FontAtlas atlas) {
 
     SaveFile(filename, (u8*) atlas_inlined, sz_base + sz_bitmap);
 }
-
 
 void GlyphPlotterPrint(FontAtlas *plt) {
     printf("ln_height: %d\n", plt->ln_height);
@@ -147,6 +119,7 @@ enum FontSize {
 
     FS_CNT,
 };
+
 u32 FontSizeToPx(FontSize font_size) {
     u32 sz_px = 0;
     switch (font_size) {
@@ -162,6 +135,7 @@ u32 FontSizeToPx(FontSize font_size) {
     }
     return sz_px;
 }
+
 FontSize FontSizeFromPx(u32 sz_px) {
     FontSize fs = FS_18;
     switch (sz_px) {
@@ -177,6 +151,7 @@ FontSize FontSizeFromPx(u32 sz_px) {
     }
     return fs;
 }
+
 static HashMap g_font_map;
 static StrLst *g_font_names;
 static FontAtlas *g_text_plotter;
@@ -195,16 +170,19 @@ FontAtlas *SetFontAndSize(FontSize font_size, Str font_name) {
     g_text_plotter = (FontAtlas*) val;
     return g_text_plotter;
 }
+
 FontAtlas *SetFont(Str font_name) {
     assert(g_text_plotter != NULL);
 
     return SetFontAndSize( FontSizeFromPx(g_text_plotter->sz_px), font_name);
 }
+
 FontAtlas *SetFontSize(FontSize font_size) {
     assert(g_text_plotter != NULL);
 
     return SetFontAndSize( font_size, g_text_plotter->GetFontName());
 }
+
 FontSize GetFontSize() {
     s32 sz_px = g_text_plotter->sz_px;
     switch (sz_px) {
@@ -433,7 +411,8 @@ void AlignQuadsH(List<QuadHexaVertex> line_quads, s32 cx, TextAlign ta) {
 
 
 //
-// TODO: un-retire autowrap function at some point !
+// TODO: un-retire autowrap function
+
 
 List<QuadHexaVertex> LayoutTextAutowrap(MArena *a_dest, FontAtlas *plt, Str txt, s32 x0, s32 y0, s32 w, s32 h, Color color, TextAlign ta) {
     assert(g_text_plotter != NULL && "init text plotters first");
@@ -591,12 +570,14 @@ List<QuadHexaVertex> LayoutTextLine(MArena *a_dest, FontAtlas *plt, Str txt, s32
 
     return quads;
 }
+
 List<QuadHexaVertex> LayoutTextLine(const char *txt, s32 x0, s32 y0, Color color) {
     s32 sz_x;
     Str txts = { (char *) txt, _strlen((char*) txt) };
 
     return LayoutTextLine(g_a_quadbuffer, g_text_plotter, txts, x0, y0, &sz_x, color);
 }
+
 List<QuadHexaVertex> LayoutTextLine(Str txt, s32 x0, s32 y0, s32 *sz_x, s32 *sz_y, Color color) {
     *sz_y = g_text_plotter->ln_measured;
     return LayoutTextLine(g_a_quadbuffer, g_text_plotter, txt, x0, y0, sz_x, color);

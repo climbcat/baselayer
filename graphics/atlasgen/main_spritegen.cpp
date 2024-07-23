@@ -3,7 +3,7 @@
 
 #include "../../baselayer.h"
 #include "../gtypes.h"
-#include "../atlas.h"
+#include "../font.h"
 #include "../sprite.h"
 #include "../resource.h"
 

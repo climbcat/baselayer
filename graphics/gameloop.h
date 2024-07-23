@@ -7,7 +7,6 @@
 #include <assert.h>
 #include "geometry.h"
 #include "ui.h"
-#include "atlas.h"
 #include "swrender.h"
 
 
