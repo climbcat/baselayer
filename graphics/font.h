@@ -202,7 +202,7 @@ FontSize GetFontSize() {
 #define ATLAS_MAX_CNT 100
 
 
-void ResourceStreamLoad(ResourceHdr *resource, HashMap *map_fonts, HashMap *map_texture_bs) {
+void LoadFontsFromResourceStream(ResourceHdr *resource, HashMap *map_fonts, HashMap *map_texture_bs) {
     s32 font_cnt = 0;
     while (resource) {
         if (resource->tpe == RT_FONT) {
@@ -240,7 +240,7 @@ void InitFonts(MContext *ctx) {
         printf("please supply an 'all.res' font resource file with the executable, exiting ...\n");
         exit(0);
     }
-    ResourceStreamLoad((ResourceHdr*) resource_data, &g_font_map, &g_texb_map);
+    LoadFontsFromResourceStream((ResourceHdr*) resource_data, &g_font_map, &g_texb_map);
 
 
     // TODO: semantic compression

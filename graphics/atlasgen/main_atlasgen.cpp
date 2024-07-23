@@ -119,7 +119,7 @@ FontAtlas CreateCharAtlas(MArena *a_dest, u8 *font, s32 line_height) {
     }
 
 
-    stbi_write_png("atlas.png", atlas.texture.width, atlas.texture.height, 1, atlas.texture.img, atlas.texture.width);
+    stbi_write_png("fontatlas.png", atlas.texture.width, atlas.texture.height, 1, atlas.texture.img, atlas.texture.width);
     printf("\n");
     printf("wrote atlas image to atlas.png\n");
     atlas.Print();
@@ -189,7 +189,7 @@ void CompileFontAndPushToStream(MArena *a_tmp, MArena *a_stream, ResourceStreamH
     }
 }
 
-void ExtractAliens() {
+void RunAtlasGen() {
     MContext *ctx = InitBaselayer();
     u64 filesize;
 
@@ -230,6 +230,6 @@ int main (int argc, char **argv) {
         printf("TODO: impl. --size\n");
     }
     else  {
-        ExtractAliens();
+        RunAtlasGen();
     }
 }

@@ -135,6 +135,7 @@ void BlitSprite(Sprite s, s32 x0, s32 y0, ImageRGBA *img_dest, ImageRGBA *img_sr
 
 
 struct SpriteMap {
+    u32 size_tot;
     char map_name[32];
     char key_name[32];
     List<Sprite> sprites;
@@ -176,6 +177,7 @@ SpriteMap *CompileSpriteMapInline(MArena *a_dest, const char *name, const char *
     smap->texture.width = bm_w;
     smap->texture.height = bm_h;
     smap->texture.img = (Color*) ArenaAlloc(a_dest, sizeof(Color) * bm_w * bm_h);
+    smap->size_tot = sizeof(SpriteMap) + sizeof(Sprite) * sprites.len + sizeof(Color) * bm_w * bm_h;
 
     // copy data to sprites & texture
     s32 x = 0;
@@ -257,7 +259,14 @@ void ExtractAliens() {
         }
     }
 
+    // drop test image to file
     stbi_write_bmp("spritemap.bmp", smap->texture.width, smap->texture.height, 4, smap->texture.img);
+
+    // save to stream
+    printf("saving to stream ...\n");
+    ResourceStreamHandle hdl = ResourceStreamLoadAndOpen(ctx->a_life, "all.res");
+    ResourceStreamPushData(ctx->a_life, &hdl, RT_SPRITE, "", smap, smap->size_tot);
+    ResourceStreamSave(&hdl, "alt.res");
 }
 
 

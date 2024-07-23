@@ -598,6 +598,13 @@ void TestUILayoutWidgetAPI() {
 }
 
 
+void TestResourceLoad() {
+    MContext *ctx = InitBaselayer();
+
+    ResourceStreamLoadAndOpen(ctx->a_life, "alt.res");
+}
+
+
 void Test() {
     //TestRandomPCWithNormals();
     //TestVGROcTree(); // TODO: fix
@@ -609,4 +616,5 @@ void Test() {
     //TestBrownianGlyphs();
     //TestUIDragPanel();
     TestUILayoutWidgetAPI();
+    TestResourceLoad();
 }
