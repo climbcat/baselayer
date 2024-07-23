@@ -140,10 +140,11 @@ struct SpriteMap {
     List<Sprite> sprites;
     ImageRGBA texture;
 };
-SpriteMap *CompileSpriteMapInline(MArena *a_dest, List<Sprite> sprites, List<u32> tex_keys, HashMap *texture_map) {
+SpriteMap *CompileSpriteMapInline(MArena *a_dest, const char *name, const char *key_name, List<Sprite> sprites, List<u32> tex_keys, HashMap *texture_map) {
     u32 nx = floor( sqrt(sprites.len) );
     u32 ny = sprites.len / nx + 1;
     assert(sprites.len <= nx * ny);
+    printf("compiling sprite map;\n    name: %s\n    key_name: %s\n", name, key_name);
     printf("sprites count x: %u, y: %u \n", nx, ny);
 
     // calc bitmap size
@@ -168,9 +169,10 @@ SpriteMap *CompileSpriteMapInline(MArena *a_dest, List<Sprite> sprites, List<u32
 
     // alloc sprite map memory
     SpriteMap *smap = (SpriteMap*) ArenaAlloc(a_dest, sizeof(SpriteMap));
+    sprintf(smap->map_name, "%s", name);
+    sprintf(smap->key_name, "%s", key_name);
     smap->sprites.len = sprites.len;
     smap->sprites.lst = (Sprite*) ArenaAlloc(a_dest, sizeof(Sprite) * sprites.len);
-
     smap->texture.width = bm_w;
     smap->texture.height = bm_h;
     smap->texture.img = (Color*) ArenaAlloc(a_dest, sizeof(Color) * bm_w * bm_h);
@@ -184,16 +186,12 @@ SpriteMap *CompileSpriteMapInline(MArena *a_dest, List<Sprite> sprites, List<u32
             u32 idx = i + j*nx;
             if (idx < sprites.len) {
                 Sprite s = sprites.lst[idx];
-                
                 ImageRGBA *texture = (ImageRGBA*) MapGet(texture_map, tex_keys.lst[idx]);
 
                 BlitSprite(s, x, y, &smap->texture, texture);
                 x += s.w;
                 row_max_h = MaxS32(row_max_h, s.h);
-
-                // TODO: finish the sprite map generation
-                //s.tex_id = 0;
-                //smap->sprites.lst[idx] = s;
+                smap->sprites.lst[idx] = s;
             }
         }
         x = 0;
@@ -249,7 +247,7 @@ void ExtractAliens() {
     for (u32 i = tex_keys.len / 2; i < tex_keys.len; ++i) {
         tex_keys.lst[i] = 2;
     }
-    SpriteMap *smap = CompileSpriteMapInline(ctx->a_pers, sprites, tex_keys, &textures);
+    SpriteMap *smap = CompileSpriteMapInline(ctx->a_pers, "aliens", "aliens_01", sprites, tex_keys, &textures);
 
     // manually set all black pixels to transparant
     Color black = Color { 0, 0, 0, 255 };
