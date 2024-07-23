@@ -205,7 +205,6 @@ SpriteMap *CompileSpriteMapInline(MArena *a_dest, const char *name, const char *
 
 
 void ExtractAliens() {
-
     MContext *ctx = InitBaselayer();
 
     s32 bitmap_w_01;
@@ -258,7 +257,6 @@ void ExtractAliens() {
         }
     }
 
-    //stbi_write_bmp("spritemap.bmp", bitmap_w_01, bitmap_h_01, 3, data_02);
     stbi_write_bmp("spritemap.bmp", smap->texture.width, smap->texture.height, 4, smap->texture.img);
 }
 

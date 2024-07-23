@@ -16,22 +16,12 @@ struct Sprite {
 //  Quads
 
 
-struct Quad {
-    f32 x0;
-    f32 y0;
-    f32 x1;
-    f32 y1;
-    f32 u0;
-    f32 v0;
-    f32 u1;
-    f32 v1;
-    Color c;
-};
 struct QuadVertex {  // vertex layout
     Vector2f pos;
     Vector2f tex;
     Color col;
 };
+
 inline
 QuadVertex InitQuadVertex(Vector2f pos, Vector2f tex, Color col) {
     QuadVertex v;
@@ -40,6 +30,7 @@ QuadVertex InitQuadVertex(Vector2f pos, Vector2f tex, Color col) {
     v.col = col;
     return v;
 }
+
 struct QuadHexaVertex { // renderable six-vertex quad
     QuadVertex verts[6];
 
@@ -123,30 +114,58 @@ struct QuadHexaVertex { // renderable six-vertex quad
         return v1 - v0;
     }
 };
-QuadHexaVertex QuadCook(Quad q) {
+
+QuadHexaVertex QuadCookSolid(s32 w, s32 h, s32 x0, s32 y0, Color c) {
     // lays down two three-vertex triangles: T1 = [ urc->lrc->llc ] and T2 = [ llc->ulc->urc ]
     // ulc: upper-left corner (etc.)
-    QuadHexaVertex qh;
+    QuadHexaVertex qh = {};
+    s32 x1 = x0 + w;
+    s32 y1 = y0 + h;
 
-    Vector2f ulc_pos { (f32) q.x0, (f32) q.y0 };
-    Vector2f urc_pos { (f32) q.x1, (f32) q.y0 };
-    Vector2f lrc_pos { (f32) q.x1, (f32) q.y1 };
-    Vector2f llc_pos { (f32) q.x0, (f32) q.y1 };
+    Vector2f ulc_pos { (f32) x0, (f32) y0 };
+    Vector2f urc_pos { (f32) x1, (f32) y0 };
+    Vector2f lrc_pos { (f32) x1, (f32) y1 };
+    Vector2f llc_pos { (f32) x0, (f32) y1 };
 
-    Vector2f ulc_tex { (f32) q.u0, (f32) q.v0 };
-    Vector2f urc_tex { (f32) q.u1, (f32) q.v0 };
-    Vector2f lrc_tex { (f32) q.u1, (f32) q.v1 };
-    Vector2f llc_tex { (f32) q.u0, (f32) q.v1 };
-
-    qh.verts[0] = InitQuadVertex( urc_pos, urc_tex, q.c );
-    qh.verts[1] = InitQuadVertex( lrc_pos, lrc_tex, q.c );
-    qh.verts[2] = InitQuadVertex( llc_pos, llc_tex, q.c );
-    qh.verts[3] = InitQuadVertex( llc_pos, llc_tex, q.c );
-    qh.verts[4] = InitQuadVertex( ulc_pos, ulc_tex, q.c );
-    qh.verts[5] = InitQuadVertex( urc_pos, urc_tex, q.c );
+    qh.verts[0] = InitQuadVertex( urc_pos, { 0, 0 }, c );
+    qh.verts[1] = InitQuadVertex( lrc_pos, { 0, 0 }, c );
+    qh.verts[2] = InitQuadVertex( llc_pos, { 0, 0 }, c );
+    qh.verts[3] = InitQuadVertex( llc_pos, { 0, 0 }, c );
+    qh.verts[4] = InitQuadVertex( ulc_pos, { 0, 0 }, c );
+    qh.verts[5] = InitQuadVertex( urc_pos, { 0, 0 }, c );
 
     return qh;
 }
+
+QuadHexaVertex QuadCookTextured(Sprite s, s32 x0, s32 y0) {
+    // lays down two three-vertex triangles: T1 = [ urc->lrc->llc ] and T2 = [ llc->ulc->urc ]
+    // ulc: upper-left corner (etc.)
+    QuadHexaVertex qh;
+    s32 x1 = x0 + s.w;
+    s32 y1 = y0 + s.h;
+
+    Vector2f ulc_pos { (f32) x0, (f32) y0 };
+    Vector2f urc_pos { (f32) x1, (f32) y0 };
+    Vector2f lrc_pos { (f32) x1, (f32) y1 };
+    Vector2f llc_pos { (f32) x0, (f32) y1 };
+
+    Vector2f ulc_tex { (f32) s.u0, (f32) s.v0 };
+    Vector2f urc_tex { (f32) s.u1, (f32) s.v0 };
+    Vector2f lrc_tex { (f32) s.u1, (f32) s.v1 };
+    Vector2f llc_tex { (f32) s.u0, (f32) s.v1 };
+
+    Color nope = { 0, 0, 0, 255 };
+
+    qh.verts[0] = InitQuadVertex( urc_pos, urc_tex, nope );
+    qh.verts[1] = InitQuadVertex( lrc_pos, lrc_tex, nope );
+    qh.verts[2] = InitQuadVertex( llc_pos, llc_tex, nope );
+    qh.verts[3] = InitQuadVertex( llc_pos, llc_tex, nope );
+    qh.verts[4] = InitQuadVertex( ulc_pos, ulc_tex, nope );
+    qh.verts[5] = InitQuadVertex( urc_pos, urc_tex, nope );
+
+    return qh;
+}
+
 inline
 QuadHexaVertex QuadOffset(QuadHexaVertex *q, Vector2f os) {
     QuadHexaVertex out;
@@ -158,6 +177,7 @@ QuadHexaVertex QuadOffset(QuadHexaVertex *q, Vector2f os) {
     }
     return out;
 }
+
 inline
 QuadHexaVertex QuadOffset(QuadHexaVertex *q, s16 x, s16 y, Color color) {
     QuadHexaVertex out;
@@ -170,6 +190,7 @@ QuadHexaVertex QuadOffset(QuadHexaVertex *q, s16 x, s16 y, Color color) {
     }
     return out;
 }
+
 inline
 void QuadOffset(QuadHexaVertex *q, f32 x, f32 y) {
     for (u32 i = 0; i < 6; ++i) {

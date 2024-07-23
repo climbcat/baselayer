@@ -22,26 +22,8 @@ List<QuadHexaVertex> LayoutPanel(
     DrawCall dc = {};
     dc.texture_b_key = 0;
     dc.quads = InitList<QuadHexaVertex>(a_dest, 2);
-    {
-        Quad q;
-        _memzero(&q, sizeof(Quad));
-        q.x0 = l;
-        q.x1 = l + w;
-        q.y0 = t;
-        q.y1 = t + h;
-        q.c = col_border;
-        dc.quads.Add(QuadCook(q));
-    }
-    {
-        Quad q;
-        _memzero(&q, sizeof(Quad));
-        q.x0 = l + thic_border;
-        q.x1 = l + w - thic_border;
-        q.y0 = t + thic_border;
-        q.y1 = t + h - thic_border;
-        q.c = col_pnl;
-        dc.quads.Add(QuadCook(q));
-    }
+    dc.quads.Add(QuadCookSolid(w, h, l, t, col_border));
+    dc.quads.Add(QuadCookSolid(w - 2*thic_border, h - 2*thic_border, l + thic_border, t + thic_border, col_pnl));
 
     List<QuadHexaVertex> quads = SR_Push(dc);
     return quads;
