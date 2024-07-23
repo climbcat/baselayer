@@ -531,6 +531,9 @@ void BlitQuads(DrawCall call, ImageRGBA *img) {
 // sprite renderer memory system
 
 
+// TODO: collect the sprite renderer into a struct to keep the loose ends tied, limiting the amount of globals to one
+
+
 static ImageRGBA g_render_target;
 static MArena _g_a_drawcalls;
 static MArena *g_a_drawcalls;
@@ -574,14 +577,6 @@ void SR_Render() {
     for (u32 i = 0; i < g_drawcalls.len; ++i) {
         BlitQuads(g_drawcalls.lst[i], &g_render_target);
     }
-}
-
-
-void InitSprites(MContext *ctx, ImageRGBA render_target) {
-    if (g_texture_map.slots.len == 0) {
-        g_texture_map = InitMap(ctx->a_life, MAX_TEXTURE_B_CNT);
-    }
-    InitSpriteRenderer(render_target);
 }
 
 
