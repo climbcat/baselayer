@@ -19,11 +19,13 @@ void PrintResourceType(ResourceType tpe, void *data, u32 data_size) {
         SpriteMap *smap = SpriteMapLoadStream((u8*) data, data_size);
         printf("sprite map: %s, %s, count: %u, atlas w: %u, atlas h: %u\n", smap->map_name, smap->key_name, smap->sprites.len, smap->texture.width, smap->texture.height);
 
+        /*
         List<Sprite> ss = smap->sprites;
         for (u32 i = 0; i < ss.len; ++i) {
             Sprite s = ss.lst[i];
             PrintSprite(s);
         }
+        */
     }
     else {
         printf("_unknown_\n");
