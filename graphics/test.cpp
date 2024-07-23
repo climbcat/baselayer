@@ -614,8 +614,8 @@ void Test() {
     //TestPointCloudsBoxesAndSceneGraph();
     //TestIndexSetOperations();
     //TestLayoutGlyphQuads();
-    TestBrownianGlyphs();
+    //TestBrownianGlyphs();
     //TestUIDragPanel();
     //TestUILayoutWidgetAPI();
-    //TestResourceLoad();
+    TestResourceLoad();
 }

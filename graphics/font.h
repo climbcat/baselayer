@@ -51,6 +51,7 @@ FontAtlas *FontAtlasLoadBinaryStream(u8 *base_ptr, u32 sz_data) {
     FontAtlas *atlas = (FontAtlas*) base_ptr;
     u32 sz_base = sizeof(FontAtlas);
     u32 sz_bitmap = atlas->texture.width * atlas->texture.height;
+
     assert(sz_data == sz_base + sz_bitmap && "sanity check data size");
 
     // set pointers

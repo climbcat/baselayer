@@ -11,15 +11,19 @@ enum ResourceType {
 
     RT_CNT
 };
-void PrintResourceType(ResourceType tpe) {
+void PrintResourceType(ResourceType tpe, void *data, u32 data_size) {
     if (tpe == RT_FONT) {
         printf("font\n");
     }
     else if (tpe == RT_SPRITE) {
+        SpriteMap *smap = SpriteMapLoadStream((u8*) data, data_size);
+        printf("sprite map: %s, %s, count: %u, atlas w: %u, atlas h: %u\n", smap->map_name, smap->key_name, smap->sprites.len, smap->texture.width, smap->texture.height);
 
-
-        
-        printf("sprite\n");
+        List<Sprite> ss = smap->sprites;
+        for (u32 i = 0; i < ss.len; ++i) {
+            Sprite s = ss.lst[i];
+            PrintSprite(s);
+        }
     }
     else {
         printf("_unknown_\n");
@@ -64,7 +68,7 @@ ResourceStreamHandle ResourceStreamLoadAndOpen(MArena *a_dest, const char *filen
     while (res) {
         hdl.prev = res;
 
-        PrintResourceType(res->tpe);
+        PrintResourceType(res->tpe, res->GetInlinedData(), res->data_sz);
 
         res = res->GetInlinedNext();
     }

@@ -11,6 +11,11 @@ struct Sprite {
     f32 v1;
 };
 
+inline
+void PrintSprite(Sprite s) {
+    printf("sprite w: %d, h: %d u0: %.4f, u1: %.4f, v0: %.4f, v1: %.4f\n", s.w, s.h, s.u0, s.u1, s.v0, s.v1);
+}
+
 
 //
 //  Quads
@@ -296,6 +301,17 @@ struct SpriteMap {
     List<Sprite> sprites;
     ImageRGBA texture;
 };
+
+SpriteMap *SpriteMapLoadStream(u8 *base_ptr, u32 data_sz) {
+    SpriteMap *smap = (SpriteMap*) base_ptr;
+    smap->sprites.lst = (Sprite*) (base_ptr + sizeof(SpriteMap));
+    smap->texture.img = (Color*) (base_ptr + sizeof(SpriteMap) + smap->sprites.len * sizeof(Sprite));
+
+    assert(data_sz = sizeof(SpriteMap) + smap->sprites.len * sizeof(Sprite) + sizeof(Color) * smap->texture.width * smap->texture.height && "sanity check sprite map data size");
+    return smap;
+}
+
+
 SpriteMap *CompileSpriteMapInline(MArena *a_dest, const char *name, const char *key_name, List<Sprite> sprites, List<u32> tex_keys, HashMap *texture_map) {
     u32 nx = floor( sqrt(sprites.len) );
     u32 ny = sprites.len / nx + 1;
