@@ -410,12 +410,13 @@ void AlignQuadsH(List<QuadHexaVertex> line_quads, s32 cx, TextAlign ta) {
 }
 
 
-//
-// TODO: un-retire autowrap function
-
-
 List<QuadHexaVertex> LayoutTextAutowrap(MArena *a_dest, FontAtlas *plt, Str txt, s32 x0, s32 y0, s32 w, s32 h, Color color, TextAlign ta) {
     assert(g_text_plotter != NULL && "init text plotters first");
+
+
+    //
+    // TODO: un-retire this autowrap function
+    //
 
 
     s32 pt_x = x0;
@@ -495,7 +496,10 @@ List<QuadHexaVertex> LayoutTextAutowrap(MArena *a_dest, FontAtlas *plt, Str txt,
         ScaleTextInline(quads, scale, x0, y0, w, h);
     }
 
+    // TODO: update this hack to be more organized -> e.g. put assembling the drawcall outside of
+    //      this function somehow, maybe in the UI_xxx calls.
     DrawCall dc = {};
+    dc.tpe = DCT_TEXTURE_BYTE;
     dc.texture_key = plt->GetKey();
     dc.quads = quads;
     SR_Push(dc);
@@ -564,6 +568,7 @@ List<QuadHexaVertex> LayoutTextLine(MArena *a_dest, FontAtlas *plt, Str txt, s32
     // TODO: update this hack to be more organized -> e.g. put assembling the drawcall outside of
     //      this function somehow, maybe in the UI_xxx calls.
     DrawCall dc = {};
+    dc.tpe = DCT_TEXTURE_BYTE;
     dc.texture_key = plt->GetKey();
     dc.quads = quads;
     SR_Push(dc);

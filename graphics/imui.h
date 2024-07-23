@@ -20,6 +20,7 @@ List<QuadHexaVertex> LayoutPanel(
     }
 
     DrawCall dc = {};
+    dc.tpe = DCT_SOLID;
     dc.texture_key = 0;
     dc.quads = InitList<QuadHexaVertex>(a_dest, 2);
     dc.quads.Add(QuadCookSolid(w, h, l, t, col_border));

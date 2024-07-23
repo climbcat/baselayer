@@ -98,9 +98,19 @@ struct QuadHexaVertex { // renderable six-vertex quad
         return u0;
     }
     inline
+    f32 GetTextureU1() {
+        f32 u1 = verts[0].tex.x;
+        return u1;
+    }
+    inline
     f32 GetTextureV0() {
         f32 v0 = verts[0].tex.y;
         return v0;
+    }
+    inline
+    f32 GetTextureV1() {
+        f32 v1 = verts[2].tex.y;
+        return v1;
     }
     f32 GetTextureWidth() {
         f32 u0 = verts[2].tex.x;
@@ -390,14 +400,14 @@ u8 SampleTexture(ImageB *tex, f32 x, f32 y) {
 }
 void BlitQuads(DrawCall call, ImageRGBA *img) {
 
-
+    // get the texture
     void *texture = GetTexture(call.texture_key);
     ImageB *texture_b = (ImageB*) texture;
+    ImageRGBA *texture_rgba = (ImageRGBA*) texture;
 
 
     for (u32 i = 0; i < call.quads.len; ++i) {
         QuadHexaVertex *q = call.quads.lst + i;
-        bool has_tex_coords = q->GetTextureWidth() > 0;
 
         s32 q_w = q->GetWidth();
         s32 q_h = q->GetHeight();
@@ -412,7 +422,8 @@ void BlitQuads(DrawCall call, ImageRGBA *img) {
         // byte-texture / font glyph blitting
         //
         Color color_quad = q->GetColor();
-        if (texture_b != NULL && has_tex_coords == true) {
+        if (call.tpe == DCT_TEXTURE_BYTE) {
+            assert(texture_b != NULL);
 
             f32 q_scale_x = q->GetTextureScaleX(q_w);
             f32 q_scale_y = q->GetTextureScaleY(q_h);
@@ -456,7 +467,9 @@ void BlitQuads(DrawCall call, ImageRGBA *img) {
         //
         // mono-color quads
         //
-        else {
+        else if (call.tpe == DCT_SOLID) {
+            assert(call.texture_key == 0);
+
             s32 j_img;
             u32 i_img;
             u32 idx;
@@ -481,6 +494,19 @@ void BlitQuads(DrawCall call, ImageRGBA *img) {
         //
         // TODO: blit a full-color (32bit) texture
         //
+        else if (call.tpe == DCT_TEXTURE_RGBA) {
+            assert(texture_rgba != NULL);
+
+            // TODO: integrate
+            Sprite s = {};
+            s.w = q_w;
+            s.h = q_h;
+            s.u0 = q->GetTextureU0();
+            s.u1 = q->GetTextureU1();
+            s.v0 = q->GetTextureV0();
+            s.v1 = q->GetTextureV1();
+            BlitSprite(s, q_x0, q_y0, img, texture_rgba);
+        }
     }
 }
 
