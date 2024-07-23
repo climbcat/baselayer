@@ -46,7 +46,6 @@ List<Sprite> CreateGridSprites(MArena *a_dest, u8* data, s32 nx, s32 ny, s32 spr
             printf("alien %u: x: %d, y: %d, sleft: %d, stop: %d, u0: %.4f, u1: %.4f, v0: %.4f, v1: %.4f\n", j*nx + i, x, y, sleft, stop, u0, u1, v0, v1);
 
             Sprite s = {};
-            s.tex_id = texture_id;
             s.w = sprite_w;
             s.h = sprite_h;
             s.u0 = u0;
@@ -141,7 +140,7 @@ struct SpriteMap {
     List<Sprite> sprites;
     ImageRGBA texture;
 };
-SpriteMap *CompileSpriteMapInline(MArena *a_dest, List<Sprite> sprites, HashMap *texture_map) {
+SpriteMap *CompileSpriteMapInline(MArena *a_dest, List<Sprite> sprites, List<u32> tex_keys, HashMap *texture_map) {
     u32 nx = floor( sqrt(sprites.len) );
     u32 ny = sprites.len / nx + 1;
     assert(sprites.len <= nx * ny);
@@ -186,7 +185,7 @@ SpriteMap *CompileSpriteMapInline(MArena *a_dest, List<Sprite> sprites, HashMap 
             if (idx < sprites.len) {
                 Sprite s = sprites.lst[idx];
                 
-                ImageRGBA *texture = (ImageRGBA*) MapGet(texture_map, s.tex_id);
+                ImageRGBA *texture = (ImageRGBA*) MapGet(texture_map, tex_keys.lst[idx]);
 
                 BlitSprite(s, x, y, &smap->texture, texture);
                 x += s.w;
@@ -242,7 +241,15 @@ void ExtractAliens() {
 
     printf("\n");
 
-    SpriteMap *smap = CompileSpriteMapInline(ctx->a_pers, sprites, &textures);
+    List<u32> tex_keys = InitList<u32>(ctx->a_tmp, sprites.len);
+    tex_keys.len = sprites.len;
+    for (u32 i = 0; i < tex_keys.len / 2; ++i) {
+        tex_keys.lst[i] = 1;
+    }
+    for (u32 i = tex_keys.len / 2; i < tex_keys.len; ++i) {
+        tex_keys.lst[i] = 2;
+    }
+    SpriteMap *smap = CompileSpriteMapInline(ctx->a_pers, sprites, tex_keys, &textures);
 
     // manually set all black pixels to transparant
     Color black = Color { 0, 0, 0, 255 };
