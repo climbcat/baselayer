@@ -16,6 +16,9 @@ void PrintResourceType(ResourceType tpe) {
         printf("font\n");
     }
     else if (tpe == RT_SPRITE) {
+
+
+        
         printf("sprite\n");
     }
     else {

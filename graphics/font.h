@@ -224,7 +224,7 @@ void LoadFontsFromResourceStream(ResourceHdr *resource, HashMap *map_fonts, Hash
 
 
 void InitFonts(MContext *ctx) {
-    assert(g_texb_map.slots.len != 0 && "check sprites were initialized");
+    assert(g_texture_map.slots.len != 0 && "check sprites were initialized");
     if (g_font_map.slots.len != 0) {
         printf("WARN: re-init fonts\n");
         return;
@@ -240,7 +240,7 @@ void InitFonts(MContext *ctx) {
         printf("please supply an 'all.res' font resource file with the executable, exiting ...\n");
         exit(0);
     }
-    LoadFontsFromResourceStream((ResourceHdr*) resource_data, &g_font_map, &g_texb_map);
+    LoadFontsFromResourceStream((ResourceHdr*) resource_data, &g_font_map, &g_texture_map);
 
 
     // TODO: semantic compression
@@ -496,7 +496,7 @@ List<QuadHexaVertex> LayoutTextAutowrap(MArena *a_dest, FontAtlas *plt, Str txt,
     }
 
     DrawCall dc = {};
-    dc.texture_b_key = plt->GetKey();
+    dc.texture_key = plt->GetKey();
     dc.quads = quads;
     SR_Push(dc);
 
@@ -564,7 +564,7 @@ List<QuadHexaVertex> LayoutTextLine(MArena *a_dest, FontAtlas *plt, Str txt, s32
     // TODO: update this hack to be more organized -> e.g. put assembling the drawcall outside of
     //      this function somehow, maybe in the UI_xxx calls.
     DrawCall dc = {};
-    dc.texture_b_key = plt->GetKey();
+    dc.texture_key = plt->GetKey();
     dc.quads = quads;
     SR_Push(dc);
 
