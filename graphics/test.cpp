@@ -1,5 +1,7 @@
 #include "../baselayer.h"
 #include "graphics.h"
+#include "../algos/octree.h"
+#include "../algos/indices.h"
 
 
 List<Vector3f> CreateRandomPointCloud(MArena *a, u32 npoints, Vector3f center, Vector3f dimensions) {
