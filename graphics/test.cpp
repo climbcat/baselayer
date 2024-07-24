@@ -614,15 +614,30 @@ void TestResourceLoad() {
 }
 
 
+SpriteMap *GetSpriteMap(const char *key_name) {
+    SpriteMap *smap = (SpriteMap*) MapGet(&g_resource_map, HashStringValue(key_name));
+    return smap;
+}
+
+
 void TestRenderSprites() {
     MContext *ctx = InitBaselayer();
     GameLoopOne *loop = InitGraphics(ctx);
 
+    SpriteMap *smap = GetSpriteMap("aliens_01");
+    u64 smap_key = smap->GetKey();
+
     Color gray = ColorGray(0.3f);
     while (loop->GameLoopRunning()) {
         loop->FrameStart2D(gray);
+        ArenaClear(ctx->a_tmp);
 
-
+        DrawCall dc;
+        dc.tpe = DCT_TEXTURE_RGBA;
+        dc.texture_key = smap_key;
+        dc.quads = InitList<QuadHexaVertex>(ctx->a_tmp, 1);
+        dc.quads.Add(QuadCookTextured(smap->sprites.lst[10], 100, 100));
+        SR_Push(dc);
 
         loop->FrameEnd2D();
     }

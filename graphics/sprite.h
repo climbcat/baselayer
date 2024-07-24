@@ -300,6 +300,10 @@ struct SpriteMap {
     char key_name[32];
     List<Sprite> sprites;
     ImageRGBA texture;
+    u64 GetKey() {
+        return HashStringValue(key_name);
+    }
+
 };
 
 SpriteMap *SpriteMapLoadStream(u8 *base_ptr, u32 data_sz) {
