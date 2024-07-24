@@ -217,7 +217,7 @@ void *DictGet(Dict *dct, const char *key) {
 
 //
 // pointer-map
-
+// TODO: enable a key-iteration option
 
 
 // fixed-size pointer map:

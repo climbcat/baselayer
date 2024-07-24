@@ -603,14 +603,14 @@ void TestUILayoutWidgetAPI() {
 
 void TestResourceLoad() {
     MContext *ctx = InitBaselayer();
-
     ResourceStreamHandle hdl = ResourceStreamLoadAndOpen(ctx->a_tmp, ctx->a_life, "alt.res");
 
-    printf("names:\n");
-    StrLstPrint(hdl.names->first);
-    printf("key-names:\n");
-    StrLstPrint(hdl.key_names->first);
-
+    for (u32 i = 0; i < RT_CNT; ++i) {
+        printf("names (%u):\n", i);
+        StrLstPrint(hdl.names[i]);
+        printf("key-names (%u):\n", i);
+        StrLstPrint(hdl.key_names[i]);
+    }
 }
 
 
@@ -622,8 +622,8 @@ void Test() {
     //TestPointCloudsBoxesAndSceneGraph();
     //TestIndexSetOperations();
     //TestLayoutGlyphQuads();
-    //TestBrownianGlyphs();
+    TestBrownianGlyphs();
     //TestUIDragPanel();
     //TestUILayoutWidgetAPI();
-    TestResourceLoad();
+    //TestResourceLoad();
 }

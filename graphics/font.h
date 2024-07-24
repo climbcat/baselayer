@@ -153,7 +153,7 @@ FontSize FontSizeFromPx(u32 sz_px) {
     return fs;
 }
 
-static HashMap g_font_map;
+static HashMap g_resource_map;
 static StrLst *g_font_names;
 static FontAtlas *g_text_plotter;
 FontAtlas *SetFontAndSize(FontSize font_size, Str font_name) {
@@ -167,7 +167,7 @@ FontAtlas *SetFontAndSize(FontSize font_size, Str font_name) {
 
     // get by key
     u64 key = HashStringValue(StrZeroTerm(key_name));
-    u64 val = MapGet(&g_font_map, key);
+    u64 val = MapGet(&g_resource_map, key);
     g_text_plotter = (FontAtlas*) val;
     return g_text_plotter;
 }

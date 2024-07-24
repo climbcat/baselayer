@@ -403,7 +403,6 @@ void *GetTexture(u64 key) {
     void *result = (void*) MapGet(&g_texture_map, key);
     return result;
 }
-#define MAX_TEXTURE_B_CNT 1000
 
 
 inline

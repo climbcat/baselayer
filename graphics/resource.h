@@ -50,8 +50,8 @@ struct ResourceHdr {
 struct ResourceStreamHandle {
     u32 cnt;
     u32 cnt_tpe[RT_CNT];
-    StrLst *names;
-    StrLst *key_names;
+    StrLst *names[RT_CNT];
+    StrLst *key_names[RT_CNT];
 
     ResourceHdr *first;
     ResourceHdr *prev;
@@ -59,19 +59,27 @@ struct ResourceStreamHandle {
 };
 
 
-// TODO: have the total resource count in the ResourceStreamHandle
-// TODO: ensure global key_name uniqueness on some level (?)
-// TODO: enable a key-iteration option in the HashMap helpers
+// TODO: how do we put a bound on the number of resources in a file??
+#define MAX_RESOURCE_CNT 128
 
 
 ResourceStreamHandle ResourceStreamLoadAndOpen(MArena *a_tmp, MArena *a_dest, const char *filename) {    
+
+
+    // TODO: print nice error message if file did not exist
+    /*
+    if (resource_data == NULL) {
+        printf("please supply an 'all.res' font resource file with the executable, exiting ...\n");
+        exit(0);
+    }
+    */
+
+
     ResourceStreamHandle hdl = {};
     hdl.first = (ResourceHdr *) LoadFileFSeek(a_dest, (char*) filename);
-    HashMap map_names = InitMap(a_tmp, 1000); // TODO: how do we put a bound on the number of resources in a file??
-    HashMap map_keynames = InitMap(a_tmp, 1000); // TODO: how do we put a bound on the number of resources in a file??
+    HashMap map_names = InitMap(a_tmp, MAX_RESOURCE_CNT);
+    HashMap map_keynames = InitMap(a_tmp, MAX_RESOURCE_CNT);
 
-    StrLst *names = NULL;
-    StrLst *key_names = NULL;
     ResourceHdr *res = hdl.first;
     while (res) {
         hdl.prev = res;
@@ -83,12 +91,12 @@ ResourceStreamHandle ResourceStreamLoadAndOpen(MArena *a_tmp, MArena *a_dest, co
         if (MapGet(&map_keynames, key)) {
             assert( MapGet(&map_keynames, key) == 0 && "resource key duplicate");
         }
-        key_names = StrLstPut(a_dest, res->key_name, key_names);
+        hdl.key_names[res->tpe] = StrLstPut(a_dest, res->key_name, hdl.key_names[res->tpe]);
         MapPut(&map_names, key, res);
         key = HashStringValue(res->name);
         if (MapGet(&map_names, key) == 0) {
             MapPut(&map_names, key, res);
-            names = StrLstPut(a_dest, res->name, names);
+            hdl.names[res->tpe] = StrLstPut(a_dest, res->name, hdl.names[res->tpe]);
         }
 
         // iter
@@ -100,11 +108,12 @@ ResourceStreamHandle ResourceStreamLoadAndOpen(MArena *a_tmp, MArena *a_dest, co
         if (i + 1 < RT_CNT) {
             printf(", ");
         }
+        if (hdl.key_names[i]) {
+            hdl.key_names[i] = hdl.key_names[i]->first;
+            hdl.names[i] = hdl.names[i]->first;
+        }
     }
     printf(")\n");
-
-    hdl.key_names = key_names->first;
-    hdl.names = names->first;
 
     return hdl;
 }
