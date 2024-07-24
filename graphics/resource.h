@@ -11,6 +11,17 @@ enum ResourceType {
 
     RT_CNT
 };
+void PrintResourceType(ResourceType tpe) {
+    if (tpe == RT_FONT) {
+        printf("font\n");
+    }
+    else if (tpe == RT_SPRITE) {
+        printf("sprite map\n");
+    }
+    else {
+        printf("_unknown_\n");
+    }
+}
 
 
 struct ResourceHdr {
@@ -37,24 +48,15 @@ struct ResourceHdr {
 
 
 struct ResourceStreamHandle {
+    u32 cnt;
+    u32 cnt_tpe[RT_CNT];
+    HashMap map_names;
+    HashMap map_keynames;
+
     ResourceHdr *first;
     ResourceHdr *prev;
     ResourceHdr *current;
 };
-
-
-
-void PrintResourceType(ResourceType tpe) {
-    if (tpe == RT_FONT) {
-        printf("font\n");
-    }
-    else if (tpe == RT_SPRITE) {
-        printf("sprite map\n");
-    }
-    else {
-        printf("_unknown_\n");
-    }
-}
 
 
 // TODO: have the total resource count in the ResourceStreamHandle
@@ -62,21 +64,60 @@ void PrintResourceType(ResourceType tpe) {
 // TODO: enable a key-iteration option in the HashMap helpers
 
 
-ResourceStreamHandle ResourceStreamLoadAndOpen(MArena *a_dest, const char *filename, bool db_print_keys) {    
+ResourceStreamHandle ResourceStreamLoadAndOpen(MArena *a_tmp, MArena *a_dest, const char *filename, bool db_print_keys) {    
     ResourceStreamHandle hdl = {};
     hdl.first = (ResourceHdr *) LoadFileFSeek(a_dest, (char*) filename);
+    hdl.map_names = InitMap(a_tmp, 1000); // TODO: how do we put a bound on the number of resources in a file??
+    hdl.map_keynames = InitMap(a_tmp, 1000); // TODO: how do we put a bound on the number of resources in a file??
 
+    StrLst *names_hdl = NULL;
+    StrLst *key_names_hdl = NULL;
+    StrLst *names = NULL;
+    StrLst *key_names = NULL;
     ResourceHdr *res = hdl.first;
     while (res) {
         hdl.prev = res;
+        hdl.cnt++;
+        hdl.cnt_tpe[res->tpe]++;
+
+        // record unique names and keynames
+        u64 key = HashStringValue(res->key_name);
+        if (MapGet(&hdl.map_keynames, key)) {
+            assert( MapGet(&hdl.map_keynames, key) == 0 && "resource key duplicate");
+        }
+        key_names = StrLstPut(res->key_name, key_names);
+        if (key_names_hdl == NULL) {
+            key_names_hdl = key_names;
+        }
+        MapPut(&hdl.map_names, key, res);
+        key = HashStringValue(res->name);
+        if (MapGet(&hdl.map_names, key) == 0) {
+            MapPut(&hdl.map_names, key, res);
+            names = StrLstPut(res->name, names);
+            if (names_hdl == NULL) {
+                names_hdl = names;
+            }
+        }
+        
+
+        // put name and key_name into their string lists
 
         if (db_print_keys) {
             printf("key: %s - ", res->key_name);
             PrintResourceType(res->tpe);
         }
-
         res = res->GetInlinedNext();
     }
+    printf("opened resources: %u tot", hdl.cnt);
+    for (u32 i = 0; i < RT_CNT; ++i) {
+        printf(", %u", hdl.cnt_tpe[i]);
+    }
+    printf("\n");
+
+    printf("names:\n");
+    StrLstPrint(names_hdl);
+    printf("key-names:\n");
+    StrLstPrint(key_names_hdl);
 
     return hdl;
 }

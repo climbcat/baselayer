@@ -233,8 +233,13 @@ struct HashMap {
     List<HashMapKeyVal> colls;
     u32 ncollisions;
     u32 nresets;
-    u32 GetNumSlots() {
-        return slots.len;
+    u32 noccupants;
+
+    bool IsInitialized() {
+        return slots.len > 0;
+    }
+    void PrintOccupance() {
+        printf("noccupants: %u, nresets: %u\n", noccupants, nresets);
     }
 };
 HashMap InitMap(MArena *a_dest, u32 nslots = 1000) {
@@ -254,10 +259,11 @@ bool MapPut(HashMap *map, u64 key, u64 val) {
     u32 lower = (u32) key;
     u32 upper = key << 32;
     u32 slot = Hash(lower + upper) % map->slots.len;
-    HashMapKeyVal *kv_slot = map->slots.lst+ slot;
+    HashMapKeyVal *kv_slot = map->slots.lst + slot;
 
     if (kv_slot->key == 0 || kv_slot->key == key) {
         if (kv_slot->key == key) {
+            map->noccupants--;
             map->nresets++;
         }
         // new slot or reset value
@@ -275,7 +281,7 @@ bool MapPut(HashMap *map, u64 key, u64 val) {
         while (collider->chain != NULL) {
             collider = collider->chain;
         }
-        if (map->colls.len == map->GetNumSlots()) {
+        if (map->colls.len == map->slots.len) {
             // no more space
             return false;
         }
@@ -288,6 +294,7 @@ bool MapPut(HashMap *map, u64 key, u64 val) {
 
         collider->chain = map->colls.Add(kv_new);
     }
+    map->noccupants++;
     return true;
 }
 inline
@@ -321,6 +328,7 @@ u64 MapGet(HashMap *map, u64 key /*, bool *valid*/ ) {
 }
 bool MapRemove(HashMap *map, u64 key, void *val) {
     // TODO: impl
+    assert(1 == 0);
 
     return true;
 }

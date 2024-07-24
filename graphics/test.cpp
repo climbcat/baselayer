@@ -604,7 +604,7 @@ void TestUILayoutWidgetAPI() {
 void TestResourceLoad() {
     MContext *ctx = InitBaselayer();
 
-    ResourceStreamLoadAndOpen(ctx->a_life, "alt.res", true);
+    ResourceStreamLoadAndOpen(ctx->a_tmp, ctx->a_life, "alt.res", true);
 }
 
 
@@ -616,7 +616,7 @@ void Test() {
     //TestPointCloudsBoxesAndSceneGraph();
     //TestIndexSetOperations();
     //TestLayoutGlyphQuads();
-    TestBrownianGlyphs();
+    //TestBrownianGlyphs();
     //TestUIDragPanel();
     //TestUILayoutWidgetAPI();
     TestResourceLoad();
