@@ -40,6 +40,18 @@ struct ResourceHdr {
     }
     u8 *GetInlinedData() {
         u8 *dta =  (u8*) this + sizeof(ResourceHdr);
+
+
+
+
+        if (!((dta + data_sz) == (u8*) GetInlinedNext() || GetInlinedNext() == NULL)) {
+            printf("data contiguity BLIP\n");
+
+            ResourceHdr * neext = GetInlinedNext();
+            ResourceHdr * also_neext = (ResourceHdr *) (dta + data_sz);
+            s32 diff = (u8*) neext - (u8*) also_neext;
+            printf("diff %d %d\n", diff, sizeof(ResourceHdr));
+        }
         assert( (dta + data_sz) == (u8*) GetInlinedNext() || GetInlinedNext() == NULL );
 
         return dta;
@@ -63,7 +75,7 @@ struct ResourceStreamHandle {
 #define MAX_RESOURCE_CNT 128
 
 
-ResourceStreamHandle ResourceStreamLoadAndOpen(MArena *a_tmp, MArena *a_dest, const char *filename) {    
+ResourceStreamHandle ResourceStreamLoadAndOpen(MArena *a_tmp, MArena *a_dest, const char *filename, bool put_strs_inline = true) {
 
 
     // TODO: print nice error message if file did not exist
@@ -81,6 +93,7 @@ ResourceStreamHandle ResourceStreamLoadAndOpen(MArena *a_tmp, MArena *a_dest, co
     HashMap map_keynames = InitMap(a_tmp, MAX_RESOURCE_CNT);
 
     ResourceHdr *res = hdl.first;
+    s32 cnt = 0;
     while (res) {
         hdl.prev = res;
         hdl.cnt++;
@@ -91,15 +104,22 @@ ResourceStreamHandle ResourceStreamLoadAndOpen(MArena *a_tmp, MArena *a_dest, co
         if (MapGet(&map_keynames, key)) {
             assert( MapGet(&map_keynames, key) == 0 && "resource key duplicate");
         }
-        hdl.key_names[res->tpe] = StrLstPut(a_dest, res->key_name, hdl.key_names[res->tpe]);
+        if (put_strs_inline) {
+            hdl.key_names[res->tpe] = StrLstPut(a_dest, res->key_name, hdl.key_names[res->tpe]);
+        }
         MapPut(&map_names, key, res);
         key = HashStringValue(res->name);
         if (MapGet(&map_names, key) == 0) {
             MapPut(&map_names, key, res);
-            hdl.names[res->tpe] = StrLstPut(a_dest, res->name, hdl.names[res->tpe]);
+            if (put_strs_inline) {
+                hdl.names[res->tpe] = StrLstPut(a_dest, res->name, hdl.names[res->tpe]);
+            }
         }
 
+        printf("%d ", cnt++);
+
         // iter
+        res->GetInlinedData();
         res = res->GetInlinedNext();
     }
     printf("opened resource file '%s': %u entries (", filename, hdl.cnt);

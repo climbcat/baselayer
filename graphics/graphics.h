@@ -56,7 +56,7 @@ GameLoopOne *InitGraphics(MContext *ctx) {
 
         // sprite maps
         else if (res->tpe == RT_SPRITE) {
-            SpriteMap *smap = SpriteMapLoadStream((u8*) res, res->data_sz);
+            SpriteMap *smap = SpriteMapLoadStream((u8*) res->GetInlinedData(), res->data_sz);
             printf("sprite map: %s, %s, count: %u, atlas w: %u, atlas h: %u\n", smap->map_name, smap->key_name, smap->sprites.len, smap->texture.width, smap->texture.height);
 
             MapPut(&g_resource_map, smap->key_name, smap);

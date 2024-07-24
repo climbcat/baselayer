@@ -614,6 +614,24 @@ void TestResourceLoad() {
 }
 
 
+void TestRenderSprites() {
+    MContext *ctx = InitBaselayer();
+    GameLoopOne *loop = InitGraphics(ctx);
+
+    Color gray = ColorGray(0.3f);
+
+    /*
+    while (loop->GameLoopRunning()) {
+        loop->FrameStart2D(gray);
+
+
+
+        loop->FrameEnd2D();
+    }
+    */
+}
+
+
 void Test() {
     //TestRandomPCWithNormals();
     //TestVGROcTree(); // TODO: fix
@@ -622,8 +640,9 @@ void Test() {
     //TestPointCloudsBoxesAndSceneGraph();
     //TestIndexSetOperations();
     //TestLayoutGlyphQuads();
-    TestBrownianGlyphs();
+    //TestBrownianGlyphs();
     //TestUIDragPanel();
     //TestUILayoutWidgetAPI();
-    //TestResourceLoad();
+    TestResourceLoad();
+    //TestRenderSprites();
 }
