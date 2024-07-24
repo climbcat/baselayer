@@ -17,7 +17,8 @@ struct ResourceHdr {
     ResourceType tpe;
     u32 data_sz;
     u32 next;
-    char key_name[200];
+    char name[64];
+    char key_name[64];
 
     ResourceHdr *GetInlinedNext() {
         if (next == 0) {
@@ -56,6 +57,11 @@ void PrintResourceType(ResourceType tpe) {
 }
 
 
+// TODO: have the total resource count in the ResourceStreamHandle
+// TODO: ensure global key_name uniqueness on some level (?)
+// TODO: enable a key-iteration option in the HashMap helpers
+
+
 ResourceStreamHandle ResourceStreamLoadAndOpen(MArena *a_dest, const char *filename, bool db_print_keys) {    
     ResourceStreamHandle hdl = {};
     hdl.first = (ResourceHdr *) LoadFileFSeek(a_dest, (char*) filename);
@@ -76,12 +82,13 @@ ResourceStreamHandle ResourceStreamLoadAndOpen(MArena *a_dest, const char *filen
 }
 
 
-void ResourceStreamPushData(MArena *a_dest, ResourceStreamHandle *stream, ResourceType tpe, char *key_name, void *data, u32 data_sz) {
+void ResourceStreamPushData(MArena *a_dest, ResourceStreamHandle *stream, ResourceType tpe, char *name, char *key_name, void *data, u32 data_sz) {
     assert(stream != NULL);
 
     stream->current = (ResourceHdr*) ArenaAlloc(a_dest, sizeof(ResourceHdr));
     stream->current->tpe = tpe;
     stream->current->data_sz = data_sz;
+    _memcpy(stream->current->name, key_name, _strlen(name));
     _memcpy(stream->current->key_name, key_name, _strlen(key_name));
     if (stream->prev) {
         stream->prev->next = (u32) ((u8*) stream->current - (u8*) stream->prev);
@@ -93,8 +100,8 @@ void ResourceStreamPushData(MArena *a_dest, ResourceStreamHandle *stream, Resour
     ArenaPush(a_dest, data, data_sz);
 }
 
-void ResourceStreamPushData(MArena *a_dest, ResourceStreamHandle *stream, ResourceType tpe, const char *key_name, void *data, u32 data_sz) {
-    return ResourceStreamPushData(a_dest, stream, tpe, (char*) key_name, data, data_sz);
+void ResourceStreamPushData(MArena *a_dest, ResourceStreamHandle *stream, ResourceType tpe, char *name, const char *key_name, void *data, u32 data_sz) {
+    return ResourceStreamPushData(a_dest, stream, tpe, (char*) name, (char*) key_name, data, data_sz);
 }
 
 void ResourceStreamPushDataExtra(MArena *a_dest, ResourceStreamHandle *stream, void *data, u32 data_sz) {
