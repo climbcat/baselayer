@@ -17,9 +17,10 @@ struct Str {
 
 
 struct StrLst {
-    char *str = NULL;
-    u32 len = 0;
-    StrLst *next = NULL; // can cast to Str
+    char *str;
+    u32 len;
+    StrLst *next;
+    StrLst *first;
 
     Str GetStr() {
         return Str { str, len };
@@ -201,15 +202,20 @@ Str StrTrim(MArena *a, Str s, char t) {
 
 
 StrLst *StrLstPut(MArena *a, char *str, StrLst *after = NULL) {
-    StrLst _;
-    StrLst *lst = (StrLst*) ArenaPush(a, &_, sizeof(StrLst)); // can we have an ArenaPush(type) for this ideom? T
+    StrLst _ = {};
+    StrLst *lst = (StrLst*) ArenaPush(a, &_, sizeof(StrLst));
     lst->len = _strlen(str);
-    lst->str = (char*) ArenaAlloc(a, lst->len); // TODO: would be easy to put a T here to avoid the cast
+    lst->str = (char*) ArenaAlloc(a, lst->len);
     for (int i = 0; i < lst->len; ++i) {
         lst->str[i] = str[i];
     }
     if (after != NULL) {
+        assert(after->first != NULL && "don't allow first pointer to not be set during StrLstPut");
         after->next = lst;
+        lst->first = after->first;
+    }
+    else {
+        lst->first = lst;
     }
     return lst;
 }

@@ -52,6 +52,8 @@ struct ResourceStreamHandle {
     u32 cnt_tpe[RT_CNT];
     HashMap map_names;
     HashMap map_keynames;
+    StrLst *names;
+    StrLst *key_names;
 
     ResourceHdr *first;
     ResourceHdr *prev;
@@ -64,14 +66,12 @@ struct ResourceStreamHandle {
 // TODO: enable a key-iteration option in the HashMap helpers
 
 
-ResourceStreamHandle ResourceStreamLoadAndOpen(MArena *a_tmp, MArena *a_dest, const char *filename, bool db_print_keys) {    
+ResourceStreamHandle ResourceStreamLoadAndOpen(MArena *a_tmp, MArena *a_dest, const char *filename) {    
     ResourceStreamHandle hdl = {};
     hdl.first = (ResourceHdr *) LoadFileFSeek(a_dest, (char*) filename);
     hdl.map_names = InitMap(a_tmp, 1000); // TODO: how do we put a bound on the number of resources in a file??
     hdl.map_keynames = InitMap(a_tmp, 1000); // TODO: how do we put a bound on the number of resources in a file??
 
-    StrLst *names_hdl = NULL;
-    StrLst *key_names_hdl = NULL;
     StrLst *names = NULL;
     StrLst *key_names = NULL;
     ResourceHdr *res = hdl.first;
@@ -80,44 +80,33 @@ ResourceStreamHandle ResourceStreamLoadAndOpen(MArena *a_tmp, MArena *a_dest, co
         hdl.cnt++;
         hdl.cnt_tpe[res->tpe]++;
 
-        // record unique names and keynames
+        // check keyname uniqueness & record unique names and keynames
         u64 key = HashStringValue(res->key_name);
         if (MapGet(&hdl.map_keynames, key)) {
             assert( MapGet(&hdl.map_keynames, key) == 0 && "resource key duplicate");
         }
-        key_names = StrLstPut(res->key_name, key_names);
-        if (key_names_hdl == NULL) {
-            key_names_hdl = key_names;
-        }
+        key_names = StrLstPut(a_dest, res->key_name, key_names);
         MapPut(&hdl.map_names, key, res);
         key = HashStringValue(res->name);
         if (MapGet(&hdl.map_names, key) == 0) {
             MapPut(&hdl.map_names, key, res);
-            names = StrLstPut(res->name, names);
-            if (names_hdl == NULL) {
-                names_hdl = names;
-            }
+            names = StrLstPut(a_dest, res->name, names);
         }
-        
 
-        // put name and key_name into their string lists
-
-        if (db_print_keys) {
-            printf("key: %s - ", res->key_name);
-            PrintResourceType(res->tpe);
-        }
+        // iter
         res = res->GetInlinedNext();
     }
-    printf("opened resources: %u tot", hdl.cnt);
+    printf("opened resource file '%s': %u entries (", filename, hdl.cnt);
     for (u32 i = 0; i < RT_CNT; ++i) {
-        printf(", %u", hdl.cnt_tpe[i]);
+        printf("%u", hdl.cnt_tpe[i]);
+        if (i + 1 < RT_CNT) {
+            printf(", ");
+        }
     }
-    printf("\n");
+    printf(")\n");
 
-    printf("names:\n");
-    StrLstPrint(names_hdl);
-    printf("key-names:\n");
-    StrLstPrint(key_names_hdl);
+    hdl.key_names = key_names->first;
+    hdl.names = names->first;
 
     return hdl;
 }

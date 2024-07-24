@@ -604,7 +604,13 @@ void TestUILayoutWidgetAPI() {
 void TestResourceLoad() {
     MContext *ctx = InitBaselayer();
 
-    ResourceStreamLoadAndOpen(ctx->a_tmp, ctx->a_life, "alt.res", true);
+    ResourceStreamHandle hdl = ResourceStreamLoadAndOpen(ctx->a_tmp, ctx->a_life, "alt.res");
+
+    printf("names:\n");
+    StrLstPrint(hdl.names->first);
+    printf("key-names:\n");
+    StrLstPrint(hdl.key_names->first);
+
 }
 
 
