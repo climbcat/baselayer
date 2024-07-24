@@ -619,8 +619,6 @@ void TestRenderSprites() {
     GameLoopOne *loop = InitGraphics(ctx);
 
     Color gray = ColorGray(0.3f);
-
-    /*
     while (loop->GameLoopRunning()) {
         loop->FrameStart2D(gray);
 
@@ -628,7 +626,6 @@ void TestRenderSprites() {
 
         loop->FrameEnd2D();
     }
-    */
 }
 
 
