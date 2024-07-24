@@ -40,18 +40,6 @@ struct ResourceHdr {
     }
     u8 *GetInlinedData() {
         u8 *dta =  (u8*) this + sizeof(ResourceHdr);
-
-
-
-
-        if (!((dta + data_sz) == (u8*) GetInlinedNext() || GetInlinedNext() == NULL)) {
-            printf("data contiguity BLIP\n");
-
-            ResourceHdr * neext = GetInlinedNext();
-            ResourceHdr * also_neext = (ResourceHdr *) (dta + data_sz);
-            s32 diff = (u8*) neext - (u8*) also_neext;
-            printf("diff %d %d\n", diff, sizeof(ResourceHdr));
-        }
         assert( (dta + data_sz) == (u8*) GetInlinedNext() || GetInlinedNext() == NULL );
 
         return dta;
@@ -89,6 +77,11 @@ ResourceStreamHandle ResourceStreamLoadAndOpen(MArena *a_tmp, MArena *a_dest, co
 
     ResourceStreamHandle hdl = {};
     hdl.first = (ResourceHdr *) LoadFileFSeek(a_dest, (char*) filename);
+    if (hdl.first == NULL) {
+        printf("Could not load file: '%s', exiting ...\n", filename);
+        exit(0);
+        return hdl;
+    }
     HashMap map_names = InitMap(a_tmp, MAX_RESOURCE_CNT);
     HashMap map_keynames = InitMap(a_tmp, MAX_RESOURCE_CNT);
 
@@ -118,8 +111,10 @@ ResourceStreamHandle ResourceStreamLoadAndOpen(MArena *a_tmp, MArena *a_dest, co
 
         printf("%d ", cnt++);
 
-        // iter
+        // check
         res->GetInlinedData();
+
+        // iter
         res = res->GetInlinedNext();
     }
     printf("opened resource file '%s': %u entries (", filename, hdl.cnt);

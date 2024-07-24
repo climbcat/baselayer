@@ -31,6 +31,10 @@ StrLst *GetFilesInFolderPaths(MArena *a, const char *rootpath) {
 
 u32 LoadFileGetSize(char* filepath) {
     FILE * f = fopen(filepath, "r");
+    if (f == NULL) {
+        return 0;
+    }
+
     fseek(f, 0, SEEK_END);
     u32 len = ftell(f);
     return len;
@@ -61,6 +65,10 @@ u32 LoadFileFSeek(char* filepath, void* dest) {
 
 void *LoadFileFSeek(MArena *a_dest, char *filepath, u32 *size = NULL) {
     u32 sz = LoadFileGetSize(filepath);
+    if (sz == 0) {
+        return NULL;
+    }
+
     void *dest = ArenaAlloc(a_dest, sz);
     LoadFileFSeek(filepath, dest);
 

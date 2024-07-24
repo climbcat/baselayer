@@ -643,6 +643,6 @@ void Test() {
     //TestBrownianGlyphs();
     //TestUIDragPanel();
     //TestUILayoutWidgetAPI();
-    TestResourceLoad();
-    //TestRenderSprites();
+    //TestResourceLoad();
+    TestRenderSprites();
 }
