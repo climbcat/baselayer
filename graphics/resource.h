@@ -50,8 +50,6 @@ struct ResourceHdr {
 struct ResourceStreamHandle {
     u32 cnt;
     u32 cnt_tpe[RT_CNT];
-    HashMap map_names;
-    HashMap map_keynames;
     StrLst *names;
     StrLst *key_names;
 
@@ -69,8 +67,8 @@ struct ResourceStreamHandle {
 ResourceStreamHandle ResourceStreamLoadAndOpen(MArena *a_tmp, MArena *a_dest, const char *filename) {    
     ResourceStreamHandle hdl = {};
     hdl.first = (ResourceHdr *) LoadFileFSeek(a_dest, (char*) filename);
-    hdl.map_names = InitMap(a_tmp, 1000); // TODO: how do we put a bound on the number of resources in a file??
-    hdl.map_keynames = InitMap(a_tmp, 1000); // TODO: how do we put a bound on the number of resources in a file??
+    HashMap map_names = InitMap(a_tmp, 1000); // TODO: how do we put a bound on the number of resources in a file??
+    HashMap map_keynames = InitMap(a_tmp, 1000); // TODO: how do we put a bound on the number of resources in a file??
 
     StrLst *names = NULL;
     StrLst *key_names = NULL;
@@ -82,14 +80,14 @@ ResourceStreamHandle ResourceStreamLoadAndOpen(MArena *a_tmp, MArena *a_dest, co
 
         // check keyname uniqueness & record unique names and keynames
         u64 key = HashStringValue(res->key_name);
-        if (MapGet(&hdl.map_keynames, key)) {
-            assert( MapGet(&hdl.map_keynames, key) == 0 && "resource key duplicate");
+        if (MapGet(&map_keynames, key)) {
+            assert( MapGet(&map_keynames, key) == 0 && "resource key duplicate");
         }
         key_names = StrLstPut(a_dest, res->key_name, key_names);
-        MapPut(&hdl.map_names, key, res);
+        MapPut(&map_names, key, res);
         key = HashStringValue(res->name);
-        if (MapGet(&hdl.map_names, key) == 0) {
-            MapPut(&hdl.map_names, key, res);
+        if (MapGet(&map_names, key) == 0) {
+            MapPut(&map_names, key, res);
             names = StrLstPut(a_dest, res->name, names);
         }
 
