@@ -59,21 +59,11 @@ struct ResourceStreamHandle {
 };
 
 
-// TODO: how do we put a bound on the number of resources in a file??
+// TODO: how do we put a bound on the number of resources in a file?
 #define MAX_RESOURCE_CNT 128
 
 
 ResourceStreamHandle ResourceStreamLoadAndOpen(MArena *a_tmp, MArena *a_dest, const char *filename, bool put_strs_inline = true) {
-
-
-    // TODO: print nice error message if file did not exist
-    /*
-    if (resource_data == NULL) {
-        printf("please supply an 'all.res' font resource file with the executable, exiting ...\n");
-        exit(0);
-    }
-    */
-
 
     ResourceStreamHandle hdl = {};
     hdl.first = (ResourceHdr *) LoadFileFSeek(a_dest, (char*) filename);
@@ -86,8 +76,9 @@ ResourceStreamHandle ResourceStreamLoadAndOpen(MArena *a_tmp, MArena *a_dest, co
     HashMap map_keynames = InitMap(a_tmp, MAX_RESOURCE_CNT);
 
     ResourceHdr *res = hdl.first;
-    s32 cnt = 0;
     while (res) {
+        assert(hdl.cnt < MAX_RESOURCE_CNT && "artificial resources load count limit reached");
+
         hdl.prev = res;
         hdl.cnt++;
         hdl.cnt_tpe[res->tpe]++;
@@ -108,8 +99,6 @@ ResourceStreamHandle ResourceStreamLoadAndOpen(MArena *a_tmp, MArena *a_dest, co
                 hdl.names[res->tpe] = StrLstPut(a_dest, res->name, hdl.names[res->tpe]);
             }
         }
-
-        printf("%d ", cnt++);
 
         // check
         res->GetInlinedData();
@@ -132,7 +121,6 @@ ResourceStreamHandle ResourceStreamLoadAndOpen(MArena *a_tmp, MArena *a_dest, co
 
     return hdl;
 }
-
 
 void ResourceStreamPushData(MArena *a_dest, ResourceStreamHandle *stream, ResourceType tpe, char *name, char *key_name, void *data, u32 data_sz) {
     assert(stream != NULL);
