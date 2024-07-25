@@ -635,8 +635,21 @@ void TestRenderSprites() {
         DrawCall dc;
         dc.tpe = DCT_TEXTURE_RGBA;
         dc.texture_key = smap_key;
-        dc.quads = InitList<QuadHexaVertex>(ctx->a_tmp, 1);
-        dc.quads.Add(QuadCookTextured(smap->sprites.lst[10], 100, 100));
+        dc.quads = InitList<QuadHexaVertex>(ctx->a_tmp, smap->sprites.len);
+
+        for (u32 j = 0; j < 6; ++j) {
+            for (u32 i = 0; i < 6; ++i) {
+                s32 x = i * 50;
+                s32 y = j * 50;
+                dc.quads.Add(QuadCookTextured(smap->sprites.lst[i + j*6], x, y));
+
+            }
+        }
+
+        for (u32 i = 0; i < smap->sprites.len; ++i) {
+
+            
+        }
         SR_Push(dc);
 
         loop->FrameEnd2D();

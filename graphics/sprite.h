@@ -364,11 +364,17 @@ SpriteMap *CompileSpriteMapInline(MArena *a_dest, const char *name, const char *
             if (idx < sprites.len) {
                 Sprite s = sprites.lst[idx];
                 ImageRGBA *texture = (ImageRGBA*) MapGet(texture_map, tex_keys.lst[idx]);
-
                 BlitSprite(s, x, y, &smap->texture, texture);
-                x += s.w;
-                row_max_h = MaxS32(row_max_h, s.h);
-                smap->sprites.lst[idx] = s;
+
+                Sprite t = s;
+                t.u0 = 1.0f * x / bm_w;
+                t.u1 = (1.0f*x + t.w) / bm_w;
+                t.v0 = 1.0f*y / bm_h;
+                t.v1 = (1.0f*y + t.h) / bm_h;
+                smap->sprites.lst[idx] = t;
+
+                x += t.w;
+                row_max_h = MaxS32(row_max_h, t.h);
             }
         }
         x = 0;
