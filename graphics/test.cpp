@@ -622,7 +622,7 @@ SpriteMap *GetSpriteMap(const char *key_name) {
 
 void TestRenderSprites() {
     MContext *ctx = InitBaselayer();
-    GameLoopOne *loop = InitGraphics(ctx);
+    GameLoopOne *loop = InitGraphics(ctx, 580, 800);
 
     SpriteMap *smap = GetSpriteMap("aliens_01");
     u64 smap_key = smap->GetKey();
@@ -636,12 +636,14 @@ void TestRenderSprites() {
         dc.texture_key = smap_key;
         dc.quads = InitList<QuadHexaVertex>(ctx->a_tmp, smap->sprites.len);
 
-        for (u32 j = 0; j < 11; ++j) {
-            for (u32 i = 0; i < 6; ++i) {
+        u32 naliens_y = 12;
+        u32 naliens_x = 11;
+        for (u32 j = 0; j < naliens_y; ++j) {
+            for (u32 i = 0; i < naliens_x; ++i) {
                 s32 x = i * 50 + 20;
                 s32 y = j * 50 + 10;
 
-                Sprite s = smap->sprites.lst[i + j*6];
+                Sprite s = smap->sprites.lst[i + j*naliens_x];
                 dc.quads.Add(QuadCookTextured(s, x, y));
 
                 Widget *frame = UI_CoolPanel(s.w + 2, s.h + 2);
