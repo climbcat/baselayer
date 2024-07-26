@@ -20,8 +20,10 @@ List<Sprite> CreateGridSprites(MArena *a_dest, u8* data, s32 nx, s32 ny, s32 spr
     s32 sprite_h2 = sprite_h / 2; // h2 == half height
 
     // auto vars
-    s32 cell_w = bitmap_w / nx;
-    s32 cell_h = bitmap_h / ny;
+    s32 groff_x = -4;
+    s32 groff_y = -7;
+    s32 cell_w = bitmap_w / nx + 1;
+    s32 cell_h = bitmap_h / ny + 3;
     f32 uw = 1.0f * sprite_w / bitmap_w;
     f32 vw = 1.0f * sprite_h / bitmap_h;
 
@@ -32,8 +34,8 @@ List<Sprite> CreateGridSprites(MArena *a_dest, u8* data, s32 nx, s32 ny, s32 spr
     for (u32 j = 0; j < ny; ++j) {
         for (u32 i = 0; i < nx; ++i) {
             // cell center x, y
-            s32 x = i * cell_w + cell_w / 2;
-            s32 y = j * cell_h + cell_h / 2;
+            s32 x = i * cell_w + cell_w / 2 + groff_x;
+            s32 y = j * cell_h + cell_h / 2 + groff_y;
 
             // sprite u.l.c.
             s32 sleft = x - sprite_w2;
