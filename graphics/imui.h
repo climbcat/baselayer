@@ -79,6 +79,8 @@ enum WidgetFlags {
     WF_LAYOUT_V = 1 << 11,
     WF_LAYOUT_CX = 1 << 12,
     WF_LAYOUT_CY = 1 << 13,
+
+    WF_ABS_POS = 1 << 14,
 };
 bool WidgetIsLayout(u32 features) {
     bool result =
@@ -128,6 +130,9 @@ struct Widget {
         rect.x1 = x0 + w;
         rect.y0 = y0;
         rect.y1 = y0 + h;
+    }
+    void SetFeature(WidgetFlags f) {
+        features = features |= f;
     }
 };
 
@@ -311,25 +316,29 @@ void UI_FrameEnd(MArena *a_tmp) {
         // since all sizes are known, each widget can lay out its children according to its settings
         Widget *ch = w->first;
         while (ch != NULL) { // iterate child widgets
-            ch->x0 = w->x0;
-            ch->y0 = w->y0;
 
-            // iterate the layout (will not work with nested layouts)
-            if (w->features & WF_LAYOUT_H) {
-                ch->x0 = w->x0 + pt_x;
-                pt_x += ch->w;
-            }
-            else if (w->features & WF_LAYOUT_CX) {
-                ch->x0 = w->x0 + (w->w - ch->w) / 2;
+            // set child position - skip completely if absolutely positioned
+            if ((ch->features & WF_ABS_POS) == false) {
+                ch->x0 = w->x0;
+                ch->y0 = w->y0;
+
+                if (w->features & WF_LAYOUT_H) {
+                    ch->x0 = w->x0 + pt_x;
+                    pt_x += ch->w;
+                }
+                else if (w->features & WF_LAYOUT_CX) {
+                    ch->x0 = w->x0 + (w->w - ch->w) / 2;
+                }
+
+                if (w->features & WF_LAYOUT_V) {
+                    ch->y0 = w->y0 + pt_y;
+                    pt_y += ch->h;
+                }
+                else if (w->features & WF_LAYOUT_CY) {
+                    ch->y0 = w->y0 + (w->h - ch->h) / 2;
+                }
             }
 
-            if (w->features & WF_LAYOUT_V) {
-                ch->y0 = w->y0 + pt_y;
-                pt_y += ch->h;
-            }
-            else if (w->features & WF_LAYOUT_CY) {
-                ch->y0 = w->y0 + (w->h - ch->h) / 2;
-            }
 
             // set the collision rect for next frame code-interleaved mouse collision
             ch->SetCollisionRectUsingX0Y0WH();
@@ -470,7 +479,7 @@ bool UI_Button(const char *text) {
 }
 
 
-void UI_CoolPanel(u32 width, u32 height) {
+Widget *UI_CoolPanel(s32 width, s32 height) {
     // no frame persistence
 
     Widget *w = p_widgets->Alloc();
@@ -485,6 +494,8 @@ void UI_CoolPanel(u32 width, u32 height) {
     w->col_border = ColorGray(0.7f);
 
     TreeBranch(w);
+
+    return w;
 }
 
 

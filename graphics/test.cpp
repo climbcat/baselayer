@@ -630,30 +630,35 @@ void TestRenderSprites() {
     Color gray = ColorGray(0.3f);
     while (loop->GameLoopRunning()) {
         loop->FrameStart2D(gray);
-        ArenaClear(ctx->a_tmp);
 
         DrawCall dc;
         dc.tpe = DCT_TEXTURE_RGBA;
         dc.texture_key = smap_key;
         dc.quads = InitList<QuadHexaVertex>(ctx->a_tmp, smap->sprites.len);
 
-        for (u32 j = 0; j < 6; ++j) {
+        for (u32 j = 0; j < 11; ++j) {
             for (u32 i = 0; i < 6; ++i) {
-                s32 x = i * 50;
-                s32 y = j * 50;
-                dc.quads.Add(QuadCookTextured(smap->sprites.lst[i + j*6], x, y));
+                s32 x = i * 50 + 20;
+                s32 y = j * 50 + 10;
 
+                Sprite s = smap->sprites.lst[i + j*6];
+                dc.quads.Add(QuadCookTextured(s, x, y));
+
+                Widget *frame = UI_CoolPanel(s.w + 2, s.h + 2);
+                frame->SetFeature(WF_ABS_POS);
+                frame->col_bckgrnd = ColorBlack();
+                frame->col_border = ColorWhite();
+                frame->sz_border = 1;
+                frame->x0 = x - 1;
+                frame->y0 = y - 1;
             }
-        }
-
-        for (u32 i = 0; i < smap->sprites.len; ++i) {
-
-            
         }
         SR_Push(dc);
 
+        UI_FrameEnd(ctx->a_tmp);
         loop->FrameEnd2D();
     }
+    loop->Terminate();
 }
 
 

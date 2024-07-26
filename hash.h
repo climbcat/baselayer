@@ -328,7 +328,7 @@ u64 MapGet(HashMap *map, u64 key /*, bool *valid*/ ) {
 }
 bool MapRemove(HashMap *map, u64 key, void *val) {
     // TODO: impl
-    assert(1 == 0);
+    //assert(1 == 0);
 
     return true;
 }
