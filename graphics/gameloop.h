@@ -21,14 +21,14 @@ void CtrlCHandler(int i) {
     printf("\n");
     exit(1);
 }
-GLFWwindow *InitGLFW(u32 width, u32 height, bool fullscreen_mode = false) {
+GLFWwindow *InitGLFW(u32 width, u32 height, const char *title, bool fullscreen_mode = false) {
     // glfw
     glfwInit();
 
     // opengl window & context
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-    GLFWwindow* window = glfwCreateWindow(width, height, "Point cloud viewer", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(width, height, title, NULL, NULL);
     glfwMakeContextCurrent(window);
 
     // glew
@@ -71,6 +71,11 @@ struct GameLoopOne {
         }
         return pop;
     }
+    bool GetKey(Key k) {
+        bool result = glfwGetKey(window, k) == GLFW_PRESS;
+        return result;
+    }
+
 
     SwRenderer *GetRenderer() {
         if (renderer.initialized) {
@@ -219,7 +224,7 @@ void GameLoopJustRun(GameLoopOne *loop, EntitySystem *es) {
 static GameLoopOne _g_gameloop;
 static GameLoopOne *g_gameloop;
 static MouseTrap *g_mouse;
-GameLoopOne *InitGameLoopOne(u32 width = 1280, u32 height = 800) {
+GameLoopOne *InitGameLoopOne(u32 width = 1280, u32 height = 800, const char *window_title = "") {
     if (g_gameloop != NULL) {
         FreeRenderer(&g_gameloop->renderer);
         _memzero(g_gameloop, sizeof(GameLoopOne));
@@ -227,7 +232,7 @@ GameLoopOne *InitGameLoopOne(u32 width = 1280, u32 height = 800) {
 
     g_gameloop = &_g_gameloop;
     g_gameloop->frameno = 0;
-    g_gameloop->window = InitGLFW(width, height, false);
+    g_gameloop->window = InitGLFW(width, height, window_title, false);
     g_gameloop->renderer = InitRenderer(width, height);
     g_gameloop->cam = InitOrbitCamera(g_gameloop->renderer.aspect);
 

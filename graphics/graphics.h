@@ -22,12 +22,12 @@
 #include "gameloop.h"
 
 
-GameLoopOne *InitGraphics(MContext *ctx, u32 width = 1280, u32 height = 800) {
+GameLoopOne *InitGraphics(MContext *ctx, u32 width = 1280, u32 height = 800, const char *window_title = "") {
 
     //
     // init subsustem; memory, context, ptrs
 
-    GameLoopOne *loop = InitGameLoopOne(width, height);
+    GameLoopOne *loop = InitGameLoopOne(width, height, window_title);
     ImageRGBA render_target = loop->GetRenderer()->GetImageAsRGBA();
     InitImUi(render_target.width, render_target.height, g_mouse, &loop->frameno);
     InitSpriteRenderer(render_target);
