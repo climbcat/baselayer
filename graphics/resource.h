@@ -6,16 +6,16 @@
 
 
 enum ResourceType {
-    RT_FONT,
-    RT_SPRITE,
+    RST_FONT,
+    RST_SPRITE,
 
-    RT_CNT
+    RST_CNT
 };
 void PrintResourceType(ResourceType tpe) {
-    if (tpe == RT_FONT) {
+    if (tpe == RST_FONT) {
         printf("font\n");
     }
-    else if (tpe == RT_SPRITE) {
+    else if (tpe == RST_SPRITE) {
         printf("sprite map\n");
     }
     else {
@@ -49,9 +49,9 @@ struct ResourceHdr {
 
 struct ResourceStreamHandle {
     u32 cnt;
-    u32 cnt_tpe[RT_CNT];
-    StrLst *names[RT_CNT];
-    StrLst *key_names[RT_CNT];
+    u32 cnt_tpe[RST_CNT];
+    StrLst *names[RST_CNT];
+    StrLst *key_names[RST_CNT];
 
     ResourceHdr *first;
     ResourceHdr *prev;
@@ -107,9 +107,9 @@ ResourceStreamHandle ResourceStreamLoadAndOpen(MArena *a_tmp, MArena *a_dest, co
         res = res->GetInlinedNext();
     }
     printf("opened resource file '%s': %u entries (", filename, hdl.cnt);
-    for (u32 i = 0; i < RT_CNT; ++i) {
+    for (u32 i = 0; i < RST_CNT; ++i) {
         printf("%u", hdl.cnt_tpe[i]);
-        if (i + 1 < RT_CNT) {
+        if (i + 1 < RST_CNT) {
             printf(", ");
         }
         if (hdl.key_names[i]) {

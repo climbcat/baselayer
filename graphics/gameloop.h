@@ -7,6 +7,7 @@
 #include <assert.h>
 #include "geometry.h"
 #include "ui.h"
+#include "sprite.h"
 #include "swrender.h"
 
 
