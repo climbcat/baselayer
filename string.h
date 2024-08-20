@@ -285,6 +285,11 @@ bool StrEqual(Str a, const char *lit) {
     return StrEqual(a, b);
 }
 inline
+Str StrAlloc(MArena *a_dest, u32 len) {
+    char *buff = (char*) ArenaAlloc(a_dest, len);
+    return Str { buff, len };
+}
+inline
 Str StrAlloc(u32 len) {
     char *buff = (char*) ArenaAlloc(g_a_strings, len);
     return Str { buff, len };
