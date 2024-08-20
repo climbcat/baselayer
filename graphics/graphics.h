@@ -40,13 +40,13 @@ GameLoopOne *InitGraphics(MContext *ctx, u32 width = 1280, u32 height = 800, con
 
     // load & check resource file
     ResourceStreamHandle hdl = ResourceStreamLoadAndOpen(ctx->a_tmp, ctx->a_life, "all.res");
-    g_font_names = hdl.names[RT_FONT];
+    g_font_names = hdl.names[RST_FONT];
 
     // map out the resources
     ResourceHdr *res = hdl.first;
     while (res) {
         // fonts
-        if (res->tpe == RT_FONT) {
+        if (res->tpe == RST_FONT) {
             FontAtlas *font = FontAtlasLoadBinaryStream(res->GetInlinedData(), res->data_sz);
             font->Print();
 
@@ -55,7 +55,7 @@ GameLoopOne *InitGraphics(MContext *ctx, u32 width = 1280, u32 height = 800, con
         }
 
         // sprite maps
-        else if (res->tpe == RT_SPRITE) {
+        else if (res->tpe == RST_SPRITE) {
             SpriteMap *smap = SpriteMapLoadStream((u8*) res->GetInlinedData(), res->data_sz);
             printf("sprite map: %s, %s, count: %u, atlas w: %u, atlas h: %u\n", smap->map_name, smap->key_name, smap->sprites.len, smap->texture.width, smap->texture.height);
 
