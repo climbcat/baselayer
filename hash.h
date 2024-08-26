@@ -216,11 +216,13 @@ void *DictGet(Dict *dct, const char *key) {
 
 
 //
-// pointer-map
+//  Pointer-map
+//
+//  (You need to supply a 64b key)
+//
+
+
 // TODO: enable a key-iteration option
-
-
-// fixed-size pointer map:
 
 
 struct HashMapKeyVal {
@@ -250,6 +252,15 @@ HashMap InitMap(MArena *a_dest, u32 nslots = 1000) {
     map.colls = InitList<HashMapKeyVal>(a_dest, nslots);
 
     return map;
+}
+void MapClear(HashMap *map) {
+    u32 nslots = map->slots.len;
+    _memzero(map->colls.lst, sizeof(HashMapKeyVal) * map->colls.len);
+    _memzero(map->slots.lst, sizeof(HashMapKeyVal) * map->slots.len);
+    map->ncollisions = 0;
+    map->noccupants = 0;
+    map->nresets = 0;
+    map->slots.len = nslots;
 }
 
 
@@ -301,10 +312,12 @@ inline
 bool MapPut(HashMap *map, void *key, void *val) {
     return MapPut(map, (u64) key, (u64) val);
 }
+
 inline
 bool MapPut(HashMap *map, u64 key, void *val) {
     return MapPut(map, key, (u64) val);
 }
+
 u64 MapGet(HashMap *map, u64 key /*, bool *valid*/ ) {
     u32 lower = (u32) key;
     u32 upper = key << 32;
@@ -326,6 +339,7 @@ u64 MapGet(HashMap *map, u64 key /*, bool *valid*/ ) {
 
     return 0;
 }
+
 bool MapRemove(HashMap *map, u64 key, void *val) {
     // TODO: impl
     //assert(1 == 0);

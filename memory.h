@@ -367,6 +367,7 @@ struct List {
     }
     inline
     void Delete(u32 idx) {
+        // unordered delete / swap-dec
         T swap = Last();
         len--;
         lst[len] = lst[idx];
