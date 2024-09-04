@@ -33,6 +33,7 @@ struct MArena {
     u64 mapped;
     u64 committed;
     u64 used;
+    u64 fixed_size;
     bool locked = false;
 };
 
@@ -40,15 +41,22 @@ struct MArena {
 #define ARENA_COMMIT_CHUNK SIXTEEN_KB
 
 
-MArena ArenaCreate() {
-    MArena a;
+MArena ArenaCreate(u64 fixed_size = 0) {
+    MArena a = {};
     a.used = 0;
 
-    a.mem = (u8*) MemoryReserve(ARENA_RESERVE_SIZE);
-    a.mapped = ARENA_RESERVE_SIZE;
-
-    MemoryProtect(a.mem, ARENA_COMMIT_CHUNK);
-    a.committed = ARENA_COMMIT_CHUNK;
+    if (fixed_size > 0) {
+        a.mem = (u8*) MemoryReserve(fixed_size);
+        a.mapped = fixed_size;
+        MemoryProtect(a.mem, fixed_size);
+        a.committed = fixed_size;
+    }
+    else {
+        a.mem = (u8*) MemoryReserve(ARENA_RESERVE_SIZE);
+        a.mapped = ARENA_RESERVE_SIZE;
+        MemoryProtect(a.mem, ARENA_COMMIT_CHUNK);
+        a.committed = ARENA_COMMIT_CHUNK;
+    }
 
     return a;
 }
@@ -56,11 +64,17 @@ inline
 void *ArenaAlloc(MArena *a, u64 len, bool zerod = true) {
     assert(!a->locked && "ArenaAlloc: memory arena is open, use MArenaClose to allocate");
 
-    if (a->committed < a->used + len) {
+    if (a->fixed_size) {
+        assert(a->fixed_size == a->committed && "ArenaAlloc: fixed_size misconfigured");
+        assert(a->fixed_size <= a->used + len && "ArenaAlloc: fixed_size exceeded");
+    }
+
+    else if (a->committed < a->used + len) {
         u64 amount = (len / ARENA_COMMIT_CHUNK + 1) * ARENA_COMMIT_CHUNK;
         MemoryProtect(a->mem + a->committed, amount);
         a->committed += amount;
     }
+
     void *result = a->mem + a->used;
     a->used += len;
     if (zerod) {
@@ -286,14 +300,14 @@ struct MContext {
 
 static MContext _g_mctx;
 static MContext *g_mctx;
-MContext *GetContext() {
+MContext *GetContext(u64 arenas_fixed_size = 0) {
     if (g_mctx == NULL) {
         g_mctx = &_g_mctx;
-        g_mctx->_a_tmp = ArenaCreate();
+        g_mctx->_a_tmp = ArenaCreate(arenas_fixed_size);
         g_mctx->a_tmp = &g_mctx->_a_tmp;
-        g_mctx->_a_pers = ArenaCreate();
+        g_mctx->_a_pers = ArenaCreate(arenas_fixed_size);
         g_mctx->a_pers = &g_mctx->_a_pers;
-        g_mctx->_a_life = ArenaCreate();
+        g_mctx->_a_life = ArenaCreate(arenas_fixed_size);
         g_mctx->a_life = &g_mctx->_a_life;
     }
     return g_mctx;
