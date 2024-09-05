@@ -321,7 +321,8 @@ void TestDict() {
 
 void TestPointerHashMap() {
     printf("TestPointerHashMap\n");
-    MContext *ctx = InitBaselayer();
+    MContext *ctx = GetContext(1024 * 1024);
+    RandInit();
 
     u32 nslots = 12;
     HashMap _map = InitMap(ctx->a_life, nslots);
