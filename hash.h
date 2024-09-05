@@ -267,9 +267,7 @@ void MapClear(HashMap *map) {
 bool MapPut(HashMap *map, u64 key, u64 val) {
     assert(key != 0 && "null ptr can not be used as a key");
 
-    u32 lower = (u32) key;
-    u32 upper = key << 32;
-    u32 slot = Hash(lower + upper) % map->slots.len;
+    u32 slot = Hash(key) % map->slots.len;
     HashMapKeyVal *kv_slot = map->slots.lst + slot;
 
     if (kv_slot->key == 0 || kv_slot->key == key) {
@@ -318,10 +316,8 @@ bool MapPut(HashMap *map, u64 key, void *val) {
     return MapPut(map, key, (u64) val);
 }
 
-u64 MapGet(HashMap *map, u64 key /*, bool *valid*/ ) {
-    u32 lower = (u32) key;
-    u32 upper = key << 32;
-    u32 slot = Hash(lower + upper) % map->slots.len;
+u64 MapGet(HashMap *map, u64 key) {
+    u32 slot = Hash(key) % map->slots.len;
     HashMapKeyVal kv_slot = map->slots.lst[slot];
 
     if (kv_slot.key == key) {
@@ -342,7 +338,7 @@ u64 MapGet(HashMap *map, u64 key /*, bool *valid*/ ) {
 
 bool MapRemove(HashMap *map, u64 key, void *val) {
     // TODO: impl
-    //assert(1 == 0);
+    assert(1 == 0);
 
     return true;
 }
@@ -380,19 +376,14 @@ unsigned long Kiss_Random(unsigned long state[7]) {
     return state[0] + state[1] + state[3];
 }
 unsigned long g_state[7];
-bool g_didinit = false;
 #define McRandom() Kiss_Random(g_state)
 u32 RandInit(u32 seed = 0) {
-    if (g_didinit == true)
-        return 0;
-
-    if (seed == 0) {
-        seed = Hash(ReadCPUTimer());
+   if (seed == 0) {
+        seed = Hash(ReadSystemTimerMySec());
     }
     Kiss_SRandom(g_state, seed);
     Kiss_Random(g_state); // flush the first one
 
-    g_didinit = true;
     return seed;
 }
 

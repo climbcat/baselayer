@@ -456,9 +456,9 @@ void Test() {
     //TestSortingAlgs();
     //TestStringHelpers();
     //TestDict();
-    //TestPointerHashMap();
+    TestPointerHashMap();
     //TestScritinizeFilename();
-    TestPoolAllocatorAgain();
+    //TestPoolAllocatorAgain();
 }
 
 
