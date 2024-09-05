@@ -8,6 +8,7 @@
 
 
 u64 ReadSystemTimerMySec();
+u32 ReadSystemTimerMySec32();
 u64 ReadCPUTimer();
 void XSleep(u32 ms);
 
