@@ -255,11 +255,12 @@ HashMap InitMap(MArena *a_dest, u32 nslots = 1000) {
 }
 void MapClear(HashMap *map) {
     u32 nslots = map->slots.len;
-    _memzero(map->colls.lst, sizeof(HashMapKeyVal) * map->colls.len);
+    _memzero(map->colls.lst, sizeof(HashMapKeyVal) * map->slots.len);
     _memzero(map->slots.lst, sizeof(HashMapKeyVal) * map->slots.len);
     map->ncollisions = 0;
     map->noccupants = 0;
     map->nresets = 0;
+    map->colls.len = 0;
     map->slots.len = nslots;
 }
 
