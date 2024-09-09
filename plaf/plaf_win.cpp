@@ -45,6 +45,24 @@ u64 ReadSystemTimerMySec() {
     u64 systime = (u32) tv_sec*1000000 + tv_usec; // microsecs 
     return systime;
 }
+u32 ReadSystemTimerMySec32() {
+    // systime (via S.O. 10905892)
+
+    static const uint64_t EPOCH = ((uint64_t) 116444736000000000ULL);
+    SYSTEMTIME  system_time;
+    FILETIME    file_time;
+    uint64_t    time;
+    GetSystemTime( &system_time );
+    SystemTimeToFileTime( &system_time, &file_time );
+    time =  ((uint64_t)file_time.dwLowDateTime )      ;
+    time += ((uint64_t)file_time.dwHighDateTime) << 32;
+
+    long tv_sec  = (long) ((time - EPOCH) / 10000000L);
+    long tv_usec = (long) (system_time.wMilliseconds * 1000);
+    u32 systime = (u32) tv_sec*1000000 + tv_usec; // microsecs 
+
+    return systime;
+}
 u64 ReadCPUTimer() {
     u64 rd = __rdtsc();
     return rd;

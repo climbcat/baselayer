@@ -142,7 +142,7 @@ void SmallTests() {
     u32 test_num_partial = 666;
     MPool pool = PoolCreate(sizeof(PoolTestEntity), pool_size);
     PoolTestEntity *e;
-    PoolTestEntity *elements[pool_size];
+    PoolTestEntity *elements[1001];
     // populate to full
     printf("populating to max ...\n");
     for (u32 i = 0; i < pool_size; ++i) {
