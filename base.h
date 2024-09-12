@@ -13,7 +13,14 @@
 typedef uint8_t u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
+
+
+#ifdef __arm__
+#warning "__arm__ detected: u64 typedef'd to 32bit"
+typedef uint32_t u64;
+#else
 typedef uint64_t u64;
+#endif
 
 typedef int8_t s8;
 typedef int16_t s16;
