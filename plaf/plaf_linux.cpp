@@ -48,10 +48,11 @@ u32 ReadSystemTimerMySec32() {
     return systime;
 }
 u64 ReadCPUTimer() {
-    #ifndef __arm__
-    u64 ticks = __builtin_ia32_rdtsc(); // gcc
-    #else
     u64 ticks = 0;
+    #ifndef __arm__
+    #ifndef __aarch64__
+    ticks = __builtin_ia32_rdtsc(); // gcc
+    #endif
     #endif
     // TODO: test __rdtsc(); with x86intrin.h ! (might increase compile time by a lot)
     return ticks;
