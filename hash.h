@@ -65,8 +65,7 @@ struct Dict {
     bool debug_print;
 };
 Dict InitDict(u32 nslots = 256, u32 sz_val = 0) {
-    Dict dct;
-    _memzero(&dct, sizeof(Dict));
+    Dict dct = {};
     dct.nslots = nslots;
     dct.sz_val = sz_val;
     dct.a_storage = ArenaCreateBootstrapped();
@@ -245,8 +244,7 @@ struct HashMap {
     }
 };
 HashMap InitMap(MArena *a_dest, u32 nslots = 1000) {
-    HashMap map;
-    _memzero(&map, sizeof(HashMap));
+    HashMap map = {};
     map.slots = InitList<HashMapKeyVal>(a_dest, nslots);
     map.slots.len = nslots;
     map.colls = InitList<HashMapKeyVal>(a_dest, nslots);
@@ -297,8 +295,7 @@ bool MapPut(HashMap *map, u64 key, u64 val) {
         }
 
         // put a new collider onto the list
-        HashMapKeyVal kv_new;
-        _memzero(&kv_new, sizeof(HashMapKeyVal));
+        HashMapKeyVal kv_new = {};
         kv_new.key = key;
         kv_new.val = val;
 
