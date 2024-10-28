@@ -141,6 +141,7 @@ StrLst *StrSplit(MArena *a_dest, Str base, char split) {
             if (node->len > 0) {
                 next = _StrLstAllocNext(a_dest);
                 node->next = next;
+                node->first = first;
                 node = next;
             }
 
@@ -208,6 +209,7 @@ StrLst *StrLstPut(MArena *a, char *str, StrLst *after = NULL) {
     StrLst *lst = (StrLst*) ArenaPush(a, &_, sizeof(StrLst));
     lst->len = _strlen(str);
     lst->str = (char*) ArenaAlloc(a, lst->len);
+
     for (int i = 0; i < lst->len; ++i) {
         lst->str[i] = str[i];
     }
