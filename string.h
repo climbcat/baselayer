@@ -155,6 +155,85 @@ StrLst *StrSplit(MArena *a_dest, Str base, char split) {
     }
     return first;
 }
+StrLst *StrSplitSpacesKeepQuoted(MArena *a_dest, Str base) {
+    char space = ' ';
+    char quote = '"';
+
+    u32 qcnt = 0;
+    bool e1 = false;
+    bool e2 = false;
+    for (u32 i = 0; i < base.len; ++i) {
+        if (base.str[i] == quote) {
+            qcnt++;
+
+            // check whether the quotation thing is padded with space on left/right side (uneven / even)
+            bool qts_are_wrapped_by_spaces =
+                (qcnt % 2 == 1) && (i == 0 || base.str[i - 1] == ' ') ||
+                (qcnt % 2 == 0) && (i == base.len - 1 || base.str[i + 1] == ' ');
+
+            if (!qts_are_wrapped_by_spaces) {
+                e1 = true;
+            }
+        }
+    }
+    e2 = qcnt % 2 == 1;
+
+    bool debug_print = false;
+    if (e1 || e2) {
+        if (debug_print) printf("FAIL: qcnt: %u\n", qcnt);
+        if (debug_print) printf("FAIL: fail %d %d\n", e1, e2);
+        return NULL;
+    }
+    else {
+        if (debug_print) printf("able to collapse\n");
+    }
+
+    char split = space;
+    StrLst *next = _StrLstAllocNext(a_dest);
+    StrLst *first = next;
+    StrLst *node = next;
+
+    u32 i = 0;
+    u32 j = 0;
+    while (i < base.len) {
+        // seek
+        j = 0;
+        while (i + j < base.len && (base.str[i + j] != split) ) {
+            char c = base.str[i + j];
+
+            if (c == quote) {
+                i++;
+                if (split == space) {
+                    split = quote;
+                }
+                else {
+                    split = space;
+                }
+            }
+
+            j++;
+        }
+
+        // copy
+        if (j > 0) {
+            if (node->len > 0) {
+                next = _StrLstAllocNext(a_dest);
+                node->next = next;
+                node->first = first;
+                node = next;
+            }
+
+            node->len = j;
+            ArenaAlloc(a_dest, j);
+            _memcpy(node->str, base.str + i, j);
+        }
+
+        // iter
+        split = space;
+        i += j + 1;
+    }
+    return first;
+}
 Str StrJoin(MArena *a, StrLst *strs) {
     Str join;
     join.str = (char*) ArenaOpen(a);
