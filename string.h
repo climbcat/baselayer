@@ -398,6 +398,10 @@ StrLst *StrSplit(Str base, char split) {
     return StrSplit(g_a_strings, base, split);
 }
 inline
+StrLst *StrSplitSpacesKeepQuoted(Str base) {
+    return StrSplitSpacesKeepQuoted(g_a_strings, base);
+}
+inline
 StrLst *StrSplitLines(Str base) {
     return StrSplit(g_a_strings, base, '\n');
 }
