@@ -280,7 +280,7 @@ Str StrTrim(MArena *a, Str s, char t) {
 
 
 //
-// string list builder functions, another take
+// string list builder functions [another take]
 
 
 StrLst *StrLstPut(MArena *a, char *str, StrLst *after = NULL) {
@@ -310,11 +310,48 @@ void StrLstPrint(StrLst lst) {
     }
     while ((iter = iter->next) != NULL);
 }
+StrLst *StrLstPop(StrLst *pop, StrLst *prev) {
+    if (pop == NULL) {
+        return NULL;
+    }
+
+    // pop is first
+    else if (pop == pop->first) { 
+        assert(prev == NULL);
+
+        StrLst *newfirst = pop->next;
+        StrLst *iter = newfirst;
+        while (iter) {
+            iter->first = newfirst;
+            iter = iter->next;
+        }
+        pop->first = newfirst;
+        return newfirst;
+    }
+
+    else if (prev != NULL) {
+        assert(prev->next == pop);
+
+        // pop is in the middle
+        if (pop->next) {
+            prev->next = pop->next;
+            return prev->next;
+        }
+
+        // pop is the last
+        else {
+            prev->next = NULL;
+            return NULL;
+        }
+    }
+
+    assert(1 == 0);
+    return NULL;
+}
 
 
 //
 //  Automated arena signatures
-//
 
 
 static MArena _g_a_strings;
@@ -341,8 +378,7 @@ MArena *InitStrings() {
 
 
 //
-//  Wrappers without any arena arg, these just expand on the current arena
-//
+//  Wrappers without any arena arg, these just expand on the currently set arena
 
 
 inline
