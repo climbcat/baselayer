@@ -605,7 +605,7 @@ void TestResourceLoad() {
     MContext *ctx = InitBaselayer();
     ResourceStreamHandle hdl = ResourceStreamLoadAndOpen(ctx->a_tmp, ctx->a_life, "alt.res");
 
-    for (u32 i = 0; i < RT_CNT; ++i) {
+    for (u32 i = 0; i < RST_CNT; ++i) {
         printf("names (%u):\n", i);
         StrLstPrint(hdl.names[i]);
         printf("key-names (%u):\n", i);
