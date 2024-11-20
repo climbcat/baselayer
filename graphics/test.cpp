@@ -673,6 +673,36 @@ void TestRenderSprites() {
 }
 
 
+void TestLayoutPanels() {
+    MContext *ctx = InitBaselayer();
+    GameLoopOne *loop = InitGraphics(ctx, 580, 800);
+
+
+    Color gray = ColorGray(0.3f);
+    while (loop->GameLoopRunning()) {
+        loop->FrameStart2D(gray);
+
+
+        UI_LayoutHorizontalCenterY();
+
+        SetFontSize(FS_18);
+        u32 cnt = 5;
+        for (u32 i = 0; i < cnt; ++i) {
+            Widget *wgt = UI_CoolPanel(100, 50);
+            wgt->sz_border = 4;
+            wgt->col_border = ColorGray(0.8f);
+            wgt->col_bckgrnd = ColorWhite();
+            UI_Pop();
+        }
+
+
+        UI_FrameEnd(ctx->a_tmp);
+        loop->FrameEnd2D();
+    }
+    loop->Terminate();
+}
+
+
 void Test() {
     //TestRandomPCWithNormals();
     //TestVGROcTree(); // TODO: fix
@@ -683,7 +713,8 @@ void Test() {
     //TestLayoutGlyphQuads();
     //TestBrownianGlyphs();
     //TestUIDragPanel();
-    TestUILayoutWidgetAPI();
+    //TestUILayoutWidgetAPI();
     //TestResourceLoad();
-    TestRenderSprites();
+    //TestRenderSprites();
+    TestLayoutPanels();
 }

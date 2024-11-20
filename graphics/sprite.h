@@ -438,8 +438,9 @@ void BlitQuads(DrawCall call, ImageRGBA *img) {
         s32 q_h = q->GetHeight();
         s32 q_x0 = q->GetX0();
         s32 q_y0 = q->GetY0();
-        assert(img->height >= q_w);
-        assert(img->width >= q_h);
+
+        assert(img->height >= q_h);
+        assert(img->width >= q_w);
 
         u32 stride_img = img->width;
 
