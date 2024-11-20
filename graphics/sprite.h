@@ -583,7 +583,8 @@ List<QuadHexaVertex> SR_Push(DrawCall dc) {
 void SR_Render() {
     assert(g_render_target.img != NULL && "init render target first");
 
-    for (s32 i = g_drawcalls.len - 1; i >= 0; --i) {   // reverse
+    //for (s32 i = g_drawcalls.len - 1; i >= 0; --i) {   // reverse
+    for (s32 i = 0; i < g_drawcalls.len; ++i) {   // do not reverse
         BlitQuads(g_drawcalls.lst[i], &g_render_target);
     }
 }

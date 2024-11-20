@@ -642,7 +642,6 @@ void TestRenderSprites() {
             for (u32 i = 0; i < naliens_x; ++i) {
                 s32 x = i * 50 + 20;
                 s32 y = j * 50 + 10;
-
                 Sprite s = smap->sprites.lst[i + j*naliens_x];
                 dc.quads.Add(QuadCookTextured(s, x, y));
 
@@ -655,9 +654,19 @@ void TestRenderSprites() {
                 frame->y0 = y - 1;
             }
         }
-        SR_Push(dc);
 
         UI_FrameEnd(ctx->a_tmp);
+
+        // NOTE!: here we put the sprite ddraw call (SR_Push(dc)) after UI_FrameEnd, which puts the widget 
+        //      draw calls onto the draw list.
+        //      Doing it contrary would cause them to do not appear. This means something needs fixing,
+        //      re-ordering, or something. We want a way to display things in the right order, without 
+        //      hacing the API like this. Sprites should be grouped with their "container" widget, and be
+        //      drawn on top of that, but also below other widgets that are on top, e.g.:
+        // TODO:  Interleaving
+
+        SR_Push(dc);
+
         loop->FrameEnd2D();
     }
     loop->Terminate();
@@ -674,7 +683,7 @@ void Test() {
     //TestLayoutGlyphQuads();
     //TestBrownianGlyphs();
     //TestUIDragPanel();
-    //TestUILayoutWidgetAPI();
+    TestUILayoutWidgetAPI();
     //TestResourceLoad();
     TestRenderSprites();
 }

@@ -367,6 +367,14 @@ void UI_FrameEnd(MArena *a_tmp) {
     for (u32 i = 0; i < all_widgets.len; ++i) {
         Widget *w = all_widgets.lst[i];
 
+
+        // TODO: we have inversed the rendering order somehow, what happened?
+        //      It is probably related to changes from the sprite rendering impl. / changes
+        //u32 idx = all_widgets.len - i - 1; 
+        //Widget *w = all_widgets.lst[idx];
+        //printf("widget %d; txt: %d, bcg: %d\n", i, (w->features & WF_DRAW_TEXT) != 0, (w->features & WF_DRAW_BACKGROUND_AND_BORDER) != 0);
+
+
         if (w->features & WF_DRAW_BACKGROUND_AND_BORDER) {
             LayoutPanel(w->x0, w->y0, w->w, w->h, w->sz_border, w->col_border, w->col_bckgrnd);
         }
@@ -388,6 +396,8 @@ void UI_FrameEnd(MArena *a_tmp) {
             }
         }
     }
+
+    //exit(0);
 
 
     // clean up pass
@@ -521,7 +531,7 @@ void UI_SpaceV(u32 height) {
 }
 
 
-void UI_Label(const char *text) {
+Widget *UI_Label(const char *text, Color color = Color { RGBA_BLACK }) {
     // no frame persistence
 
     Widget *w = p_widgets->Alloc();
@@ -532,7 +542,7 @@ void UI_Label(const char *text) {
     w->sz_font = GetFontSize();
     w->col_bckgrnd = ColorGray(0.9f);
     w->col_border = ColorBlack();
-    w->col_text = ColorBlack();
+    w->col_text = color;
 
     FontSize fs = GetFontSize();
     SetFontSize(w->sz_font);
@@ -541,6 +551,7 @@ void UI_Label(const char *text) {
     SetFontSize(fs);
 
     TreeSibling(w);
+    return w;
 }
 
 
