@@ -17,7 +17,7 @@
 #define RGBA_RED        255, 0, 0, 255
 #define RGBA_GREEN      0, 255, 0, 255
 #define RGBA_BLUE       0, 0, 255, 255
-#define RGBA_YELLOW     0, 255, 255, 255
+#define RGBA_YELLOW     255, 255, 0, 255
 
 
 #define BYTES_RGB 3
@@ -50,6 +50,18 @@ Color ColorBlack() {
 Color ColorGray(f32 grayness) {
     u8 g = floor(grayness * 255);
     return Color { g, g, g, 255 };
+}
+Color ColorRed() {
+    return Color { RGBA_RED };
+}
+Color ColorGreen() {
+    return Color { RGBA_GREEN };
+}
+Color ColorBlue() {
+    return Color { RGBA_BLUE };
+}
+Color ColorYellow() {
+    return Color { RGBA_YELLOW };
 }
 
 
