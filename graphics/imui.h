@@ -312,23 +312,23 @@ void WidgetExpand_Rec(Widget *w) {
 
     // extract info
     bool expander_vert_found = false;
-    bool expander_horiz_found = NULL;
+    bool expander_horiz_found = false;
     u32 width_other = 0;
     u32 height_other = 0;
     while (ch) {
         if ( ! (ch->features & WF_EXPAND_VERTICAL)) {
-            assert(w->features & WF_LAYOUT_H || expander_vert_found == false && "Expander not allowed (WF_EXPAND_VERTICAL)");
             height_other += ch->h;
         }
         else {
+            assert(w->features & WF_LAYOUT_H || expander_vert_found == false && "Expander not allowed (WF_EXPAND_VERTICAL)");
             expander_vert_found = true;
         }
 
         if ( ! (ch->features & WF_EXPAND_HORIZONTAL)) {
-            assert(w->features & WF_LAYOUT_V || expander_horiz_found == false && "Expander not allowed (WF_EXPAND_HORIZONTAL)");
             width_other += ch->w;
         }
         else {
+            assert(w->features & WF_LAYOUT_V || expander_horiz_found == false && "Expander not allowed (WF_EXPAND_HORIZONTAL)");
             expander_horiz_found = true;
         }
 

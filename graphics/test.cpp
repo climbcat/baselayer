@@ -713,51 +713,76 @@ void TestLayoutPanels2() {
     MContext *ctx = InitBaselayer();
     GameLoopOne *loop = InitGraphics(ctx, 1000, 500);
 
+    SetFontSize(FS_18);
+
     Color gray = ColorGray(0.3f);
     while (loop->GameLoopRunning()) {
         loop->FrameStart2D(gray);
 
-        Widget *w0 = UI_LayoutHorizontal();
+        // wrapper
+        Widget *w0 = UI_LayoutVertical();
         w0->features |= WF_EXPAND_VERTICAL;
         w0->features |= WF_EXPAND_HORIZONTAL;
 
-        Widget *l_nodes = UI_LayoutVertical();
-        l_nodes->features |= WF_DRAW_BACKGROUND_AND_BORDER;
-        l_nodes->col_border = ColorBlack();
-        l_nodes->sz_border = 1;
-        l_nodes->features |= WF_EXPAND_VERTICAL;
-        l_nodes->w = 740;
-        l_nodes->col_bckgrnd = ColorGray(0.9f);
+        {
+            // wrapper
+            Widget *w1 = UI_LayoutHorizontal();
+            w1->features |= WF_EXPAND_VERTICAL;
+            w1->features |= WF_EXPAND_HORIZONTAL;
 
-        UI_Pop();
-
-        Widget *l_btns = UI_LayoutVertical();
-        l_btns->features |= WF_DRAW_BACKGROUND_AND_BORDER;
-        l_btns->col_border = ColorGray(0.6f);
-        l_btns->sz_border = 1;
-        l_btns->features |= WF_EXPAND_HORIZONTAL;
-        l_btns->col_bckgrnd = ColorBlue();
-
-        l_btns->h = 100;
-        l_btns->features |= WF_EXPAND_VERTICAL;
+            {
+                // list view
+                Widget *l_nodes = UI_LayoutVertical();
+                l_nodes->features |= WF_DRAW_BACKGROUND_AND_BORDER;
+                l_nodes->col_bckgrnd = ColorRed();
+                l_nodes->col_border = ColorGray(0.9f);
+                l_nodes->col_text = ColorWhite();
+                l_nodes->sz_border = 5;
+                l_nodes->features |= WF_EXPAND_VERTICAL;
+                l_nodes->w = 740;
 
 
+                UI_Label("item 1", ColorWhite());
+                UI_Label("item 2", ColorWhite());
+                UI_Label("item 3", ColorWhite());
 
-        UI_Label("status bar");
 
+                UI_Pop();
+            }
 
-        /*
-        SetFontSize(FS_18);
-        u32 cnt = 5;
-        for (u32 i = 0; i < cnt; ++i) {
-            Widget *wgt = UI_CoolPanel(100, 50);
-            wgt->sz_border = 4;
-            wgt->col_border = ColorGray(0.8f);
-            wgt->col_bckgrnd = ColorWhite();
+            {
+                // action btns
+                Widget *l_btns = UI_LayoutVertical();
+                l_btns->features |= WF_DRAW_BACKGROUND_AND_BORDER;
+                l_btns->col_border = ColorGray(0.7f);
+                l_btns->sz_border = 5;
+                l_btns->features |= WF_EXPAND_HORIZONTAL;
+                //l_btns->w = 100;
+                l_btns->col_bckgrnd = ColorBlue();
+
+                //l_btns->h = 100;
+                l_btns->features |= WF_EXPAND_VERTICAL;
+
+                UI_Label("action 1", ColorWhite());
+                UI_Label("action 2", ColorWhite());
+                UI_Label("action 3", ColorWhite());
+
+                UI_Pop();
+            }
+
             UI_Pop();
         }
-        */
 
+        Widget *l_status = UI_LayoutHorizontal();
+        l_status->features |= WF_DRAW_BACKGROUND_AND_BORDER;
+        l_status->col_border = ColorGray(0.5f);
+        l_status->sz_border = 5;
+        l_status->col_bckgrnd = ColorGreen();
+        l_status->h = 50;
+        l_status->features |= WF_EXPAND_HORIZONTAL;
+
+
+        UI_Label("status bar", ColorWhite());
 
         UI_FrameEnd(ctx->a_tmp);
         loop->FrameEnd2D();
