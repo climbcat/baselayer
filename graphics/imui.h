@@ -311,35 +311,40 @@ void WidgetExpand_Rec(Widget *w) {
     }
 
     // extract info
-    Widget *exp_y = NULL;
-    Widget *exp_x = NULL;
+    bool expander_vert_found = false;
+    bool expander_horiz_found = NULL;
     u32 width_other = 0;
     u32 height_other = 0;
     while (ch) {
-        if (ch->features & WF_EXPAND_VERTICAL) {
-            assert(exp_y == NULL && "Only one (V/H) expander allowed pr. branch (vertical)");
-            exp_y = ch;
+        if ( ! (ch->features & WF_EXPAND_VERTICAL)) {
+            assert(w->features & WF_LAYOUT_H || expander_vert_found == false && "Expander not allowed (WF_EXPAND_VERTICAL)");
+            height_other += ch->h;
         }
         else {
-            height_other += ch->w;
+            expander_vert_found = true;
         }
 
-        if (ch->features & WF_EXPAND_HORIZONTAL) {
-            assert(exp_x == NULL && "Only one (V/H) expander allowed pr. branch (horizontal)");
-            exp_x = ch;
+        if ( ! (ch->features & WF_EXPAND_HORIZONTAL)) {
+            assert(w->features & WF_LAYOUT_V || expander_horiz_found == false && "Expander not allowed (WF_EXPAND_HORIZONTAL)");
+            width_other += ch->w;
         }
         else {
-            width_other += ch->h;
+            expander_horiz_found = true;
         }
 
         ch = ch->next;
     }
 
-    if (exp_y) {
-        exp_y->h = w->h - height_other;
-    }
-    if (exp_x) {
-        exp_x->w = w->w - width_other;
+    // assign max possible size to the expander(s)
+    ch = w->first;
+    while (ch) {
+        if (ch->features & WF_EXPAND_VERTICAL) {
+            ch->h = w->h - height_other;
+        }
+        if (ch->features & WF_EXPAND_HORIZONTAL) {
+            ch->w = w->w - width_other;
+        }
+        ch = ch->next;
     }
 
     // descend

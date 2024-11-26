@@ -711,26 +711,37 @@ void TestLayoutPanels2() {
     printf("TestLayoutPanels2\n");
 
     MContext *ctx = InitBaselayer();
-    GameLoopOne *loop = InitGraphics(ctx, 580, 800);
+    GameLoopOne *loop = InitGraphics(ctx, 1000, 500);
 
     Color gray = ColorGray(0.3f);
     while (loop->GameLoopRunning()) {
         loop->FrameStart2D(gray);
 
-        Widget *w1 = UI_LayoutVertical();
-        w1->features |= WF_DRAW_BACKGROUND_AND_BORDER;
-        w1->col_border = ColorBlack();
-        w1->sz_border = 1;
-        w1->features |= WF_EXPAND_HORIZONTAL;
-        w1->features |= WF_EXPAND_VERTICAL;
-        w1->col_bckgrnd = ColorWhite();
+        Widget *w0 = UI_LayoutHorizontal();
+        w0->features |= WF_EXPAND_VERTICAL;
+        w0->features |= WF_EXPAND_HORIZONTAL;
 
-        Widget *w2 = UI_LayoutHorizontal();
-        w2->features |= WF_DRAW_BACKGROUND_AND_BORDER;
-        w2->col_border = ColorBlack();
-        w2->sz_border = 1;
-        w2->features |= WF_EXPAND_HORIZONTAL;
-        w2->col_bckgrnd = ColorBlue();
+        Widget *l_nodes = UI_LayoutVertical();
+        l_nodes->features |= WF_DRAW_BACKGROUND_AND_BORDER;
+        l_nodes->col_border = ColorBlack();
+        l_nodes->sz_border = 1;
+        l_nodes->features |= WF_EXPAND_VERTICAL;
+        l_nodes->w = 740;
+        l_nodes->col_bckgrnd = ColorGray(0.9f);
+
+        UI_Pop();
+
+        Widget *l_btns = UI_LayoutVertical();
+        l_btns->features |= WF_DRAW_BACKGROUND_AND_BORDER;
+        l_btns->col_border = ColorGray(0.6f);
+        l_btns->sz_border = 1;
+        l_btns->features |= WF_EXPAND_HORIZONTAL;
+        l_btns->col_bckgrnd = ColorBlue();
+
+        l_btns->h = 100;
+        l_btns->features |= WF_EXPAND_VERTICAL;
+
+
 
         UI_Label("status bar");
 
