@@ -75,10 +75,10 @@ enum WidgetFlags {
     WF_DRAW_BACKGROUND_AND_BORDER = 1 << 0,
     WF_DRAW_TEXT = 1 << 1,
 
-    WF_LAYOUT_H = 1 << 10,
-    WF_LAYOUT_V = 1 << 11,
-    WF_LAYOUT_CENTERING_H = 1 << 12,
-    WF_LAYOUT_CENTERING_V = 1 << 13,
+    WF_LAYOUT_HORIZONTAL = 1 << 10,
+    WF_LAYOUT_VERTICAL = 1 << 11,
+    WF_LAYOUT_HORIZONTAL_CENTERING = 1 << 12,
+    WF_LAYOUT_VERTICAL_CENTERING = 1 << 13,
 
     WF_EXPAND_HORIZONTAL = 1 << 15,
     WF_EXPAND_VERTICAL = 1 << 16,
@@ -87,10 +87,10 @@ enum WidgetFlags {
 };
 bool WidgetIsLayout(u32 features) {
     bool result =
-        features & WF_LAYOUT_H ||
-        features & WF_LAYOUT_V ||
-        features & WF_LAYOUT_CENTERING_H ||
-        features & WF_LAYOUT_CENTERING_V ||
+        features & WF_LAYOUT_HORIZONTAL ||
+        features & WF_LAYOUT_VERTICAL ||
+        features & WF_LAYOUT_HORIZONTAL_CENTERING ||
+        features & WF_LAYOUT_VERTICAL_CENTERING ||
     false;
     return result;
 }
@@ -146,23 +146,26 @@ struct Widget {
 
 static MArena _g_a_imui;
 static MArena *g_a_imui;
-static MPoolT<Widget> _p_widgets;
-static MPoolT<Widget> *p_widgets;
-static Stack<Widget*> _s_widgets;
-static Stack<Widget*> *s_widgets;
-static HashMap _m_widgets;
-static HashMap *m_widgets;
-static Widget _w_root;
-static Widget *w_layout;
-static Widget *w_hot;
-static Widget *w_active;
+static MPoolT<Widget> _g_p_widgets;
+static MPoolT<Widget> *g_p_widgets;
+static Stack<Widget*> _g_s_widgets;
+static Stack<Widget*> *g_s_widgets;
+
+static HashMap _g_m_widgets;
+static HashMap *g_m_widgets;
+
+static Widget _g_w_root;
+static Widget *g_w_layout;
+static Widget *g_w_hot;
+static Widget *g_w_active;
+
 static u64 *g_frameno_imui;
 static MouseTrap *g_mouse_imui;
 
 
 void TreeSibling(Widget *w) {
-    if (w_layout->first != NULL) {
-        Widget *sib = w_layout->first;
+    if (g_w_layout->first != NULL) {
+        Widget *sib = g_w_layout->first;
         while (sib->next != NULL) {
             sib = sib->next;
         }
@@ -170,28 +173,28 @@ void TreeSibling(Widget *w) {
         w->parent = sib->parent;
     }
     else {
-        w_layout->first = w;
-        w->parent = w_layout;
+        g_w_layout->first = w;
+        w->parent = g_w_layout;
     }
 }
 void TreeBranch(Widget *w) {
-    if (w_layout->first != NULL) {
-        Widget *sib = w_layout->first;
+    if (g_w_layout->first != NULL) {
+        Widget *sib = g_w_layout->first;
         while (sib->next != NULL) {
             sib = sib->next;
         }
         sib->next = w;
     }
     else {
-        w_layout->first = w;
+        g_w_layout->first = w;
     }
-    w->parent = w_layout;
-    w_layout = w;
+    w->parent = g_w_layout;
+    g_w_layout = w;
 }
 void TreePop() {
-    Widget *parent = w_layout->parent;
+    Widget *parent = g_w_layout->parent;
     if (parent != NULL) {
-        w_layout = parent;
+        g_w_layout = parent;
     }
 }
 
@@ -212,29 +215,29 @@ void InitImUi(u32 width, u32 height, MouseTrap *mouse, u64 *frameno) {
         g_a_imui = &_g_a_imui;
 
         u32 max_widgets = 1000;
-        _p_widgets = PoolCreate<Widget>(max_widgets);
-        p_widgets = &_p_widgets;
+        _g_p_widgets = PoolCreate<Widget>(max_widgets);
+        g_p_widgets = &_g_p_widgets;
 
-        _s_widgets = InitStack<Widget*>(g_a_imui, max_widgets);
-        s_widgets = &_s_widgets;
+        _g_s_widgets = InitStack<Widget*>(g_a_imui, max_widgets);
+        g_s_widgets = &_g_s_widgets;
 
         // TODO: It seems we do need to remove from the hash-map, thus impl. MapDelete()
-        _m_widgets = InitMap(g_a_imui, max_widgets);
-        m_widgets = &_m_widgets;
+        _g_m_widgets = InitMap(g_a_imui, max_widgets);
+        g_m_widgets = &_g_m_widgets;
 
-        _w_root = {};
-        _w_root.features |= WF_LAYOUT_H;
-        _w_root.w_max = width;
-        _w_root.h_max = height,
-        _w_root.x0 = 0;
-        _w_root.y0 = 0;
+        _g_w_root = {};
+        _g_w_root.features |= WF_LAYOUT_HORIZONTAL;
+        _g_w_root.w_max = width;
+        _g_w_root.h_max = height,
+        _g_w_root.x0 = 0;
+        _g_w_root.y0 = 0;
 
-        w_layout = &_w_root;
+        g_w_layout = &_g_w_root;
     }
 }
 
 
-void WidgetSizeWrap_Rec(Widget *w, s32 *w_sum, s32 *h_sum, s32 *w_max, s32 *h_max) {
+void WidgetTreeSizeWrap_Rec(Widget *w, s32 *w_sum, s32 *h_sum, s32 *w_max, s32 *h_max) {
     // Recursively determines widget sizes by wrapping in child widgets. 
     // Sizes will be the minimal, and expander sizes will be expanded elsewhere.
 
@@ -263,7 +266,7 @@ void WidgetSizeWrap_Rec(Widget *w, s32 *w_sum, s32 *h_sum, s32 *w_max, s32 *h_ma
         s32 w_max_ch;
         s32 h_max_ch;
 
-        WidgetSizeWrap_Rec(ch, &w_sum_ch, &h_sum_ch, &w_max_ch, &h_max_ch);
+        WidgetTreeSizeWrap_Rec(ch, &w_sum_ch, &h_sum_ch, &w_max_ch, &h_max_ch);
 
         *w_sum += ch->w;
         *h_sum += ch->h;
@@ -279,15 +282,15 @@ void WidgetSizeWrap_Rec(Widget *w, s32 *w_sum, s32 *h_sum, s32 *w_max, s32 *h_ma
 
 
     if (w->w == 0 && w->h == 0) {
-        if (w->features & WF_LAYOUT_H) {
+        if (w->features & WF_LAYOUT_HORIZONTAL) {
             w->w = *w_sum;
             w->h = *h_max;
         }
-        if (w->features & WF_LAYOUT_V) {
+        if (w->features & WF_LAYOUT_VERTICAL) {
             w->w = *w_max;
             w->h = *h_sum;
         }
-        if ((w->features & WF_LAYOUT_CENTERING_H) || (w->features & WF_LAYOUT_CENTERING_V)) {
+        if ((w->features & WF_LAYOUT_HORIZONTAL_CENTERING) || (w->features & WF_LAYOUT_VERTICAL_CENTERING)) {
             w->w = *w_max;
             w->h = *h_max;
         }
@@ -302,7 +305,7 @@ void WidgetSizeWrap_Rec(Widget *w, s32 *w_sum, s32 *h_sum, s32 *w_max, s32 *h_ma
 }
 
 
-void WidgetExpand_Rec(Widget *w) {
+void WidgetTreeExpand_Rec(Widget *w) {
     // expands one sub-widget using own dimensions
 
     Widget *ch = w->first;
@@ -320,7 +323,7 @@ void WidgetExpand_Rec(Widget *w) {
             height_other += ch->h;
         }
         else {
-            assert(w->features & WF_LAYOUT_H || expander_vert_found == false && "Expander not allowed (WF_EXPAND_VERTICAL)");
+            assert(w->features & WF_LAYOUT_HORIZONTAL || expander_vert_found == false && "Expander not allowed (WF_EXPAND_VERTICAL)");
             expander_vert_found = true;
         }
 
@@ -328,7 +331,7 @@ void WidgetExpand_Rec(Widget *w) {
             width_other += ch->w;
         }
         else {
-            assert(w->features & WF_LAYOUT_V || expander_horiz_found == false && "Expander not allowed (WF_EXPAND_HORIZONTAL)");
+            assert(w->features & WF_LAYOUT_VERTICAL || expander_horiz_found == false && "Expander not allowed (WF_EXPAND_HORIZONTAL)");
             expander_horiz_found = true;
         }
 
@@ -350,36 +353,18 @@ void WidgetExpand_Rec(Widget *w) {
     // descend
     ch = w->first;
     while (ch) {
-        WidgetExpand_Rec(ch);
+        WidgetTreeExpand_Rec(ch);
 
         ch = ch->next;
     }
 }
 
 
-void UI_FrameEnd(MArena *a_tmp) {
-    if (g_mouse_imui->l == false) {
-        w_active = NULL;
-    }
-
-    // collect widgets during layout pass
+List<Widget*> WidgetTreePositioning(MArena *a_tmp, Widget *w_root) {
     List<Widget*> all_widgets = InitList<Widget*>(a_tmp, 0);
-    Widget *w = &_w_root;
-    w->w = w->w_max;
-    w->h = w->h_max;
-
-    // size widgets to wrap tightly
-    s32 w_sum_ch;
-    s32 h_sum_ch;
-    s32 w_max_ch;
-    s32 h_max_ch;
-    WidgetSizeWrap_Rec(w, &w_sum_ch, &h_sum_ch, &w_max_ch, &h_max_ch);
-
-    // size expanders to max possible sizes
-    WidgetExpand_Rec(w);
+    Widget *w = w_root;
 
 
-    // layout pass: positioning (top-down)
     while (w != NULL) {
         ArenaAlloc(a_tmp, sizeof(Widget*));
         all_widgets.Add(w);
@@ -387,7 +372,7 @@ void UI_FrameEnd(MArena *a_tmp) {
         s32 pt_x = 0;
         s32 pt_y = 0;
 
-        // since all sizes are known, each widget can lay out its children according to its settings
+        // with all widget sizes known, widgets can position their children
         Widget *ch = w->first;
         while (ch != NULL) { // iterate child widgets
 
@@ -396,23 +381,22 @@ void UI_FrameEnd(MArena *a_tmp) {
                 ch->x0 = w->x0;
                 ch->y0 = w->y0;
 
-                if (w->features & WF_LAYOUT_H) {
+                if (w->features & WF_LAYOUT_HORIZONTAL) {
                     ch->x0 = w->x0 + pt_x;
                     pt_x += ch->w;
                 }
-                else if (w->features & WF_LAYOUT_CENTERING_H) {
+                else if (w->features & WF_LAYOUT_HORIZONTAL_CENTERING) {
                     ch->x0 = w->x0 + (w->w - ch->w) / 2;
                 }
 
-                if (w->features & WF_LAYOUT_V) {
+                if (w->features & WF_LAYOUT_VERTICAL) {
                     ch->y0 = w->y0 + pt_y;
                     pt_y += ch->h;
                 }
-                else if (w->features & WF_LAYOUT_CENTERING_V) {
+                else if (w->features & WF_LAYOUT_VERTICAL_CENTERING) {
                     ch->y0 = w->y0 + (w->h - ch->h) / 2;
                 }
             }
-
 
             // set the collision rect for next frame code-interleaved mouse collision
             ch->SetCollisionRectUsingX0Y0WH();
@@ -421,11 +405,10 @@ void UI_FrameEnd(MArena *a_tmp) {
             ch = ch->next;
         }
 
-
         // iter
         if (w->first != NULL) {
             if (w->next) {
-                s_widgets->Push(w->next);
+                g_s_widgets->Push(w->next);
             }
             w = w->first;
         }
@@ -433,21 +416,23 @@ void UI_FrameEnd(MArena *a_tmp) {
             w = w->next;
         }
         else {
-            w = s_widgets->Pop();
+            w = g_s_widgets->Pop();
         }
     }
 
-    // render pass
+    return all_widgets;
+}
+
+
+void WidgetTreeRenderToDrawcalls(List<Widget*> all_widgets) {
+
+
+    // TODO: This should iterate the tree, and do something meaningful to figure out
+    //      what should be rendered on top of what - proper interleaving of calls.
+
+
     for (u32 i = 0; i < all_widgets.len; ++i) {
         Widget *w = all_widgets.lst[i];
-
-
-        // TODO: we have inversed the rendering order somehow, what happened?
-        //      It is probably related to changes from the sprite rendering impl. / changes
-        //u32 idx = all_widgets.len - i - 1; 
-        //Widget *w = all_widgets.lst[idx];
-        //printf("widget %d; txt: %d, bcg: %d\n", i, (w->features & WF_DRAW_TEXT) != 0, (w->features & WF_DRAW_BACKGROUND_AND_BORDER) != 0);
-
 
         if (w->features & WF_DRAW_BACKGROUND_AND_BORDER) {
             LayoutPanel(w->x0, w->y0, w->w, w->h, w->sz_border, w->col_border, w->col_bckgrnd);
@@ -470,17 +455,49 @@ void UI_FrameEnd(MArena *a_tmp) {
             }
         }
     }
+}
+
+
+void UI_FrameEnd(MArena *a_tmp) {
+    if (g_mouse_imui->l == false) {
+        g_w_active = NULL;
+    }
+
+    Widget *w = &_g_w_root;
+    w->w = w->w_max;
+    w->h = w->h_max;
+
+
+    // size widgets to wrap tightly
+    s32 w_sum_ch;
+    s32 h_sum_ch;
+    s32 w_max_ch;
+    s32 h_max_ch;
+    WidgetTreeSizeWrap_Rec(w, &w_sum_ch, &h_sum_ch, &w_max_ch, &h_max_ch);
+
+
+    // size expanders to max possible sizes
+    WidgetTreeExpand_Rec(w);
+
+
+    // position the now wrapped and expanded widgets
+    List<Widget*> all_widgets = WidgetTreePositioning(a_tmp, w);
+
+
+    // render pass
+    WidgetTreeRenderToDrawcalls(all_widgets);
+
 
     // clean up pass
-    _w_root.frame_touched = *g_frameno_imui;
-    w_layout = &_w_root;
+    _g_w_root.frame_touched = *g_frameno_imui;
+    g_w_layout = &_g_w_root;
     for (u32 i = 0; i < all_widgets.len; ++i) {
         Widget *w = all_widgets.lst[i];
 
         // prune
         if (w->frame_touched < *g_frameno_imui) {
-            MapRemove(m_widgets, w->hash_key, w);
-            p_widgets->Free(w);
+            MapRemove(g_m_widgets, w->hash_key, w);
+            g_p_widgets->Free(w);
         }
         // clean
         else {
@@ -500,12 +517,12 @@ void UI_FrameEnd(MArena *a_tmp) {
 //  Builder API
 
 
-bool UI_Button(const char *text) {
+bool UI_Button(const char *text, Widget **w_out = NULL) {
     u64 key = HashStringValue(text);
 
-    Widget *w = (Widget*) MapGet(m_widgets, key);
+    Widget *w = (Widget*) MapGet(g_m_widgets, key);
     if (w == NULL) {
-        w = p_widgets->Alloc();
+        w = g_p_widgets->Alloc();
         w->features |= WF_DRAW_TEXT;
         w->features |= WF_DRAW_BACKGROUND_AND_BORDER;
 
@@ -514,17 +531,17 @@ bool UI_Button(const char *text) {
         w->text = Str { (char*) text, _strlen( (char*) text) };
         w->sz_font = FS_24;
 
-        MapPut(m_widgets, key, w);
+        MapPut(g_m_widgets, key, w);
     }
     w->frame_touched = *g_frameno_imui;
 
-    bool hot = w->rect.DidCollide( g_mouse_imui->x, g_mouse_imui->y ) && (w_active == NULL || w_active == w);
+    bool hot = w->rect.DidCollide( g_mouse_imui->x, g_mouse_imui->y ) && (g_w_active == NULL || g_w_active == w);
     if (hot) {
         if (g_mouse_imui->l) {
-            w_active = w;
+            g_w_active = w;
         }
     }
-    bool active = (w_active == w);
+    bool active = (g_w_active == w);
     bool clicked = active && hot && (g_mouse_imui->dl == 1 || g_mouse_imui->ClickedRecently());
 
     if (active) {
@@ -538,7 +555,7 @@ bool UI_Button(const char *text) {
     }
     else if (hot) {
         // HOT: currently hovering the mouse
-        w_hot = w;
+        g_w_hot = w;
 
         // configure hot properties
         w->sz_border = 3;
@@ -556,6 +573,9 @@ bool UI_Button(const char *text) {
 
     TreeSibling(w);
 
+    if (w_out != NULL) {
+        *w_out = w;
+    }
     return clicked;
 }
 
@@ -563,11 +583,11 @@ bool UI_Button(const char *text) {
 Widget *UI_CoolPanel(s32 width, s32 height) {
     // no frame persistence
 
-    Widget *w = p_widgets->Alloc();
+    Widget *w = g_p_widgets->Alloc();
     w->frame_touched = 0;
     w->features |= WF_DRAW_BACKGROUND_AND_BORDER;
-    w->features |= WF_LAYOUT_CENTERING_H;
-    w->features |= WF_LAYOUT_V;
+    w->features |= WF_LAYOUT_HORIZONTAL_CENTERING;
+    w->features |= WF_LAYOUT_VERTICAL;
     w->w = width;
     w->h = height;
     w->sz_border = 20;
@@ -583,7 +603,7 @@ Widget *UI_CoolPanel(s32 width, s32 height) {
 void UI_SpaceH(u32 width) {
     // no frame persistence
 
-    Widget *w = p_widgets->Alloc();
+    Widget *w = g_p_widgets->Alloc();
     w->frame_touched = 0;
     w->w = width;
 
@@ -594,7 +614,7 @@ void UI_SpaceH(u32 width) {
 void UI_SpaceV(u32 height) {
     // no frame persistence
 
-    Widget *w = p_widgets->Alloc();
+    Widget *w = g_p_widgets->Alloc();
     w->frame_touched = 0;
     w->h = height;
 
@@ -605,7 +625,7 @@ void UI_SpaceV(u32 height) {
 Widget *UI_Label(const char *text, Color color = Color { RGBA_BLACK }) {
     // no frame persistence
 
-    Widget *w = p_widgets->Alloc();
+    Widget *w = g_p_widgets->Alloc();
     w->frame_touched = 0;
     w->features |= WF_DRAW_TEXT;
 
@@ -627,9 +647,9 @@ Widget *UI_Label(const char *text, Color color = Color { RGBA_BLACK }) {
 
 
 Widget *UI_LayoutHorizontal() {
-    Widget *w = p_widgets->Alloc();
+    Widget *w = g_p_widgets->Alloc();
     w->frame_touched = 0;
-    w->features |= WF_LAYOUT_H;
+    w->features |= WF_LAYOUT_HORIZONTAL;
 
     TreeBranch(w);
     return w;
@@ -637,9 +657,9 @@ Widget *UI_LayoutHorizontal() {
 
 
 Widget *UI_LayoutVertical() {
-    Widget *w = p_widgets->Alloc();
+    Widget *w = g_p_widgets->Alloc();
     w->frame_touched = 0;
-    w->features |= WF_LAYOUT_V;
+    w->features |= WF_LAYOUT_VERTICAL;
 
     TreeBranch(w);
     return w;
@@ -649,10 +669,10 @@ Widget *UI_LayoutVertical() {
 Widget *UI_LayoutVerticalCenterX() {
     // no frame persistence
 
-    Widget *w = p_widgets->Alloc();
+    Widget *w = g_p_widgets->Alloc();
     w->frame_touched = 0;
-    w->features |= WF_LAYOUT_CENTERING_H;
-    w->features |= WF_LAYOUT_V;
+    w->features |= WF_LAYOUT_HORIZONTAL_CENTERING;
+    w->features |= WF_LAYOUT_VERTICAL;
 
     TreeBranch(w);
     return w;
@@ -662,10 +682,10 @@ Widget *UI_LayoutVerticalCenterX() {
 Widget *UI_LayoutHorizontalCenterY() {
     // no frame persistence
 
-    Widget *w = p_widgets->Alloc();
+    Widget *w = g_p_widgets->Alloc();
     w->frame_touched = 0;
-    w->features |= WF_LAYOUT_CENTERING_V;
-    w->features |= WF_LAYOUT_H;
+    w->features |= WF_LAYOUT_VERTICAL_CENTERING;
+    w->features |= WF_LAYOUT_HORIZONTAL;
 
     TreeBranch(w);
     return w;

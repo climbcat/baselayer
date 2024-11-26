@@ -733,16 +733,37 @@ void TestLayoutPanels2() {
             {
                 // list view
                 Widget *l_nodes = UI_LayoutVertical();
-                l_nodes->features |= WF_DRAW_BACKGROUND_AND_BORDER;
+                   l_nodes->features |= WF_DRAW_BACKGROUND_AND_BORDER;
                 l_nodes->col_bckgrnd = ColorRed();
                 l_nodes->col_border = ColorGray(0.9f);
                 l_nodes->sz_border = 5;
                 l_nodes->features |= WF_EXPAND_VERTICAL;
                 l_nodes->w = 740;
 
-                UI_Label("item 1", ColorWhite());
-                UI_Label("item 2", ColorWhite());
-                UI_Label("item 3", ColorWhite());
+                {
+                    Widget *itm_1;
+                    if (UI_Button("item 1", &itm_1)) {
+                        printf("item 1 clicked\n");
+                    }
+                    itm_1->features |= WF_EXPAND_HORIZONTAL;
+                    itm_1->h = 15;
+                }
+                {
+                    Widget *itm_1;
+                    if (UI_Button("item 2", &itm_1)) {
+                        printf("item 2 clicked\n");
+                    }
+                    itm_1->features |= WF_EXPAND_HORIZONTAL;
+                    itm_1->h = 15;
+                }
+                {
+                    Widget *itm_1;
+                    if (UI_Button("item 3", &itm_1)) {
+                        printf("item 3 clicked\n");
+                    }
+                    itm_1->features |= WF_EXPAND_HORIZONTAL;
+                    itm_1->h = 15;
+                }
 
                 UI_Pop();
             }
