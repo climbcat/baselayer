@@ -736,16 +736,13 @@ void TestLayoutPanels2() {
                 l_nodes->features |= WF_DRAW_BACKGROUND_AND_BORDER;
                 l_nodes->col_bckgrnd = ColorRed();
                 l_nodes->col_border = ColorGray(0.9f);
-                l_nodes->col_text = ColorWhite();
                 l_nodes->sz_border = 5;
                 l_nodes->features |= WF_EXPAND_VERTICAL;
                 l_nodes->w = 740;
 
-
                 UI_Label("item 1", ColorWhite());
                 UI_Label("item 2", ColorWhite());
                 UI_Label("item 3", ColorWhite());
-
 
                 UI_Pop();
             }
@@ -754,13 +751,10 @@ void TestLayoutPanels2() {
                 // action btns
                 Widget *l_btns = UI_LayoutVertical();
                 l_btns->features |= WF_DRAW_BACKGROUND_AND_BORDER;
+                l_btns->col_bckgrnd = ColorBlue();
                 l_btns->col_border = ColorGray(0.7f);
                 l_btns->sz_border = 5;
                 l_btns->features |= WF_EXPAND_HORIZONTAL;
-                //l_btns->w = 100;
-                l_btns->col_bckgrnd = ColorBlue();
-
-                //l_btns->h = 100;
                 l_btns->features |= WF_EXPAND_VERTICAL;
 
                 UI_Label("action 1", ColorWhite());
