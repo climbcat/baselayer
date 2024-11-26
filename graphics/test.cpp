@@ -717,17 +717,23 @@ void TestLayoutPanels2() {
     while (loop->GameLoopRunning()) {
         loop->FrameStart2D(gray);
 
-
         Widget *w1 = UI_LayoutVertical();
         w1->features |= WF_DRAW_BACKGROUND_AND_BORDER;
+        w1->col_border = ColorBlack();
+        w1->sz_border = 1;
+        w1->features |= WF_EXPAND_HORIZONTAL;
+        w1->features |= WF_EXPAND_VERTICAL;
         w1->col_bckgrnd = ColorWhite();
 
         Widget *w2 = UI_LayoutHorizontal();
         w2->features |= WF_DRAW_BACKGROUND_AND_BORDER;
+        w2->col_border = ColorBlack();
+        w2->sz_border = 1;
+        w2->features |= WF_EXPAND_HORIZONTAL;
         w2->col_bckgrnd = ColorBlue();
-        UI_Pop();
 
         UI_Label("status bar");
+
 
         /*
         SetFontSize(FS_18);

@@ -80,8 +80,8 @@ enum WidgetFlags {
     WF_LAYOUT_CENTERING_H = 1 << 12,
     WF_LAYOUT_CENTERING_V = 1 << 13,
 
-    WF_EXPAND_H = 1 << 15,
-    WF_EXPAND_V = 1 << 16,
+    WF_EXPAND_HORIZONTAL = 1 << 15,
+    WF_EXPAND_VERTICAL = 1 << 16,
 
     WF_ABSOLUTE_POSITION = 1 << 20
 };
@@ -247,7 +247,8 @@ void WidgetSizeWrap_Rec(Widget *w, s32 *w_sum, s32 *h_sum, s32 *w_max, s32 *h_ma
     // max & sum sizes are determined on descent, actual sizes are set on ascent.
 
 
-    // Desccent: determine child_max and child_sum sizes
+    //
+    // Descent: determine child_max and child_sum sizes
 
 
     *w_sum = 0;
@@ -273,6 +274,7 @@ void WidgetSizeWrap_Rec(Widget *w, s32 *w_sum, s32 *h_sum, s32 *w_max, s32 *h_ma
     }
 
 
+    //
     // Ascent: Assign actual size to current widget (where undefined)
 
 
@@ -290,7 +292,7 @@ void WidgetSizeWrap_Rec(Widget *w, s32 *w_sum, s32 *h_sum, s32 *w_max, s32 *h_ma
             w->h = *h_max;
         }
     }
-    // or keep pre-set sizes
+    // or keep pre-sets
     else {
         *w_sum = w->w;
         *h_sum = w->h;
@@ -298,38 +300,55 @@ void WidgetSizeWrap_Rec(Widget *w, s32 *w_sum, s32 *h_sum, s32 *w_max, s32 *h_ma
         *h_max = w->h;
     }
 }
-void WidgetSizeTree(Widget *root) {
-    s32 w_sum_ch;
-    s32 h_sum_ch;
-    s32 w_max_ch;
-    s32 h_max_ch;
-
-    WidgetSizeWrap_Rec(root, &w_sum_ch, &h_sum_ch, &w_max_ch, &h_max_ch);
-}
 
 
-// TODO: Expanders shuld be detected here; and be inferred from siblings
-//
-//      Check: At most one widget can expand (for x and y)
-//      Check: Parent widget (us // w) has a non-zero size (space) in the
-//          requested expansion dimension (x or y)
-//
-//      This results in a size being set on the child (ch->w or ch->x), which in turn will provid
-//      options for its child widgets.
-//      This must be set on the way DOWN into the hierarchy, and this be carried up here
-//      from WidgetWrap_Rec().
-//      However, we already need to know the sizes of child widgets to be able to determine the
-//      expander size.
-//      ???
+void WidgetExpand_Rec(Widget *w) {
+    // expands one sub-widget using own dimensions
 
+    Widget *ch = w->first;
+    if (ch == NULL) {
+        return;
+    }
 
-void WidgetExpand_Rec(Widget *w, u32 w_max, u32 h_max) {
+    // extract info
+    Widget *exp_y = NULL;
+    Widget *exp_x = NULL;
+    u32 width_other = 0;
+    u32 height_other = 0;
+    while (ch) {
+        if (ch->features & WF_EXPAND_VERTICAL) {
+            assert(exp_y == NULL && "Only one (V/H) expander allowed pr. branch (vertical)");
+            exp_y = ch;
+        }
+        else {
+            height_other += ch->w;
+        }
 
-}
+        if (ch->features & WF_EXPAND_HORIZONTAL) {
+            assert(exp_x == NULL && "Only one (V/H) expander allowed pr. branch (horizontal)");
+            exp_x = ch;
+        }
+        else {
+            width_other += ch->h;
+        }
 
+        ch = ch->next;
+    }
 
-void WidgetExpandTree(Widget *root) {
+    if (exp_y) {
+        exp_y->h = w->h - height_other;
+    }
+    if (exp_x) {
+        exp_x->w = w->w - width_other;
+    }
 
+    // descend
+    ch = w->first;
+    while (ch) {
+        WidgetExpand_Rec(ch);
+
+        ch = ch->next;
+    }
 }
 
 
@@ -341,9 +360,19 @@ void UI_FrameEnd(MArena *a_tmp) {
     // collect widgets during layout pass
     List<Widget*> all_widgets = InitList<Widget*>(a_tmp, 0);
     Widget *w = &_w_root;
+    w->w = w->w_max;
+    w->h = w->h_max;
 
-    // layout pass: sizing (bottom-up)
-    WidgetSizeTree(w);
+    // size widgets to wrap tightly
+    s32 w_sum_ch;
+    s32 h_sum_ch;
+    s32 w_max_ch;
+    s32 h_max_ch;
+    WidgetSizeWrap_Rec(w, &w_sum_ch, &h_sum_ch, &w_max_ch, &h_max_ch);
+
+    // size expanders to max possible sizes
+    WidgetExpand_Rec(w);
+
 
     // layout pass: positioning (top-down)
     while (w != NULL) {
@@ -432,7 +461,7 @@ void UI_FrameEnd(MArena *a_tmp) {
             s32 offset_x = (w->w - w_out) / 2;
             s32 offset_y = (w->h - h_out) / 2;
             for (u32 i = 0; i < txt_quads.len; ++i) {
-                QuadOffset(txt_quads.lst + i, offset_x, offset_y);
+                QuadOffset(txt_quads.lst + i, (f32) offset_x, (f32) offset_y);
             }
         }
     }
