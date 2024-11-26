@@ -602,6 +602,8 @@ void TestUILayoutWidgetAPI() {
 
 
 void TestResourceLoad() {
+    printf("TestResourceLoad\n");
+
     MContext *ctx = InitBaselayer();
     ResourceStreamHandle hdl = ResourceStreamLoadAndOpen(ctx->a_tmp, ctx->a_life, "alt.res");
 
@@ -618,9 +620,9 @@ SpriteMap *GetSpriteMap(const char *key_name) {
     SpriteMap *smap = (SpriteMap*) MapGet(&g_resource_map, HashStringValue(key_name));
     return smap;
 }
-
-
 void TestRenderSprites() {
+    printf("TestRenderSprites\n");
+
     MContext *ctx = InitBaselayer();
     GameLoopOne *loop = InitGraphics(ctx, 580, 800);
 
@@ -646,7 +648,7 @@ void TestRenderSprites() {
                 dc.quads.Add(QuadCookTextured(s, x, y));
 
                 Widget *frame = UI_CoolPanel(s.w + 2, s.h + 2);
-                frame->SetFeature(WF_ABS_POS);
+                frame->SetFeature(WF_ABSOLUTE_POSITION);
                 frame->col_bckgrnd = ColorBlack();
                 frame->col_border = ColorWhite();
                 frame->sz_border = 1;
@@ -674,6 +676,8 @@ void TestRenderSprites() {
 
 
 void TestLayoutPanels() {
+    printf("TestLayoutPanels\n");
+
     MContext *ctx = InitBaselayer();
     GameLoopOne *loop = InitGraphics(ctx, 580, 800);
 
@@ -703,6 +707,48 @@ void TestLayoutPanels() {
 }
 
 
+void TestLayoutPanels2() {
+    printf("TestLayoutPanels2\n");
+
+    MContext *ctx = InitBaselayer();
+    GameLoopOne *loop = InitGraphics(ctx, 580, 800);
+
+    Color gray = ColorGray(0.3f);
+    while (loop->GameLoopRunning()) {
+        loop->FrameStart2D(gray);
+
+
+        Widget *w1 = UI_LayoutVertical();
+        w1->features |= WF_DRAW_BACKGROUND_AND_BORDER;
+        w1->col_bckgrnd = ColorWhite();
+
+        Widget *w2 = UI_LayoutHorizontal();
+        w2->features |= WF_DRAW_BACKGROUND_AND_BORDER;
+        w2->col_bckgrnd = ColorBlue();
+        UI_Pop();
+
+        UI_Label("status bar");
+
+        /*
+        SetFontSize(FS_18);
+        u32 cnt = 5;
+        for (u32 i = 0; i < cnt; ++i) {
+            Widget *wgt = UI_CoolPanel(100, 50);
+            wgt->sz_border = 4;
+            wgt->col_border = ColorGray(0.8f);
+            wgt->col_bckgrnd = ColorWhite();
+            UI_Pop();
+        }
+        */
+
+
+        UI_FrameEnd(ctx->a_tmp);
+        loop->FrameEnd2D();
+    }
+    loop->Terminate();
+}
+
+
 void Test() {
     //TestRandomPCWithNormals();
     //TestVGROcTree(); // TODO: fix
@@ -716,5 +762,6 @@ void Test() {
     //TestUILayoutWidgetAPI();
     //TestResourceLoad();
     //TestRenderSprites();
-    TestLayoutPanels();
+    //TestLayoutPanels();
+    TestLayoutPanels2();
 }

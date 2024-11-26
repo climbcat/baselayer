@@ -77,17 +77,20 @@ enum WidgetFlags {
 
     WF_LAYOUT_H = 1 << 10,
     WF_LAYOUT_V = 1 << 11,
-    WF_LAYOUT_CX = 1 << 12,
-    WF_LAYOUT_CY = 1 << 13,
+    WF_LAYOUT_CENTERING_H = 1 << 12,
+    WF_LAYOUT_CENTERING_V = 1 << 13,
 
-    WF_ABS_POS = 1 << 14,
+    WF_EXPAND_H = 1 << 15,
+    WF_EXPAND_V = 1 << 16,
+
+    WF_ABSOLUTE_POSITION = 1 << 20
 };
 bool WidgetIsLayout(u32 features) {
     bool result =
         features & WF_LAYOUT_H ||
         features & WF_LAYOUT_V ||
-        features & WF_LAYOUT_CX ||
-        features & WF_LAYOUT_CY ||
+        features & WF_LAYOUT_CENTERING_H ||
+        features & WF_LAYOUT_CENTERING_V ||
     false;
     return result;
 }
@@ -231,9 +234,21 @@ void InitImUi(u32 width, u32 height, MouseTrap *mouse, u64 *frameno) {
 }
 
 
-void WidgetWrap_Rec(Widget *w, s32 *w_sum, s32 *h_sum, s32 *w_max, s32 *h_max) {
-    //  -   returns widget size if set
-    //  -   otherwise; recurses child widgets to accumulate / max sizes
+void WidgetSizeWrap_Rec(Widget *w, s32 *w_sum, s32 *h_sum, s32 *w_max, s32 *h_max) {
+    // Recursively determines widget sizes by wrapping in child widgets. 
+    // Sizes will be the minimal, and expander sizes will be expanded elsewhere.
+
+    // There is an accumulated child size and a max child size.
+    // Depending on the layou of the current widget, its actual size
+    // is set to either the maximum child widget.
+    // Or, if a panel has the WF_LAYOUT_H or WR_LAYOUT_V features, the sum of
+    // each child's actual size.
+    //
+    // max & sum sizes are determined on descent, actual sizes are set on ascent.
+
+
+    // Desccent: determine child_max and child_sum sizes
+
 
     *w_sum = 0;
     *h_sum = 0;
@@ -247,7 +262,7 @@ void WidgetWrap_Rec(Widget *w, s32 *w_sum, s32 *h_sum, s32 *w_max, s32 *h_max) {
         s32 w_max_ch;
         s32 h_max_ch;
 
-        WidgetWrap_Rec(ch, &w_sum_ch, &h_sum_ch, &w_max_ch, &h_max_ch);
+        WidgetSizeWrap_Rec(ch, &w_sum_ch, &h_sum_ch, &w_max_ch, &h_max_ch);
 
         *w_sum += ch->w;
         *h_sum += ch->h;
@@ -257,7 +272,10 @@ void WidgetWrap_Rec(Widget *w, s32 *w_sum, s32 *h_sum, s32 *w_max, s32 *h_max) {
         ch = ch->next;
     }
 
-    // assign sizes to current widget 
+
+    // Ascent: Assign actual size to current widget (where undefined)
+
+
     if (w->w == 0 && w->h == 0) {
         if (w->features & WF_LAYOUT_H) {
             w->w = *w_sum;
@@ -267,7 +285,7 @@ void WidgetWrap_Rec(Widget *w, s32 *w_sum, s32 *h_sum, s32 *w_max, s32 *h_max) {
             w->w = *w_max;
             w->h = *h_sum;
         }
-        if ((w->features & WF_LAYOUT_CX) || (w->features & WF_LAYOUT_CY)) {
+        if ((w->features & WF_LAYOUT_CENTERING_H) || (w->features & WF_LAYOUT_CENTERING_V)) {
             w->w = *w_max;
             w->h = *h_max;
         }
@@ -279,17 +297,39 @@ void WidgetWrap_Rec(Widget *w, s32 *w_sum, s32 *h_sum, s32 *w_max, s32 *h_max) {
         *w_max = w->w;
         *h_max = w->h;
     }
-
-    //printf("w: %d h: %d\n", w->w, w->h);
-
 }
-void WidgetWrap_Tree(Widget *root) {
+void WidgetSizeTree(Widget *root) {
     s32 w_sum_ch;
     s32 h_sum_ch;
     s32 w_max_ch;
     s32 h_max_ch;
 
-    WidgetWrap_Rec(root, &w_sum_ch, &h_sum_ch, &w_max_ch, &h_max_ch);
+    WidgetSizeWrap_Rec(root, &w_sum_ch, &h_sum_ch, &w_max_ch, &h_max_ch);
+}
+
+
+// TODO: Expanders shuld be detected here; and be inferred from siblings
+//
+//      Check: At most one widget can expand (for x and y)
+//      Check: Parent widget (us // w) has a non-zero size (space) in the
+//          requested expansion dimension (x or y)
+//
+//      This results in a size being set on the child (ch->w or ch->x), which in turn will provid
+//      options for its child widgets.
+//      This must be set on the way DOWN into the hierarchy, and this be carried up here
+//      from WidgetWrap_Rec().
+//      However, we already need to know the sizes of child widgets to be able to determine the
+//      expander size.
+//      ???
+
+
+void WidgetExpand_Rec(Widget *w, u32 w_max, u32 h_max) {
+
+}
+
+
+void WidgetExpandTree(Widget *root) {
+
 }
 
 
@@ -303,7 +343,7 @@ void UI_FrameEnd(MArena *a_tmp) {
     Widget *w = &_w_root;
 
     // layout pass: sizing (bottom-up)
-    WidgetWrap_Tree(w);
+    WidgetSizeTree(w);
 
     // layout pass: positioning (top-down)
     while (w != NULL) {
@@ -318,7 +358,7 @@ void UI_FrameEnd(MArena *a_tmp) {
         while (ch != NULL) { // iterate child widgets
 
             // set child position - skip completely if absolutely positioned
-            if ((ch->features & WF_ABS_POS) == false) {
+            if ((ch->features & WF_ABSOLUTE_POSITION) == false) {
                 ch->x0 = w->x0;
                 ch->y0 = w->y0;
 
@@ -326,7 +366,7 @@ void UI_FrameEnd(MArena *a_tmp) {
                     ch->x0 = w->x0 + pt_x;
                     pt_x += ch->w;
                 }
-                else if (w->features & WF_LAYOUT_CX) {
+                else if (w->features & WF_LAYOUT_CENTERING_H) {
                     ch->x0 = w->x0 + (w->w - ch->w) / 2;
                 }
 
@@ -334,7 +374,7 @@ void UI_FrameEnd(MArena *a_tmp) {
                     ch->y0 = w->y0 + pt_y;
                     pt_y += ch->h;
                 }
-                else if (w->features & WF_LAYOUT_CY) {
+                else if (w->features & WF_LAYOUT_CENTERING_V) {
                     ch->y0 = w->y0 + (w->h - ch->h) / 2;
                 }
             }
@@ -396,9 +436,6 @@ void UI_FrameEnd(MArena *a_tmp) {
             }
         }
     }
-
-    //exit(0);
-
 
     // clean up pass
     _w_root.frame_touched = *g_frameno_imui;
@@ -495,7 +532,7 @@ Widget *UI_CoolPanel(s32 width, s32 height) {
     Widget *w = p_widgets->Alloc();
     w->frame_touched = 0;
     w->features |= WF_DRAW_BACKGROUND_AND_BORDER;
-    w->features |= WF_LAYOUT_CX;
+    w->features |= WF_LAYOUT_CENTERING_H;
     w->features |= WF_LAYOUT_V;
     w->w = width;
     w->h = height;
@@ -580,7 +617,7 @@ Widget *UI_LayoutVerticalCenterX() {
 
     Widget *w = p_widgets->Alloc();
     w->frame_touched = 0;
-    w->features |= WF_LAYOUT_CX;
+    w->features |= WF_LAYOUT_CENTERING_H;
     w->features |= WF_LAYOUT_V;
 
     TreeBranch(w);
@@ -593,7 +630,7 @@ Widget *UI_LayoutHorizontalCenterY() {
 
     Widget *w = p_widgets->Alloc();
     w->frame_touched = 0;
-    w->features |= WF_LAYOUT_CY;
+    w->features |= WF_LAYOUT_CENTERING_V;
     w->features |= WF_LAYOUT_H;
 
     TreeBranch(w);
