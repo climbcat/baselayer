@@ -580,6 +580,78 @@ bool UI_Button(const char *text, Widget **w_out = NULL) {
 }
 
 
+bool UI_PushButton(const char *text, bool *pushed, Widget **w_out = NULL) {
+    u64 key = HashStringValue(text);
+
+    Widget *w = (Widget*) MapGet(g_m_widgets, key);
+    if (w == NULL) {
+        w = g_p_widgets->Alloc();
+        w->features |= WF_DRAW_TEXT;
+        w->features |= WF_DRAW_BACKGROUND_AND_BORDER;
+
+        w->w = 120;
+        w->h = 50;
+        w->text = Str { (char*) text, _strlen( (char*) text) };
+        w->sz_font = FS_24;
+
+        MapPut(g_m_widgets, key, w);
+    }
+    w->frame_touched = *g_frameno_imui;
+
+    bool hot = w->rect.DidCollide( g_mouse_imui->x, g_mouse_imui->y ) && (g_w_active == NULL || g_w_active == w);
+    if (hot) {
+        if (g_mouse_imui->l) {
+            g_w_active = w;
+        }
+    }
+    bool active = (g_w_active == w) || *pushed;
+    bool clicked = active && hot && (g_mouse_imui->dl == 1 || g_mouse_imui->ClickedRecently());
+
+    if (clicked) {
+        *pushed = !(*pushed);
+        clicked = *pushed;
+    }
+
+    if (active) {
+        // ACTIVE: mouse-down was engaged on this element
+
+        // configure active properties
+        w->sz_border = 1;
+        w->col_bckgrnd = ColorGray(0.8f); // panel
+        w->col_text = ColorBlack();        // text
+        w->col_border = ColorBlack();     // border
+
+        if (hot) {
+            w->sz_border = 3;
+        }
+    }
+    else if (hot) {
+        // HOT: currently hovering the mouse
+        g_w_hot = w;
+
+        // configure hot properties
+        w->sz_border = 3;
+        w->col_bckgrnd = ColorWhite(); // panel
+        w->col_text = ColorBlack();        // text
+        w->col_border = ColorBlack();     // border
+    }
+    else {
+        // configure cold properties
+        w->sz_border = 1;
+        w->col_bckgrnd = ColorWhite(); // panel
+        w->col_text = ColorBlack();        // text
+        w->col_border = ColorBlack();     // border
+    }
+
+    TreeSibling(w);
+
+    if (w_out != NULL) {
+        *w_out = w;
+    }
+    return clicked;
+}
+
+
 Widget *UI_CoolPanel(s32 width, s32 height) {
     // no frame persistence
 

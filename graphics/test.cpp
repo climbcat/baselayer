@@ -715,6 +715,10 @@ void TestLayoutPanels2() {
 
     SetFontSize(FS_18);
 
+
+    //#define NUM_BTNS 3;
+    static bool btn_slct[3];
+
     Color gray = ColorGray(0.3f);
     while (loop->GameLoopRunning()) {
         loop->FrameStart2D(gray);
@@ -742,27 +746,39 @@ void TestLayoutPanels2() {
 
                 {
                     Widget *itm_1;
-                    if (UI_Button("item 1", &itm_1)) {
-                        printf("item 1 clicked\n");
+                    if (UI_PushButton("item 1", &btn_slct[0], &itm_1)) {
+                        for (u32 i = 0; i < 3; ++i) {
+                            btn_slct[i] = 0;
+                        }
+                        btn_slct[0] = 1;
+                        printf("item 1 pushed\n");
                     }
                     itm_1->features |= WF_EXPAND_HORIZONTAL;
-                    itm_1->h = 15;
+                    itm_1->h = 20;
                 }
                 {
                     Widget *itm_1;
-                    if (UI_Button("item 2", &itm_1)) {
-                        printf("item 2 clicked\n");
+                    if (UI_PushButton("item 2", &btn_slct[1], &itm_1)) {
+                        for (u32 i = 0; i < 3; ++i) {
+                            btn_slct[i] = 0;
+                        }
+                        btn_slct[1] = 1;
+                        printf("item 2 pushed\n");
                     }
                     itm_1->features |= WF_EXPAND_HORIZONTAL;
-                    itm_1->h = 15;
+                    itm_1->h = 20;
                 }
                 {
                     Widget *itm_1;
-                    if (UI_Button("item 3", &itm_1)) {
-                        printf("item 3 clicked\n");
+                    if (UI_PushButton("item 3", &btn_slct[2], &itm_1)) {
+                        for (u32 i = 0; i < 3; ++i) {
+                            btn_slct[i] = 0;
+                        }
+                        btn_slct[2] = 1;
+                        printf("item 3 pushed\n");
                     }
                     itm_1->features |= WF_EXPAND_HORIZONTAL;
-                    itm_1->h = 15;
+                    itm_1->h = 20;
                 }
 
                 UI_Pop();
