@@ -523,8 +523,8 @@ void UI_FrameEnd(MArena *a_tmp) {
 //  Builder API
 
 
-bool UI_Button(const char *text, Widget **w_out = NULL) {
-    u64 key = HashStringValue(text);
+bool UI_Button(const char *text_key, Widget **w_out = NULL) {
+    u64 key = HashStringValue(text_key);
 
     Widget *w = (Widget*) MapGet(g_m_widgets, key);
     if (w == NULL) {
@@ -534,12 +534,12 @@ bool UI_Button(const char *text, Widget **w_out = NULL) {
 
         w->w = 120;
         w->h = 50;
-        w->text = Str { (char*) text, _strlen( (char*) text) };
         w->sz_font = FS_24;
 
         MapPut(g_m_widgets, key, w);
     }
     w->frame_touched = *g_frameno_imui;
+    w->text = Str { (char*) text_key, _strlen( (char*) text_key) };
 
     bool hot = w->rect.DidCollide( g_mouse_imui->x, g_mouse_imui->y ) && (g_w_active == NULL || g_w_active == w);
     if (hot) {
@@ -586,8 +586,8 @@ bool UI_Button(const char *text, Widget **w_out = NULL) {
 }
 
 
-bool UI_PushButton(const char *text, bool *pushed, Widget **w_out = NULL) {
-    u64 key = HashStringValue(text);
+bool UI_ToggleButton(const char *text_key, bool *pushed, Widget **w_out = NULL) {
+    u64 key = HashStringValue(text_key);
 
     Widget *w = (Widget*) MapGet(g_m_widgets, key);
     if (w == NULL) {
@@ -597,12 +597,14 @@ bool UI_PushButton(const char *text, bool *pushed, Widget **w_out = NULL) {
 
         w->w = 120;
         w->h = 50;
-        w->text = Str { (char*) text, _strlen( (char*) text) };
+        
         w->sz_font = FS_24;
+        w->hash_key = key;
 
-        MapPut(g_m_widgets, key, w);
+        MapPut(g_m_widgets, w->hash_key, w);
     }
     w->frame_touched = *g_frameno_imui;
+    w->text = Str { (char*) text_key, _strlen( (char*) text_key) };
 
     bool hot = w->rect.DidCollide( g_mouse_imui->x, g_mouse_imui->y ) && (g_w_active == NULL || g_w_active == w);
     if (hot) {
@@ -615,7 +617,6 @@ bool UI_PushButton(const char *text, bool *pushed, Widget **w_out = NULL) {
 
     if (clicked) {
         *pushed = !(*pushed);
-        clicked = *pushed;
     }
 
     if (active) {
@@ -623,9 +624,9 @@ bool UI_PushButton(const char *text, bool *pushed, Widget **w_out = NULL) {
 
         // configure active properties
         w->sz_border = 1;
-        w->col_bckgrnd = ColorGray(0.8f); // panel
-        w->col_text = ColorBlack();        // text
-        w->col_border = ColorBlack();     // border
+        w->col_bckgrnd = ColorGray(0.8f);
+        w->col_text = ColorBlack();
+        w->col_border = ColorBlack();
 
         if (hot) {
             w->sz_border = 3;
@@ -637,16 +638,16 @@ bool UI_PushButton(const char *text, bool *pushed, Widget **w_out = NULL) {
 
         // configure hot properties
         w->sz_border = 3;
-        w->col_bckgrnd = ColorWhite(); // panel
-        w->col_text = ColorBlack();        // text
-        w->col_border = ColorBlack();     // border
+        w->col_bckgrnd = ColorWhite();
+        w->col_text = ColorBlack();
+        w->col_border = ColorBlack();
     }
     else {
         // configure cold properties
         w->sz_border = 1;
-        w->col_bckgrnd = ColorWhite(); // panel
-        w->col_text = ColorBlack();        // text
-        w->col_border = ColorBlack();     // border
+        w->col_bckgrnd = ColorWhite();
+        w->col_text = ColorBlack();
+        w->col_border = ColorBlack();
     }
 
     TreeSibling(w);
