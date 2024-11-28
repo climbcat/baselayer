@@ -28,3 +28,8 @@ Only on special occations:
 - Classes
 -- destructor mechanism
 -- abstract base class / interface polymorphism
+
+# deps
+
+libglew-dev
+libglfw3-dev
