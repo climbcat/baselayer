@@ -31,9 +31,9 @@ List<QuadHexaVertex> LayoutPanel(
 }
 inline
 List<QuadHexaVertex> LayoutPanel(
-        s32 l, s32 t, s32 w, s32 h,
-        s32 border,
-        Color col_border = { RGBA_GRAY_75 }, Color col_pnl = { RGBA_WHITE } )
+    s32 l, s32 t, s32 w, s32 h,
+    s32 border,
+    Color col_border = { RGBA_GRAY_75 }, Color col_pnl = { RGBA_WHITE } )
 {
     return LayoutPanel(g_a_quadbuffer, l, t, w, h, border, col_border, col_pnl);
 }
