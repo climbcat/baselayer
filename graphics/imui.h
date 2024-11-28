@@ -489,6 +489,8 @@ void UI_FrameEnd(MArena *a_tmp) {
 
 
     // clean up pass
+    // TODO: use MapRemove instaed
+    MapClear(g_m_widgets);
     _g_w_root.frame_touched = *g_frameno_imui;
     g_w_layout = &_g_w_root;
     for (u32 i = 0; i < all_widgets.len; ++i) {
@@ -496,11 +498,15 @@ void UI_FrameEnd(MArena *a_tmp) {
 
         // prune
         if (w->frame_touched < *g_frameno_imui) {
-            MapRemove(g_m_widgets, w->hash_key, w);
+            MapRemove(g_m_widgets, w->hash_key, w); 
             g_p_widgets->Free(w);
         }
         // clean
         else {
+            if (w->hash_key != 0) {
+                MapPut(g_m_widgets, w->hash_key, w);
+            }
+
             w->parent = NULL;
             w->first = NULL;
             w->next = NULL;
