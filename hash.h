@@ -12,6 +12,12 @@ u32 Hash(u32 x) {
     x = ((x >> 16) ^ x);
     return x;
 }
+u64 Hash(u64 x) {
+    x = ((x >> 16) ^ x) * 0x45d9f3b;
+    x = ((x >> 16) ^ x) * 0x45d9f3b;
+    x = ((x >> 16) ^ x);
+    return x;
+}
 
 
 u32 HashStringValue(Str key, u32 mod) {
