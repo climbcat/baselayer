@@ -679,38 +679,6 @@ void TestLayoutPanels() {
     printf("TestLayoutPanels\n");
 
     MContext *ctx = InitBaselayer();
-    GameLoopOne *loop = InitGraphics(ctx, 580, 800);
-
-
-    Color gray = ColorGray(0.3f);
-    while (loop->GameLoopRunning()) {
-        loop->FrameStart2D(gray);
-
-
-        UI_LayoutHorizontalCenterY();
-
-        SetFontSize(FS_18);
-        u32 cnt = 5;
-        for (u32 i = 0; i < cnt; ++i) {
-            Widget *wgt = UI_CoolPanel(100, 50);
-            wgt->sz_border = 4;
-            wgt->col_border = ColorGray(0.8f);
-            wgt->col_bckgrnd = ColorWhite();
-            UI_Pop();
-        }
-
-
-        UI_FrameEnd(ctx->a_tmp);
-        loop->FrameEnd2D();
-    }
-    loop->Terminate();
-}
-
-
-void TestLayoutPanels2() {
-    printf("TestLayoutPanels2\n");
-
-    MContext *ctx = InitBaselayer();
     GameLoopOne *loop = InitGraphics(ctx, 1000, 500);
 
     SetFontSize(FS_18);
@@ -746,7 +714,7 @@ void TestLayoutPanels2() {
 
                 {
                     Widget *itm_1;
-                    if (UI_PushButton("item 1", &btn_slct[0], &itm_1)) {
+                    if (UI_ToggleButton("item 1", &btn_slct[0], &itm_1)) {
                         for (u32 i = 0; i < 3; ++i) {
                             btn_slct[i] = 0;
                         }
@@ -758,7 +726,7 @@ void TestLayoutPanels2() {
                 }
                 {
                     Widget *itm_1;
-                    if (UI_PushButton("item 2", &btn_slct[1], &itm_1)) {
+                    if (UI_ToggleButton("item 2", &btn_slct[1], &itm_1)) {
                         for (u32 i = 0; i < 3; ++i) {
                             btn_slct[i] = 0;
                         }
@@ -770,7 +738,7 @@ void TestLayoutPanels2() {
                 }
                 {
                     Widget *itm_1;
-                    if (UI_PushButton("item 3", &btn_slct[2], &itm_1)) {
+                    if (UI_ToggleButton("item 3", &btn_slct[2], &itm_1)) {
                         for (u32 i = 0; i < 3; ++i) {
                             btn_slct[i] = 0;
                         }
@@ -835,6 +803,5 @@ void Test() {
     //TestUILayoutWidgetAPI();
     //TestResourceLoad();
     //TestRenderSprites();
-    //TestLayoutPanels();
-    TestLayoutPanels2();
+    TestLayoutPanels();
 }

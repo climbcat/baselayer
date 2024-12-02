@@ -535,6 +535,7 @@ bool UI_Button(const char *text_key, Widget **w_out = NULL) {
         w->w = 120;
         w->h = 50;
         w->sz_font = FS_24;
+        w->hash_key = key;
 
         MapPut(g_m_widgets, key, w);
     }
@@ -586,8 +587,10 @@ bool UI_Button(const char *text_key, Widget **w_out = NULL) {
 }
 
 
-bool UI_ToggleButton(const char *text_key, bool *pushed, Widget **w_out = NULL) {
-    u64 key = HashStringValue(text_key);
+bool UI_ToggleButton(const char *text_key, bool *pushed, Widget **w_out = NULL, u64 key = 0, Color color_cold = { RGBA_WHITE }) {
+    if (key == 0) {
+        key = HashStringValue(text_key);
+    }
 
     Widget *w = (Widget*) MapGet(g_m_widgets, key);
     if (w == NULL) {
@@ -645,7 +648,7 @@ bool UI_ToggleButton(const char *text_key, bool *pushed, Widget **w_out = NULL) 
     else {
         // configure cold properties
         w->sz_border = 1;
-        w->col_bckgrnd = ColorWhite();
+        w->col_bckgrnd = color_cold;
         w->col_text = ColorBlack();
         w->col_border = ColorBlack();
     }
@@ -716,7 +719,7 @@ Widget *UI_Label(const char *text, Color color = Color { RGBA_BLACK }) {
 
     FontSize fs = GetFontSize();
     SetFontSize(w->sz_font);
-    w->w = TextLineWidth(g_text_plotter, w->text);;
+    w->w = TextLineWidth(g_text_plotter, w->text);
     w->h = g_text_plotter->ln_measured;
     SetFontSize(fs);
 
