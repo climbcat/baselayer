@@ -335,10 +335,30 @@ u64 MapGet(HashMap *map, u64 key) {
 }
 
 bool MapRemove(HashMap *map, u64 key, void *val) {
-    // TODO: impl
-    //assert(1 == 0);
+    u32 slot = Hash(key) % map->slots.len;
+    HashMapKeyVal kv_slot = map->slots.lst[slot];
 
-    return true;
+    if (kv_slot.key == key) {
+        map->slots.lst[slot] = {};
+        return true;
+    }
+    else {
+        HashMapKeyVal *kv_prev = map->slots.lst + slot;
+        HashMapKeyVal *kv = kv_slot.chain;
+        while (kv != NULL) {
+            if (kv->key == key) {
+                kv_prev->chain = kv->chain;
+                *kv = {};
+                return true;
+            }
+            else {
+                kv_prev = kv;
+                kv = kv->chain;
+            }
+        }
+    }
+
+    return false;
 }
 
 

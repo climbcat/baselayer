@@ -109,7 +109,7 @@ void SmallTests() {
     // save binary data
 
     u32 num_chars = 1024*1024 + 1;
-    char data[num_chars];
+    char data[1024*1024 + 1];
     WriteRandomHexStr(data, num_chars, true);
     char *filepath = (char*) "hexdata.txt";
     SaveFile(filepath, (u8*) data, num_chars);
