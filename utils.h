@@ -234,7 +234,7 @@ Str GetYYMMDD() {
 
     time_t t = time(NULL);
     struct tm loc = *localtime(&t);
-    char buff[7];
+    char buff[34];
     sprintf(buff, "%02d%02d%02d",
         loc.tm_year - 100,
         loc.tm_mon + 1,

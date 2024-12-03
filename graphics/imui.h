@@ -556,9 +556,9 @@ bool UI_Button(const char *text_key, Widget **w_out = NULL) {
 
         // configure active properties
         w->sz_border = 3;
-        w->col_bckgrnd = ColorGray(0.8f); // panel
-        w->col_text = ColorBlack();        // text
-        w->col_border = ColorBlack();     // border
+        w->col_bckgrnd = ColorGray(0.8f);
+        w->col_text = ColorBlack();
+        w->col_border = ColorBlack();
     }
     else if (hot) {
         // HOT: currently hovering the mouse
@@ -566,16 +566,16 @@ bool UI_Button(const char *text_key, Widget **w_out = NULL) {
 
         // configure hot properties
         w->sz_border = 3;
-        w->col_bckgrnd = ColorWhite(); // panel
-        w->col_text = ColorBlack();        // text
-        w->col_border = ColorBlack();     // border
+        w->col_bckgrnd = ColorWhite();
+        w->col_text = ColorBlack();
+        w->col_border = ColorBlack();
     }
     else {
         // configure cold properties
         w->sz_border = 1;
-        w->col_bckgrnd = ColorWhite(); // panel
-        w->col_text = ColorBlack();        // text
-        w->col_border = ColorBlack();     // border
+        w->col_bckgrnd = ColorWhite();
+        w->col_text = ColorBlack();
+        w->col_border = ColorBlack();
     }
 
     TreeSibling(w);
