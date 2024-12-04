@@ -56,15 +56,15 @@ void ProfilerPrint(Profiler *p) {
 
     float pct_sum = 0;
     ProfilerBlock *current;
-    for (int i = 1; i < p->count + 1; ++i) {
+    for (u32 i = 1; i < p->count + 1; ++i) {
         current = p->blocks + i;
         printf("  %s: ", current->tag);
 
         u64 self_tsc = current->elapsed_tsc - current->elapsed_children_tsc;
-        u64 self_ms = self_tsc / p->cpu_freq / 1000;
-        float self_pct = (float) self_tsc / p->total_tsc * 100;
+        u64 self_ms = (u64) ((f32) self_tsc / p->cpu_freq / 1000.0f);
+        f32 self_pct = (f32) self_tsc / p->total_tsc * 100;
         u64 total_tsc = current->elapsed_atroot_tsc;
-        float total_pct = (float) total_tsc / p->total_tsc * 100;
+        f32 total_pct = (f32) total_tsc / p->total_tsc * 100;
 
         u32 hits = current->hits;
         printf("%lu tsc %lu ms (%.2f%%) self, %lu (%.2f%%) tot %u hits)\n", self_tsc, self_ms, self_pct, total_tsc, total_pct, hits);

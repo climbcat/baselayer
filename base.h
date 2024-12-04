@@ -40,9 +40,9 @@ typedef double f64;
 #define FOUR_GB (4 * 1024 * 1024 * 1024)
 
 
-#define PI 3.14159
-f32 deg2rad = PI / 180;
-f32 rad2deg = 180 / PI;
+#define PI 3.14159f
+f32 deg2rad = PI / 180.0f;
+f32 rad2deg = 180.0f / PI;
 
 
 inline u8 MinU8(u8 a, u8 b) { return (a <= b) ? a : b; }
@@ -174,7 +174,7 @@ u32 ParseInt(char *text) {
     u32 len = _strlen(text);
 
     // decimals before dot
-    for (int i = 0; i < len; ++i) {
+    for (u32 i = 0; i < len; ++i) {
         val += (text[len - 1 - i] - 48) * multiplier;
         multiplier *= 10;
     }
@@ -197,7 +197,7 @@ u32 ParseInt(char *text, u32 len) {
     }
 
     // decimals before dot
-    for (int i = 0; i < len; ++i) {
+    for (u32 i = 0; i < len; ++i) {
         val += (text[len - 1 - i] - 48) * multiplier;
         multiplier *= 10;
     }

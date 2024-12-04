@@ -80,7 +80,6 @@ void XSleep(u32 ms) {
 
 u8 *LoadFileMMAP(char *filepath, u64 *size_bytes) {
     HANDLE f, map;
-    LPVOID lpBasePtr;
     LARGE_INTEGER fsz;
 
     f = CreateFile(filepath, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);

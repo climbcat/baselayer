@@ -12,9 +12,6 @@
     #define LINUX 0
     #define WINDOWS 1
 
-    #pragma warning(disable : 4996)
-    #pragma warning(disable : 4200)
-
     #include "plaf/plaf_win.cpp"
 #endif
 

@@ -109,7 +109,7 @@ void *ArenaOpen(MArena *a, u32 max_len = SIXTEEN_MB) {
     assert(!a->locked && "ArenaOpen: memory arena is alredy open");
     
     // ensure max_len bytes have been comitted
-    u32 used = a->used;
+    u64 used = a->used;
     ArenaAlloc(a, max_len);
     a->used = used;
 
@@ -199,14 +199,14 @@ bool PoolCheckAddress(MPool *p, void *ptr) {
     return b2 && b3;
 }
 u32 PoolAllocIdx(MPool *p) {
-    assert(p->nblocks <= 2^16 && "indices will always fit within 16 bit limits");
+    assert(p->nblocks <= 65536 && "indices will always fit within 16 bit limits");
 
     void *element = PoolAlloc(p);
     if (element == NULL) {
         return 0;
     }
 
-    u32 idx = ((u8*) element - (u8*) p->mem) / p->block_size;
+    u32 idx = (u32) ((u8*) element - (u8*) p->mem) / p->block_size;
     assert(idx < p->nblocks && "block index must be positive and less and the number of blocks");
     return idx;
 }
@@ -216,7 +216,7 @@ u32 PoolPtr2Idx(MPool *p, void *ptr) {
     if (ptr == NULL) {
         return 0;
     }
-    u32 idx = ((u8*) ptr - (u8*) p->mem) / p->block_size;
+    u32 idx = (u32) ((u8*) ptr - (u8*) p->mem) / p->block_size;
     return idx;
 }
 inline

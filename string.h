@@ -289,7 +289,7 @@ StrLst *StrLstPut(MArena *a, char *str, StrLst *after = NULL) {
     lst->len = _strlen(str);
     lst->str = (char*) ArenaAlloc(a, lst->len);
 
-    for (int i = 0; i < lst->len; ++i) {
+    for (u32 i = 0; i < lst->len; ++i) {
         lst->str[i] = str[i];
     }
     if (after != NULL) {

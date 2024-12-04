@@ -359,11 +359,11 @@ void MatrixNf_Transpose(float *dest, float *src, u32 dims) {
 }
 inline
 void MatrixNf_Multiply(float *dest, float *a, float *b, u32 dims) {
-    for (int i = 0; i < dims; ++i) {
-        for (int j = 0; j < dims; ++j) {
+    for (u32 i = 0; i < dims; ++i) {
+        for (u32 j = 0; j < dims; ++j) {
             u32 I = i*dims;
             dest[I + j] = 0;
-            for (int k = 0; k < dims; ++k) {
+            for (u32 k = 0; k < dims; ++k) {
                 dest[I + j] += a[I + k]*b[k*dims + j];
             }
         }
@@ -371,9 +371,9 @@ void MatrixNf_Multiply(float *dest, float *a, float *b, u32 dims) {
 }
 inline
 void MatrixNf_MultVector(float *dest, float *a, float *v, u32 dims) {
-    for (int i = 0; i < dims; ++i) {
+    for (u32 i = 0; i < dims; ++i) {
         dest[i] = 0;
-        for (int k = 0; k < dims; ++k) {
+        for (u32 k = 0; k < dims; ++k) {
             dest[i] += a[i*dims + k]*v[k];
         }
     }
@@ -387,7 +387,7 @@ void MatrixNf_MultVector(float *dest, float *a, float *v, u32 dims) {
 Matrix4f TransformBuild(Vector3f axis, float angle_rads, Vector3f translate = {0, 0, 0}) {
     Matrix4f result = Matrix4f_Zero();
 
-    float epsilon_f = 0.0000001;
+    float epsilon_f = 0.0000001f;
     assert( abs(axis.Norm() - 1) < epsilon_f );
 
     // build rot from [axis, angle] - see https://en.wikipedia.org/wiki/Rotation_matrix#Axis_and_angle
