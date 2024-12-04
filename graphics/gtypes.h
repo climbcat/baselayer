@@ -48,7 +48,7 @@ Color ColorBlack() {
     return Color { RGBA_BLACK };
 }
 Color ColorGray(f32 grayness) {
-    u8 g = floor(grayness * 255);
+    u8 g = (u8) floor(grayness * 255);
     return Color { g, g, g, 255 };
 }
 Color ColorRed() {

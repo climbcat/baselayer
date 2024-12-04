@@ -258,14 +258,14 @@ void BlitSprite(Sprite s, s32 x0, s32 y0, ImageRGBA *img_dest, ImageRGBA *img_sr
     // i,j          : target coords
     // i_img, j_img : img coords
 
-    for (u32 j = 0; j < q_h; ++j) {
+    for (s32 j = 0; j < q_h; ++j) {
         s32 j_img = j + q_y0;
         if (j_img < 0 || j_img > img_dest->height) {
             continue;
         }
 
-        for (u32 i = 0; i < q_w; ++i) {
-            u32 i_img = q_x0 + i;
+        for (s32 i = 0; i < q_w; ++i) {
+            s32 i_img = q_x0 + i;
             if (i_img < 0 || i_img > img_dest->width) {
                 continue;
             }
@@ -277,14 +277,14 @@ void BlitSprite(Sprite s, s32 x0, s32 y0, ImageRGBA *img_dest, ImageRGBA *img_sr
 
             if (color_src.a != 0) {
                 // rudimentary alpha-blending
-                u32 idx = j_img * stride_img + i_img;
+                s32 idx = j_img * stride_img + i_img;
                 Color color_background = img_dest->img[idx];
 
                 f32 alpha = (1.0f * color_src.a) / 255;
                 Color color_blended;
-                color_blended.r = floor( alpha*color_src.r ) + floor( (1-alpha)*color_background.r );
-                color_blended.g = floor( alpha*color_src.g ) + floor( (1-alpha)*color_background.g );
-                color_blended.b = floor( alpha*color_src.b ) + floor( (1-alpha)*color_background.b );
+                color_blended.r = (u8) (floor( alpha*color_src.r ) + floor( (1-alpha)*color_background.r ));
+                color_blended.g = (u8) (floor( alpha*color_src.g ) + floor( (1-alpha)*color_background.g ));
+                color_blended.b = (u8) (floor( alpha*color_src.b ) + floor( (1-alpha)*color_background.b ));
                 color_blended.a = 255;
 
                 img_dest->img[idx] = color_blended;
@@ -317,20 +317,21 @@ SpriteMap *SpriteMapLoadStream(u8 *base_ptr, u32 data_sz) {
 
 
 SpriteMap *CompileSpriteMapInline(MArena *a_dest, const char *name, const char *key_name, List<Sprite> sprites, List<u32> tex_keys, HashMap *texture_map) {
-    u32 nx = floor( sqrt(sprites.len) );
-    u32 ny = sprites.len / nx + 1;
-    assert(sprites.len <= nx * ny);
+    s16 nx = (s16) floor( (f32) sqrt(sprites.len) );
+    s32 ny = sprites.len / nx + 1;
+    assert(nx >= 0 && sprites.len <= (u32) (nx * ny));
+
     printf("compiling sprite map;\n    name: %s\n    key_name: %s\n", name, key_name);
     printf("sprites count x: %u, y: %u \n", nx, ny);
 
     // calc bitmap size
     s32 bm_w = 0;
     s32 bm_h = 0;
-    for (u32 j = 0; j < ny; ++j) {
+    for (s32 j = 0; j < ny; ++j) {
         s32 row_w = 0;
         s32 row_max_h = 0;
-        for (u32 i = 0; i < nx; ++i) {
-            u32 idx = i + j*nx;
+        for (s32 i = 0; i < nx; ++i) {
+            u32 idx = (u32) (i + j*nx);
             if (idx < sprites.len) {
                 Sprite s = sprites.lst[idx];
                 row_w += s.w;
@@ -357,10 +358,10 @@ SpriteMap *CompileSpriteMapInline(MArena *a_dest, const char *name, const char *
     // copy data to sprites & texture
     s32 x = 0;
     s32 y = 0;
-    for (u32 j = 0; j < ny; ++j) {
+    for (s32 j = 0; j < ny; ++j) {
         s32 row_max_h = 0;
-        for (u32 i = 0; i < nx; ++i) {
-            u32 idx = i + j*nx;
+        for (s32 i = 0; i < nx; ++i) {
+            u32 idx = (u32) (i + j*nx);
             if (idx < sprites.len) {
                 Sprite s = sprites.lst[idx];
                 ImageRGBA *texture = (ImageRGBA*) MapGet(texture_map, tex_keys.lst[idx]);
@@ -459,14 +460,14 @@ void BlitQuads(DrawCall call, ImageRGBA *img) {
             // i,j          : target coords
             // i_img, j_img : img coords
 
-            for (u32 j = 0; j < q_h; ++j) {
+            for (s32 j = 0; j < q_h; ++j) {
                 s32 j_img = j + q_y0;
                 if (j_img < 0 || j_img > img->height) {
                     continue;
                 }
 
-                for (u32 i = 0; i < q_w; ++i) {
-                    u32 i_img = q_x0 + i;
+                for (s32 i = 0; i < q_w; ++i) {
+                    s32 i_img = q_x0 + i;
                     if (i_img < 0 || i_img > img->width) {
                         continue;
                     }
@@ -474,14 +475,14 @@ void BlitQuads(DrawCall call, ImageRGBA *img) {
                     f32 y = q_v0 + j * q_scale_y;
                     if (u8 alpha_byte = SampleTexture(texture_b, x, y)) {
                         // rudimentary alpha-blending
-                        u32 idx = j_img * stride_img + i_img;
+                        u32 idx = (u32) (j_img * stride_img + i_img);
                         Color color_background = img->img[idx];
 
                         f32 alpha = (1.0f * alpha_byte) / 255;
                         Color color_blended;
-                        color_blended.r = floor( alpha*color_quad.r ) + floor( (1-alpha)*color_background.r );
-                        color_blended.g = floor( alpha*color_quad.g ) + floor( (1-alpha)*color_background.g );
-                        color_blended.b = floor( alpha*color_quad.b ) + floor( (1-alpha)*color_background.b );
+                        color_blended.r = (u8) (floor( alpha*color_quad.r ) + floor( (1-alpha)*color_background.r ));
+                        color_blended.g = (u8) (floor( alpha*color_quad.g ) + floor( (1-alpha)*color_background.g ));
+                        color_blended.b = (u8) (floor( alpha*color_quad.b ) + floor( (1-alpha)*color_background.b ));
                         color_blended.a = 255;
 
                         img->img[idx] = color_blended;
@@ -497,15 +498,15 @@ void BlitQuads(DrawCall call, ImageRGBA *img) {
             assert(call.texture_key == 0);
 
             s32 j_img;
-            u32 i_img;
+            s32 i_img;
             u32 idx;
-            for (u32 j = 0; j < q_h; ++j) {
+            for (s32 j = 0; j < q_h; ++j) {
                 j_img = j + q_y0;
                 if (j_img < 0 || j_img > img->height) {
                     continue;
                 }
 
-                for (u32 i = 0; i < q_w; ++i) {
+                for (s32 i = 0; i < q_w; ++i) {
                     i_img = q_x0 + i;
                     if (i_img < 0 || i_img > img->width) {
                         continue;
@@ -585,7 +586,7 @@ void SR_Render() {
     assert(g_render_target.img != NULL && "init render target first");
 
     //for (s32 i = g_drawcalls.len - 1; i >= 0; --i) {   // reverse
-    for (s32 i = 0; i < g_drawcalls.len; ++i) {   // do not reverse
+    for (u32 i = 0; i < g_drawcalls.len; ++i) {   // do not reverse
         BlitQuads(g_drawcalls.lst[i], &g_render_target);
     }
 }

@@ -68,12 +68,13 @@ FontAtlas *FontAtlasLoadBinaryStream(u8 *base_ptr, u32 sz_data) {
 FontAtlas *FontAtlasLoadBinary128(MArena *a_dest, char *filename, u32 *sz = NULL) {
     u64 sz_file;
     u8 *base_ptr = (u8*) LoadFileMMAP(filename, &sz_file);
-    base_ptr = (u8*) ArenaPush(a_dest, base_ptr, sz_file); // move to read-write memory location
+    u32 sz_alloc = (u32) sz_file;
+    base_ptr = (u8*) ArenaPush(a_dest, base_ptr, sz_alloc); // move to read-write memory location
     if (sz != NULL) {
-        *sz = (u32) sz_file;
+        *sz = sz_alloc;
     }
 
-    return FontAtlasLoadBinaryStream(base_ptr, sz_file);
+    return FontAtlasLoadBinaryStream(base_ptr, sz_alloc);
 };
 
 void FontAtlasSaveBinary128(MArena *a_tmp, char *filename, FontAtlas atlas) {
@@ -313,7 +314,7 @@ void AlignQuadsH(List<QuadHexaVertex> line_quads, s32 cx, TextAlign ta) {
         }
 
         for (u32 i = 0; i < line_quads.len; ++i) {
-            QuadOffset(line_quads.lst + i, offset_x, 0);
+            QuadOffset(line_quads.lst + i, (f32) offset_x, 0.0f);
         }
     }
 }

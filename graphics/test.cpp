@@ -53,12 +53,12 @@ void TestVGROcTree() {
 
 
     // test parameters
-    float rootcube_radius = 0.2;
-    //float leaf_size = rootcube_radius / 2.0 / 2.0 / 2.0 / 2.0;
-    //float leaf_size = rootcube_radius / 2.0 / 2.0;
+    f32 rootcube_radius = 0.2f;
+    //f32 leaf_size = rootcube_radius / 2.0 / 2.0 / 2.0 / 2.0;
+    //f32 leaf_size = rootcube_radius / 2.0 / 2.0;
 
     // TODO: there is a bug, there should be about 8 vertices out for this case, we get 56. !
-    float leaf_size = rootcube_radius;
+    f32 leaf_size = rootcube_radius;
     u32 nvertices_src = 100;
     u32 nvertices_src_2 = 1000;
     bool display_boxes = false;
@@ -77,8 +77,8 @@ void TestVGROcTree() {
     MArena *a_dest = &_a_dest;
 
     List<Vector3f> src = InitList<Vector3f>(a_tmp, nvertices_src);
-    Vector3f rootcube_center { 0, 0, 0 };
-    float pc_radius = 0.2;
+    Vector3f rootcube_center { 0.0f, 0.0f, 0.0f };
+    f32 pc_radius = 0.2f;
     RandInit(913424423);
     for (u32 i = 0; i < nvertices_src; ++i) {
         Vector3f v {
@@ -89,8 +89,8 @@ void TestVGROcTree() {
         src.Add(&v);
     }
     List<Vector3f> src_2 = InitList<Vector3f>(a_tmp, nvertices_src_2);
-    Vector3f rootcube_center_2 { 0.1, 0.1, 0.1 };
-    float pc_radius_2 = 0.1;
+    Vector3f rootcube_center_2 { 0.1f, 0.1f, 0.1f };
+    f32 pc_radius_2 = 0.1f;
     RandInit(913424423);
     for (u32 i = 0; i < nvertices_src_2; ++i) {
         Vector3f v {
@@ -104,7 +104,6 @@ void TestVGROcTree() {
 
     // run the vgr
     List<Vector3f> dest = InitList<Vector3f>(a_dest, nvertices_src);
-    OcTreeStats stats;
     List<OcLeaf> leaf_blocks_out;
     List<OcBranch> branch_blocks_out;
 
@@ -210,8 +209,8 @@ void TestSlerpAndMat2Quat() {
 
     Vector3f r1 { 0.1f, 1.0f, -0.4f };
     r1.Normalize();
-    float angle0 = 5.0f * deg2rad;
-    float angle1 = 65.0f * deg2rad;
+    f32 angle0 = 5.0f * deg2rad;
+    f32 angle1 = 65.0f * deg2rad;
 
 
     box0->transform = TransformBuild(r1, angle0);
@@ -222,8 +221,8 @@ void TestSlerpAndMat2Quat() {
     Quat q1 = QuatFromTransform(box1->transform);
     Quat q = q0;
 
-    float t = 0;
-    float dt = 0.03;
+    f32 t = 0.0f;
+    f32 dt = 0.03f;
     while (loop->GameLoopRunning()) {
 
         t += dt;
@@ -425,7 +424,7 @@ void TestBrownianGlyphs() {
     List<QuadHexaVertex> quads_initial = ListCopy(ctx->a_life, quads);
     SetFontSize(FS_48);
 
-    f32 magnitude = 0.8;
+    f32 magnitude = 0.8f;
     while (loop->GameLoopRunning()) {
         loop->FrameStart2D();
 

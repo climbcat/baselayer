@@ -103,9 +103,9 @@ void RenderLineRGBA(u8* image_buffer, u16 w, u16 h, s16 ax, s16 ay, s16 bx, s16 
 
         s16 x, y;
         u32 pix_idx;
-        for (u16 i = 0; i <= bx - ax; ++i) {
+        for (s32 i = 0; i <= bx - ax; ++i) {
             x = ax + i;
-            y = ay + floor(slope * i);
+            y = ay + (s16) floor(slope * i);
 
             if (CullScreenCoords(x, y, w, h)) {
                 continue;
@@ -137,7 +137,7 @@ void RenderLineRGBA(u8* image_buffer, u16 w, u16 h, s16 ax, s16 ay, s16 bx, s16 
         u32 pix_idx;
         for (u16 i = 0; i <= by - ay; ++i) {
             y = ay + i;
-            x = ax + floor(slope_inv * i);
+            x = ax + (s16) floor(slope_inv * i);
 
             if (CullScreenCoords(x, y, w, h)) {
                 continue;
@@ -246,21 +246,21 @@ void BlitImageInvertY(ImageRGBA dest, ImageRGBX src, Rect blit_in) {
     float scale_x = (float) src.width / blit_in.width;
     float scale_y = (float) src.height / blit_in.height;
 
-    u32 k, l; // source indices
-    u32 ii; // dest y index
-    u32 idx_dest;
-    u32 idx_src;
+    s32 k, l; // source indices
+    s32 ii; // dest y index
+    s32 idx_dest;
+    s32 idx_src;
 
     // looping on rectangle coordinates
-    for (u32 i = 0; i < blit.height; ++i) {
-        for (u32 j = 0; j < blit.width; ++j) {
+    for (s32 i = 0; i < blit.height; ++i) {
+        for (s32 j = 0; j < blit.width; ++j) {
             //ii = i + blit.top; // <- not inverted
             ii = dest.height - 1 - (i + blit.top); // <- inverted
             idx_dest = ii*dest.width + j + blit.left;
 
-            k = floor( scale_y * i ); // <- not inverted 
+            k = (s16) floor( scale_y * i ); // <- not inverted 
             //k = src.height - 1 - floor( scale_y * i ); // <- inverted
-            l = floor( scale_x * j );
+            l = (s32) floor( scale_x * j );
             idx_src = k*src.width + l;
 
             dest.img[idx_dest] = * (Color*) (src.img + idx_src * src.pixel_size);
@@ -488,8 +488,8 @@ Entity *EntityCameraWireframe(EntitySystem *es, Entity* branch, float size = 0.0
     Entity *dest = es->AllocEntityChild(branch);
     Entity cam;
     cam.tpe = ET_CAMPOS;
-    float radius_xy = 0.5 * size;
-    float length_z = 1.5 * size;
+    f32 radius_xy = 0.5f * size;
+    f32 length_z = 1.5f * size;
 
     if (r != NULL) {
         cam = CameraPosition(radius_xy, length_z, &r->vertex_buffer, &r->index_buffer);

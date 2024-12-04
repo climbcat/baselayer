@@ -284,7 +284,7 @@ MouseTrap InitMouseTrap(int mouse_x, int mouse_y) {
 }
 
 
-inline float PositiveSqrtMultiplier(float value) {
+inline f32 PositiveSqrtMultiplier(f32 value) {
     if (value == 0) {
         value = 1;
     }
@@ -298,22 +298,22 @@ inline float PositiveSqrtMultiplier(float value) {
 struct OrbitCamera {
     PerspectiveFrustum frustum;
     Vector3f center;
-    float theta;
-    float phi;
-    float radius;
-    float mouse2rot = 0.4;
-    float mouse2pan = 0.01;
+    f32 theta;
+    f32 phi;
+    f32 radius;
+    f32 mouse2rot = 0.4f;
+    f32 mouse2pan = 0.01f;
     Matrix4f view;
     Matrix4f proj;
     Matrix4f vp;
 
-    static float ClampTheta(float theta_degs, float min = 0.0001f, float max = 180 - 0.0001f) {
-        float clamp_up = MinF32(theta_degs, max);
-        float result = MaxF32(clamp_up, min);
+    static f32 ClampTheta(f32 theta_degs, f32 min = 0.0001f, f32 max = 180 - 0.0001f) {
+        f32 clamp_up = MinF32(theta_degs, max);
+        f32 result = MaxF32(clamp_up, min);
         return result;
     }
     void Update(MouseTrap m) {
-        float sign_x = 1;
+        f32 sign_x = 1;
 
         // why
         bool invert_x = true;
@@ -328,13 +328,13 @@ struct OrbitCamera {
         }
         else if (m.mwheel_y_delta < 0) {
             // zoom in
-            float mult = PositiveSqrtMultiplier(m.mwheel_y_delta);
-            radius *= 1.1 * mult;
+            f32 mult = PositiveSqrtMultiplier((f32) m.mwheel_y_delta);
+            radius *= 1.1f * mult;
         }
         else if (m.mwheel_y_delta > 0) {
             // zoom out
-            float mult = PositiveSqrtMultiplier(m.mwheel_y_delta);
-            radius /= 1.1 * mult;
+            f32 mult = PositiveSqrtMultiplier((f32) m.mwheel_y_delta);
+            radius /= 1.1f * mult;
         }
         else if (m.r) {
             // pan

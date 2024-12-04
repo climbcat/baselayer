@@ -140,7 +140,7 @@ struct GameLoopOne {
     }
     void FrameStart2D(Color clear = { RGBA_BLACK }) {
         Color *img = (Color *) renderer.image_buffer;
-        for (u32 i = 0; i < renderer.w * renderer.h; ++i) {
+        for (s32 i = 0; i < renderer.w * renderer.h; ++i) {
             img[i] = clear;
         }
         SR_Clear();
