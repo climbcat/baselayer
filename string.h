@@ -314,6 +314,9 @@ StrLst *StrLstPop(StrLst *pop, StrLst *prev) {
     if (pop == NULL) {
         return NULL;
     }
+    else if (pop->first == NULL && pop->next == NULL) {
+        return NULL;
+    }
 
     // pop is first
     else if (pop == pop->first) { 
