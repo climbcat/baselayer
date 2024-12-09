@@ -22,6 +22,7 @@
 
 u64 MemoryProtect(void *from, u64 amount);
 void *MemoryReserve(u64 amount);
+s32 MemoryUnmap(void *at, u64 amount_reserved);
 
 
 //
@@ -59,6 +60,10 @@ MArena ArenaCreate(u64 fixed_size = 0) {
     }
 
     return a;
+}
+void ArenaDestroy(MArena *a) {
+    MemoryUnmap(a, a->committed);
+    *a = {};
 }
 inline
 void *ArenaAlloc(MArena *a, u64 len, bool zerod = true) {

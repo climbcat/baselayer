@@ -25,6 +25,11 @@ void *MemoryReserve(u64 amount) {
     result = (u8*) mmap(NULL, amount, PROT_NONE, MAP_PRIVATE | MAP_ANON, -1, 0);
     return result;
 }
+s32 MemoryUnmap(void *at, u64 amount_reserved) {
+    s32 ret = munmap(at, amount_reserved);
+    return ret;
+}
+
 
 
 //

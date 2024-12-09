@@ -328,7 +328,7 @@ StrLst *StrLstPop(StrLst *pop, StrLst *prev) {
             iter->first = newfirst;
             iter = iter->next;
         }
-        pop->first = newfirst;
+        pop->first = newfirst; // this line is just a safeguard in case someone uses first on the item
         return newfirst;
     }
 
@@ -338,18 +338,15 @@ StrLst *StrLstPop(StrLst *pop, StrLst *prev) {
         // pop is in the middle
         if (pop->next) {
             prev->next = pop->next;
-            return prev->next;
         }
 
         // pop is the last
         else {
             prev->next = NULL;
-            return NULL;
         }
     }
 
-    assert(1 == 0);
-    return NULL;
+    return pop->first;
 }
 
 
