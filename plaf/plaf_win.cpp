@@ -22,6 +22,15 @@ void *MemoryReserve(u64 amount) {
     result = VirtualAlloc(NULL, amount, MEM_RESERVE, PAGE_NOACCESS);
     return result;
 }
+s32 MemoryUnmap(void *at, u64 amount_reserved) {
+    bool ans = VirtualFree(at, 0, MEM_RELEASE);
+    if (ans == true) {
+        return 0;
+    }
+    else {
+        return 1;
+    }
+}
 
 
 //
