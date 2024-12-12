@@ -6,18 +6,24 @@
 // hash map
 
 
-u32 Hash(u32 x) {
+u32 Hash32(u32 x) {
     x = ((x >> 16) ^ x) * 0x45d9f3b;
     x = ((x >> 16) ^ x) * 0x45d9f3b;
     x = ((x >> 16) ^ x);
     return x;
 }
-u64 Hash(u64 x) {
+u64 Hash64(u64 x) {
     x = ((x >> 16) ^ x) * 0x45d9f3b;
     x = ((x >> 16) ^ x) * 0x45d9f3b;
     x = ((x >> 16) ^ x);
     return x;
 }
+#ifdef __arm__
+    #warning "__arm__ detected: u64 typedef'd to 32bit"
+    #define Hash Hash32
+#else
+    #define Hash Hash64
+#endif
 
 
 u32 HashStringValue(Str key, u32 mod) {
