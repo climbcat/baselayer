@@ -33,8 +33,8 @@
 #endif
 
 
-#ifdef DLL_CLIENT
-#ifndef DLL_IMPORTEXPORT DLL_EXPORT
+#ifndef DLL_CLIENT
+#ifndef DLL_IMPORTEXPORT
 #define DLL_IMPORTEXPORT DLL_EXPORT
 #endif
 #else
