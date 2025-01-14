@@ -5,6 +5,7 @@
 #pragma warning(disable : 4200)
 #pragma warning(disable : 4477)
 #pragma warning(disable : 4996)
+#pragma warning(disable : 4530)
 
 #include "base.h"
 #include "profile.h"
