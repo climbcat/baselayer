@@ -4,7 +4,7 @@
 #include <cstdio>
 #include <cstdint>
 #include <cassert>
-
+#include <cstring>
 
 //
 // basics
