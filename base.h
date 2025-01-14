@@ -77,12 +77,15 @@ inline f64 MaxF64(f64 a, f64 b) { return (a > b) ? a : b; }
 
 
 inline void _memcpy(void *dest, const void *src, size_t size) {
+    memcpy(dest, src, size);
+    /*
     u8 *s = (u8*) src;
     u8 *d = (u8*) dest;
 
     for (u32 i = 0; i < size; ++i) {
         d[i] = s[i];
     }
+    */
 }
 inline u32 _strcmp(const char *dest, const char *src) {
     u32 i = 0;
