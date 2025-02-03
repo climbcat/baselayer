@@ -120,8 +120,28 @@ Str StrBasename(char *path) {
     }
     return slashes->GetStr();
 }
+Str StrBasename(MArena *a, char *path) {
+    assert(g_a_strings != NULL && "init strings first");
+
+    // TODO: shouldn't this fail?
+
+    Str before_ext = StrSplit(a, StrLiteral(a, path), '.')->GetStr();
+    StrLst* slashes = StrSplit(a, before_ext, '/');
+    while (slashes->next) {
+        slashes = slashes->next;
+    }
+    return slashes->GetStr();
+}
 Str StrBasename(Str path) {
     return StrBasename(StrZeroTerm(path));
+}
+Str StrExtension(MArena *a, char *path) {
+    Str s { NULL, 0 };
+    StrLst *lst = StrSplit(a, StrLiteral(a, path), '.');
+    if (lst->next != NULL) {
+        s = lst->next->GetStr();
+    }
+    return s;
 }
 Str StrExtension(char *path) {
     assert(g_a_strings != NULL && "init strings first");
