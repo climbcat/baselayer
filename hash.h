@@ -441,6 +441,9 @@ u32 RandMinMaxU(u32 min, u32 max) {
     assert(max > min);
     return McRandom() % (max - min + 1) + min;
 }
+u32 RandMinU16(u32 min) {
+    return RandMinMaxU(min, (u16) -1);
+}
 f32 RandMinMaxI_f32(int min, int max) {
     assert(max > min);
     return (f32) (McRandom() % (max - min + 1) + min);
