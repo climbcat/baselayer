@@ -380,10 +380,16 @@ void TestScritinizeFilename() {
     info.Print();
 
     Str mod = info.BuildName("", "_suffixed", "extaltered");
-    printf("\nmod  : ");
+    printf("\n");
     StrPrint(mod);
     printf("\n");
 
+    Str stripped = info.StripDirname();
+    printf("\n");
+    StrPrint(stripped);
+    printf("\n");
+
+    printf("\n");
     GetYYMMDD();
 }
 
@@ -457,8 +463,8 @@ void Test() {
     //TestSortingAlgs();
     //TestStringHelpers();
     //TestDict();
-    TestPointerHashMap();
-    //TestScritinizeFilename();
+    //TestPointerHashMap();
+    TestScritinizeFilename();
     //TestPoolAllocatorAgain();
 }
 
