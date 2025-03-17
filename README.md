@@ -12,7 +12,23 @@ Written in C-style C++:
 - Algorithms: Octree, Index sets, Tokenizer
 - Utils: file I/O, cmd-line args
 
-## dependencies (optional)
+## dependencies (UI/graphics with OpenGL)
 
-libglew-dev
-libglfw3-dev
+On Ubuntu and similar platforms:
+
+<pre>
+sudo apt install libglew-dev
+sudo apt install libglfw3-dev
+</pre>
+
+## test
+
+First install dependencies, then the following:
+
+<pre>
+git clone https://github.com/climbcat/baselayer/
+cd baselayer/graphics/build
+cmake ..
+make
+./graphics
+</pre>
