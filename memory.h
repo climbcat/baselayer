@@ -145,39 +145,49 @@ void ArenaClearBootstrap(MArena *a) {
 //
 
 // NOTE: Pool indices, if used, are counted from 1, and the value 0 is reserved as the NULL equivalent.
-// TODO: Write a proper, indexed pool that is typed
 
+
+struct _MPoolBlockHdr {
+    _MPoolBlockHdr *next;
+    u64 lock;
+};
 
 struct MPool {
     u8 *mem;
     u32 block_size;
     u32 nblocks;
     u32 occupancy;
-    LList1 free_list;
+    u64 lock;
+    _MPoolBlockHdr free_list;
 };
+
 
 #define MPOOL_MIN_BLOCK_SIZE 64
 static MPool pool_zero;
+
+
 MPool PoolCreate(u32 block_size_min, u32 nblocks) {
     assert(nblocks > 1);
 
     MPool p = pool_zero;;
     p.block_size = MPOOL_MIN_BLOCK_SIZE * (block_size_min / MPOOL_MIN_BLOCK_SIZE + 1);
     p.nblocks = nblocks;
-    u32 size = p.block_size * p.nblocks;
+    p.lock = (u64) &p; // this number is a lifetime constant
 
-    p.mem = (u8*) MemoryReserve(size);
-    MemoryProtect(p.mem, size);
+    p.mem = (u8*) MemoryReserve(p.block_size * p.nblocks);
+    MemoryProtect(p.mem, p.block_size * p.nblocks);
 
-    LList1 *freeblck = &p.free_list;
+    _MPoolBlockHdr *freeblck = &p.free_list;
     for (u32 i = 0; i < nblocks; ++i) {
-        freeblck->next = (LList1*) (p.mem + i * p.block_size);
+        freeblck->next = (_MPoolBlockHdr*) (p.mem + i * p.block_size);
+        freeblck->lock = p.lock;
         freeblck = freeblck->next;
     }
     freeblck->next = NULL;
 
     return p;
 }
+
 void *PoolAlloc(MPool *p) {
     if (p->free_list.next == NULL) {
         return NULL;
@@ -189,6 +199,7 @@ void *PoolAlloc(MPool *p) {
     ++p->occupancy;
     return retval;
 }
+
 bool PoolCheckAddress(MPool *p, void *ptr) {
     if (ptr == NULL) {
         return false;
@@ -203,6 +214,7 @@ bool PoolCheckAddress(MPool *p, void *ptr) {
 
     return b2 && b3;
 }
+
 u32 PoolAllocIdx(MPool *p) {
     assert(p->nblocks <= 65536 && "indices will always fit within 16 bit limits");
 
@@ -215,6 +227,7 @@ u32 PoolAllocIdx(MPool *p) {
     assert(idx < p->nblocks && "block index must be positive and less and the number of blocks");
     return idx;
 }
+
 inline
 u32 PoolPtr2Idx(MPool *p, void *ptr) {
     PoolCheckAddress(p, ptr);
@@ -224,6 +237,7 @@ u32 PoolPtr2Idx(MPool *p, void *ptr) {
     u32 idx = (u32) ((u8*) ptr - (u8*) p->mem) / p->block_size;
     return idx;
 }
+
 inline
 void *PoolIdx2Ptr(MPool *p, u32 idx) {
     assert(idx < p->block_size);
@@ -234,30 +248,46 @@ void *PoolIdx2Ptr(MPool *p, u32 idx) {
     void *ptr = (u8*) p->mem + idx * p->block_size;
     return ptr;
 }
+
 bool PoolFree(MPool *p, void *element, bool enable_strict_mode = true) {
     assert(PoolCheckAddress(p, element) && "input address aligned and in range");
-    LList1 *e = (LList1*) element;
+    _MPoolBlockHdr *e = (_MPoolBlockHdr*) element;
 
-    // check element doesn't carry a valid free-list pointer
-    bool is_first_free_element = p->free_list.next == e;
-    bool target_valid = PoolCheckAddress(p, e->next);
-    if (target_valid && is_first_free_element) {
+    bool address_aligned = PoolCheckAddress(p, e);
+    bool next_address_matches = PoolCheckAddress(p, e->next);
+    bool key_matches = (e->lock == p->lock);
+
+    if (key_matches && (next_address_matches || e->next == NULL)) {
         if (enable_strict_mode) {
-            assert(target_valid == false && "trying to free an element probably on the free list");
+            assert(1 == 0 && "Attempt to free an un-allocated block");
         }
         else {
             return false;
         }
     }
 
-    // free it
-    e->next = p->free_list.next;
-    p->free_list.next = e;
-    --p->occupancy;
+    else if (address_aligned == false) {
+        if (enable_strict_mode) {
+            assert(1 == 0 && "Attempt to free a non-pool address");
+        }
+        else {
+            return false;
+        }
+    }
 
+    else {
+        e->next = p->free_list.next;
+        e->lock = p->lock;
+
+        p->free_list.next = e;
+        --p->occupancy;
+    }
     return true;
 }
+
 bool PoolFreeIdx(MPool *p, u32 idx) {
+    assert(1 == 0 && "TODO: impl. PoolFreeIdx()");
+
     void * ptr = PoolIdx2Ptr(p, idx);
     return PoolFree(p, ptr);
 }

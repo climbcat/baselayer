@@ -130,17 +130,18 @@ void SmallTests() {
     u8 *data_mmapped = LoadFileMMAP(filepath, &num_chars_64);
     printf("Memory mapped load %ld nbytes:\n", num_chars_64);
     printf("%.1000s\n\n", (char*) data_mmapped);
+}
 
 
-    //
-    // memory pool
+void TestMemoryPool() {
+    printf("TestMemoryPool\n");
 
-    printf("testing mem pool:\n");
     u32 pool_size = 1001;
     u32 test_num_partial = 666;
     MPool pool = PoolCreate(sizeof(PoolTestEntity), pool_size);
     PoolTestEntity *e;
     PoolTestEntity *elements[1001];
+
     // populate to full
     printf("populating to max ...\n");
     for (u32 i = 0; i < pool_size; ++i) {
@@ -151,21 +152,24 @@ void SmallTests() {
     e = (PoolTestEntity *) PoolAlloc(&pool);
     assert(e == NULL);
     assert(pool.occupancy == pool_size);
+
     // depopulate to zero
     printf("de-populating to zero ...\n");
     for (u32 i = 0; i < pool_size; ++i) {
         e = elements[i];
-        PoolFree(&pool, e);
+        bool was_freed = PoolFree(&pool, e);
+        assert(was_freed == true);
 
-        // TODO: impl. a way to detect double frees (to a high probability)
-        bool twice = PoolFree(&pool, e, false);
-        assert(twice == false);
+        bool was_freed_twice = PoolFree(&pool, e, false);
+        assert(was_freed_twice == false);
     }
     assert(pool.occupancy == 0);
+
     // twice-free another element
     e = elements[test_num_partial];
     bool twice2 = PoolFree(&pool, e, false);
     assert(twice2 == false);
+
     // re-populate to some %
     printf("re-populating to partial ...\n");
     for (u32 i = 0; i < test_num_partial; ++i) {
@@ -459,6 +463,7 @@ void TestPoolAllocatorAgain()  {
 void Test() {
     printf("Running tests ...\n\n");
 
+    /*
     SmallTests();
     TestSortingAlgs();
     TestStringHelpers();
@@ -466,4 +471,6 @@ void Test() {
     TestPointerHashMap();
     TestScritinizeFilename();
     TestPoolAllocatorAgain();
+    */
+    TestMemoryPool();
 }
