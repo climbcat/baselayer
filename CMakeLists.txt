@@ -1,4 +1,5 @@
-cmake_minimum_required(VERSION 3.0.0)
-project(main_baselayer VERSION 0.1.0)
+cmake_minimum_required(VERSION 3.13.0)
 
-add_executable(main_baselayer main.cpp)
+project(baselayer VERSION 0.2.0)
+
+add_executable(baselayer main.cpp)

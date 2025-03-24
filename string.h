@@ -45,14 +45,14 @@ Str StrLiteral(MArena *a, const char *lit) {
 
     return s;
 }
-// TODO: get variadic
 void StrPrint(const char *format, Str s) {
-    assert(1 == 0 && "not implemented");
+    // TODO: get variadic
+    //assert(1 == 0 && "not implemented");
 
-    //u32 format_str_max_len = 255;
-    //char buff[s.len + format_str_max_len];
-    //sprintf(buff, "%.*s", s.len, s.str);
-    //printf(format, buff);
+    u32 format_str_max_len = 255;
+    char buff[s.len + format_str_max_len];
+    sprintf(buff, "%.*s", s.len, s.str);
+    printf(format, buff);
 }
 inline void StrPrint(Str s) {
     printf("%.*s", s.len, s.str);
