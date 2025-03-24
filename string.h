@@ -49,8 +49,7 @@ void StrPrint(const char *format, Str s) {
     // TODO: get variadic
     //assert(1 == 0 && "not implemented");
 
-    u32 format_str_max_len = 255;
-    char buff[s.len + format_str_max_len];
+    char buff[512];
     sprintf(buff, "%.*s", s.len, s.str);
     printf(format, buff);
 }
