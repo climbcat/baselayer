@@ -215,40 +215,6 @@ bool PoolCheckAddress(MPool *p, void *ptr) {
     return b2 && b3;
 }
 
-u32 PoolAllocIdx(MPool *p) {
-    assert(p->nblocks <= 65536 && "indices will always fit within 16 bit limits");
-
-    void *element = PoolAlloc(p);
-    if (element == NULL) {
-        return 0;
-    }
-
-    u32 idx = (u32) ((u8*) element - (u8*) p->mem) / p->block_size;
-    assert(idx < p->nblocks && "block index must be positive and less and the number of blocks");
-    return idx;
-}
-
-inline
-u32 PoolPtr2Idx(MPool *p, void *ptr) {
-    PoolCheckAddress(p, ptr);
-    if (ptr == NULL) {
-        return 0;
-    }
-    u32 idx = (u32) ((u8*) ptr - (u8*) p->mem) / p->block_size;
-    return idx;
-}
-
-inline
-void *PoolIdx2Ptr(MPool *p, u32 idx) {
-    assert(idx < p->block_size);
-
-    if (idx == 0) {
-        return NULL;
-    }
-    void *ptr = (u8*) p->mem + idx * p->block_size;
-    return ptr;
-}
-
 bool PoolFree(MPool *p, void *element, bool enable_strict_mode = true) {
     assert(PoolCheckAddress(p, element) && "input address aligned and in range");
     _MPoolBlockHdr *e = (_MPoolBlockHdr*) element;
@@ -285,13 +251,43 @@ bool PoolFree(MPool *p, void *element, bool enable_strict_mode = true) {
     return true;
 }
 
-bool PoolFreeIdx(MPool *p, u32 idx) {
-    assert(1 == 0 && "TODO: impl. PoolFreeIdx()");
+inline
+u32 PoolPtr2Idx(MPool *p, void *ptr) {
+    PoolCheckAddress(p, ptr);
+    if (ptr == NULL) {
+        return 0;
+    }
+    u32 idx = (u32) ( ((u8*) ptr - (u8*) p->mem) / p->block_size );
+    return idx;
+}
 
+inline
+void *PoolIdx2Ptr(MPool *p, u32 idx) {
+    assert(idx < p->block_size);
+
+    if (idx == 0) {
+        return NULL;
+    }
+    void *ptr = (u8*) p->mem + idx * p->block_size;
+    return ptr;
+}
+
+u32 PoolAllocIdx(MPool *p) {
+    void *element = PoolAlloc(p);
+    if (element == NULL) {
+        return 0;
+    }
+
+    u32 idx = (u32) ((u8*) element - (u8*) p->mem) / p->block_size;
+    assert(idx < p->nblocks && "block index must be positive and less and the number of blocks");
+
+    return idx;
+}
+
+bool PoolFreeIdx(MPool *p, u32 idx) {
     void * ptr = PoolIdx2Ptr(p, idx);
     return PoolFree(p, ptr);
 }
-
 
 
 //

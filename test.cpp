@@ -115,7 +115,7 @@ void SmallTests() {
 
 
     //
-    // load using C fseek
+    // load using C-lib fseek
 
     u8* dest = (u8*) malloc(num_chars);
     u32 nbytesloaded = LoadFileFSeek(filepath, dest);
