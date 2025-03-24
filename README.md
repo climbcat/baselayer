@@ -9,6 +9,10 @@ Written in C-style C++:
 - Performance profiler
 - Utils: file I/O, cmd-line args
 
+## dependencies:
+
+cmake, g++/msvc
+
 ## test
 
 <pre>
