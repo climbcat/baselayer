@@ -13,14 +13,14 @@ void RunProgram() {
 
 int main (int argc, char **argv) {
     TimeProgram;
-    bool forcetest = false;
+    bool force_tests = false;
 
     if (CLAContainsArg("--help", argc, argv)) {
         printf("Usage: ./baselayer <args>\n");
         printf("--help:         Display help (this text)\n");
         printf("--test:         Run test functions\n");
     }
-    else if (CLAContainsArg("--test", argc, argv) || forcetest) {
+    else if (CLAContainsArg("--test", argc, argv) || force_tests) {
         Test();
     }
     else {

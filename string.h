@@ -45,13 +45,13 @@ Str StrLiteral(MArena *a, const char *lit) {
 
     return s;
 }
+static char str_prnt_buff[512];
 void StrPrint(const char *format, Str s) {
     // TODO: get variadic
-    //assert(1 == 0 && "not implemented");
+    assert(1 == 0 && "not implemented");
 
-    char buff[512];
-    sprintf(buff, "%.*s", s.len, s.str);
-    printf(format, buff);
+    //sprintf(str_prnt_buff, "%.*s", s.len, s.str);
+    //printf(format, str_prnt_buff);
 }
 inline void StrPrint(Str s) {
     printf("%.*s", s.len, s.str);

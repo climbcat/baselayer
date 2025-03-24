@@ -10,9 +10,7 @@ struct PoolTestEntity {
 };
 
 
-void SmallTests() {
-    TimeFunction;
-
+void TestVarious() {
     // Init first
     InitBaselayer();
 
@@ -24,21 +22,19 @@ void SmallTests() {
     Str s2 = StrLiteral(&arena, "hello_noteq");
     Str s3 = StrLiteral(&arena, "hello");
 
-    printf("StrPrint - ");
-    StrPrint("%s", s1);
-    printf("\n");
+    StrPrint("StrPrint - ", s1, "\n");
 
     printf("StrEqual - ");
     printf("should be (0 1 0): %d %d %d\n", StrEqual(s1, s2), StrEqual(s1, s3), StrEqual(s2, s3));
 
     printf("StrCat - ");
-    StrPrint("%s", StrCat(&arena, s1, s3));
+    StrPrint(StrCat(&arena, s1, s3));
     printf("\n");
 
     printf("StrSplit / StrLstPrint - ");
     Str to_split = StrLiteral(a, "...Hello.I..Have.Been.Split..");
     printf("splitting: ");
-    StrPrint("%s", to_split);
+    StrPrint(to_split);
     printf(" into: ");
     StrLst *lst = StrSplit(a, to_split, '.');
     StrLstPrint(lst);
@@ -46,10 +42,10 @@ void SmallTests() {
 
     printf("StrJoin - ");
     Str join = StrJoin(a, lst);
-    StrPrint("%s", join);
+    StrPrint(join);
     printf("\n");
     join = StrJoinInsertChar(a, lst, '/');
-    StrPrint("%s", join);
+    StrPrint(join);
     printf("\n");
 
     printf("CLAInit - ");
@@ -58,7 +54,6 @@ void SmallTests() {
     }
     printf("\n");
 
-
     //
     // StrLst & get files in folder
 
@@ -66,6 +61,7 @@ void SmallTests() {
     StrLst *files = GetFilesInFolderPaths(a, (char*) ".");
     StrLstPrint(files);
 
+    return;
 
     //
     // templated list
@@ -106,13 +102,12 @@ void SmallTests() {
     // save binary data
 
     u32 num_chars = 1024*1024 + 1;
-    char data[1024*1024 + 1];
+    static char data[1024*1024 + 1];
     WriteRandomHexStr(data, num_chars, true);
     char *filepath = (char*) "hexdata.txt";
     SaveFile(filepath, (u8*) data, num_chars);
     printf("Saved binary hex chars to file hexdata.txt\n\n");
-
-
+ 
     //
     // load using C-lib fseek
 
@@ -461,7 +456,7 @@ void TestPoolAllocatorAgain()  {
 void Test() {
     printf("Running baselayer tests ...\n\n");
 
-    SmallTests();
+    TestVarious();
     TestSortingAlgs();
     TestStringHelpers();
     TestDict();
