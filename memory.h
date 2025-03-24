@@ -95,7 +95,7 @@ void *ArenaPush(MArena *a, void *data, u32 len) {
     return dest;
 }
 MArena *ArenaCreateBootstrapped() {
-    MArena a;
+    MArena a = {};
     a.used = 0;
 
     a.mem = (u8*) MemoryReserve(ARENA_RESERVE_SIZE);
