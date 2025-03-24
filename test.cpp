@@ -463,14 +463,12 @@ void TestPoolAllocatorAgain()  {
 void Test() {
     printf("Running tests ...\n\n");
 
-    /*
     SmallTests();
     TestSortingAlgs();
     TestStringHelpers();
     TestDict();
     TestPointerHashMap();
     TestScritinizeFilename();
-    TestPoolAllocatorAgain();
-    */
     TestMemoryPool();
+    TestPoolAllocatorAgain();
 }
