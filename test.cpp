@@ -16,7 +16,6 @@ void SmallTests() {
     // Init first
     InitBaselayer();
 
-
     MArena arena = ArenaCreate();
     MArena *a = &arena;
 
@@ -456,12 +455,11 @@ void TestPoolAllocatorAgain()  {
     }
     assert(p->_p.occupancy == 0);
     printf("emptying              %u\n", wgts.len);
-    printf("memory pool seems to work perfectly\n");
 }
 
 
 void Test() {
-    printf("Running tests ...\n\n");
+    printf("Running baselayer tests ...\n\n");
 
     SmallTests();
     TestSortingAlgs();
