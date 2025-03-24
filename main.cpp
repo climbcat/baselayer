@@ -1,25 +1,22 @@
 #include "baselayer.h"
-#include "graphics/geometry.h"
-#include "algorithms/octree.h"
-#include "algorithms/indices.h"
 
 #include "test.cpp"
 
 
 void RunProgram() {
     printf("Usage:\n");
-    printf("<tool>\n");
-    printf("<tool> --help\n");
-    printf("<tool> --test\n");
+    printf("./baselayer\n");
+    printf("./baselayer --help\n");
+    printf("./baselayer --test\n");
 }
 
 
 int main (int argc, char **argv) {
     TimeProgram;
-    bool forcetest = true;
+    bool forcetest = false;
 
     if (CLAContainsArg("--help", argc, argv)) {
-        printf("Usage: <tool> <args>\n");
+        printf("Usage: ./baselayer <args>\n");
         printf("--help:         Display help (this text)\n");
         printf("--test:         Run test functions\n");
     }
