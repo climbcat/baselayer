@@ -1,6 +1,6 @@
 # baselayer
 
-Written in C-style C++:
+Written in C-style C++
 
 - Memory allocation & List
 - Random number generator
@@ -8,6 +8,7 @@ Written in C-style C++:
 - Types, functions, macros
 - Performance profiler
 - Utils: file I/O, cmd-line args
+- Platforms: Linux, Windows
 
 ## dependencies:
 
