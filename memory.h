@@ -147,8 +147,8 @@ void ArenaClearBootstrap(MArena *a) {
 // NOTE: Pool indices, if used, are counted from 1, and the value 0 is reserved as the NULL equivalent.
 
 
-struct _MPoolBlockHdr {
-    _MPoolBlockHdr *next;
+struct MPoolBlockHdr {
+    MPoolBlockHdr *next;
     u64 lock;
 };
 
@@ -158,7 +158,7 @@ struct MPool {
     u32 nblocks;
     u32 occupancy;
     u64 lock;
-    _MPoolBlockHdr free_list;
+    MPoolBlockHdr free_list;
 };
 
 
@@ -177,9 +177,9 @@ MPool PoolCreate(u32 block_size_min, u32 nblocks) {
     p.mem = (u8*) MemoryReserve(p.block_size * p.nblocks);
     MemoryProtect(p.mem, p.block_size * p.nblocks);
 
-    _MPoolBlockHdr *freeblck = &p.free_list;
+    MPoolBlockHdr *freeblck = &p.free_list;
     for (u32 i = 0; i < nblocks; ++i) {
-        freeblck->next = (_MPoolBlockHdr*) (p.mem + i * p.block_size);
+        freeblck->next = (MPoolBlockHdr*) (p.mem + i * p.block_size);
         freeblck->lock = p.lock;
         freeblck = freeblck->next;
     }
@@ -217,7 +217,7 @@ bool PoolCheckAddress(MPool *p, void *ptr) {
 
 bool PoolFree(MPool *p, void *element, bool enable_strict_mode = true) {
     assert(PoolCheckAddress(p, element) && "input address aligned and in range");
-    _MPoolBlockHdr *e = (_MPoolBlockHdr*) element;
+    MPoolBlockHdr *e = (MPoolBlockHdr*) element;
 
     bool address_aligned = PoolCheckAddress(p, e);
     bool next_address_matches = PoolCheckAddress(p, e->next);
