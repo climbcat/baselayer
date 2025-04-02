@@ -361,7 +361,7 @@ MArena *GetArenaLife() {
 
 
 //
-// Static Arrays - List / Stack / Set
+//  Array
 
 
 template<typename T>
@@ -421,14 +421,14 @@ struct List {
 };
 template<class T>
 List<T> InitList(MArena *a, u32 count, bool zerod = true) {
-    List<T> _lst;
+    List<T> _lst = {};
     _lst.len = 0;
     _lst.lst = (T*) ArenaAlloc(a, sizeof(T) * count, zerod);
     return _lst;
 }
 template<class T>
 List<T> InitListOpen(MArena *a, u32 max_cnt) {
-    List<T> _lst;
+    List<T> _lst = {};
     _lst.len = 0;
     _lst.lst = (T*) ArenaOpen(a, sizeof(T) * max_cnt);
     return _lst;
@@ -451,6 +451,107 @@ List<T> ListCopy(MArena *a_dest, List<T> src) {
     _memcpy(dest.lst, src.lst, sizeof(T) * src.len);
     return dest;
 }
+
+
+//
+//  Fixed-size arrays with overflow checks
+
+
+template<typename T>
+struct Array {
+    T *arr = NULL;
+    u32 len = 0;
+    u32 max = 0;
+
+    inline
+    void Add(T *element) {
+        assert(len < max);
+
+        arr[len++] = *element;
+    }
+    inline
+    T *Add(T element) {
+        assert(len < max);
+
+        arr[len++] = element;
+        return LastPtr();
+    }
+    inline
+    T *AddUnique(T element) {
+        assert(len < max);
+
+        for (u32 i = 0; i < len; ++i) {
+            if (arr[i] == element) {
+                return NULL;
+            }
+        }
+        return Add(element);
+    }
+    inline
+    void Push(T element) {
+        assert(len < max);
+
+        arr[len++] = element;
+    }
+    inline
+    T Pop() {
+        if (len) {
+            return arr[--len];
+        }
+        else {
+            return {};
+        }
+    }
+    inline
+    T Last() {
+        if (len) {
+            return arr[len - 1];
+        }
+        else {
+            return {};
+        }
+    }
+    inline
+    T *LastPtr() {
+        if (len) {
+            return arr + len - 1;
+        }
+        else {
+            return NULL;
+        }
+    }
+    inline
+    T First() {
+        if (len) {
+            return arr[0];
+        }
+        else {
+            return {};
+        }
+    }
+    inline
+    void Delete(u32 idx) {
+        assert(idx < len);
+
+        T swap = Last();
+        len--;
+        arr[len] = arr[idx];
+        arr[idx] = swap;
+    }
+};
+template<class T>
+Array<T> InitArray(MArena *a, u32 max_len) {
+    Array<T> _arr = {};
+    _arr.len = 0;
+    _arr.max = max_len;
+    _arr.arr = (T*) ArenaAlloc(a, sizeof(T) * max_len);
+    return _arr;
+}
+
+
+//
+//  Stack
+
 
 template<typename T>
 struct Stack {
@@ -492,7 +593,7 @@ Stack<T> InitStackStatic(T *mem, u32 cap) {
 
 
 //
-// Dynamic Arrays
+// Self-expanding array
 
 
 // eXpanding list:
@@ -569,7 +670,7 @@ struct ListX {
 //
 // Stretchy buffer
 //
-// Subscripting on the native C pointer.
+// Subscripting on the native C pointer. (E.g. using ptr[])
 // The pointer is associated with a len and a capacity/max_len stored before the actual array.
 // e.g.:
 /*
