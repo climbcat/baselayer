@@ -539,6 +539,7 @@ struct Array {
         arr[idx] = swap;
     }
 };
+
 template<class T>
 Array<T> InitArray(MArena *a, u32 max_len) {
     Array<T> _arr = {};
@@ -547,6 +548,9 @@ Array<T> InitArray(MArena *a, u32 max_len) {
     _arr.arr = (T*) ArenaAlloc(a, sizeof(T) * max_len);
     return _arr;
 }
+
+// TODO: override [] to be able to do the overflow check while using that operator
+
 
 
 //
