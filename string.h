@@ -234,24 +234,37 @@ StrLst *StrSplitSpacesKeepQuoted(MArena *a_dest, Str base) {
     return first;
 }
 Str StrJoin(MArena *a, StrLst *strs) {
-    Str join;
-    join.str = (char*) ArenaOpen(a);
-    join.len = 0;
+    u32 amount_needed = 0;
+    while (strs != NULL) {
+        amount_needed += strs->len;
+        strs = strs->next;
+    }
 
+    Str join;
+    join.str = (char*) ArenaAlloc(a, amount_needed);
+    join.len = 0;
     while (strs != NULL) {
         _memcpy(join.str + join.len, strs->str, strs->len);
         join.len += strs->len;
         strs = strs->next;
     }
 
-    ArenaClose(a, join.len);
     return join;
 }
 Str StrJoinInsertChar(MArena *a, StrLst *strs, char insert) {
-    Str join;
-    join.str = (char*) ArenaOpen(a);
-    join.len = 0;
+    u32 amount_needed = 0;
+    while (strs != NULL) {
+        amount_needed += strs->len;
 
+        strs = strs->next;
+        if (strs != NULL) {
+            amount_needed++;
+        }
+    }
+
+    Str join;
+    join.str = (char*) ArenaAlloc(a, amount_needed);
+    join.len = 0;
     while (strs != NULL) {
         _memcpy(join.str + join.len, strs->str, strs->len);
         join.len += strs->len;
@@ -263,7 +276,6 @@ Str StrJoinInsertChar(MArena *a, StrLst *strs, char insert) {
         }
     }
 
-    ArenaClose(a, join.len);
     return join;
 }
 Str StrTrim(MArena *a, Str s, char t) {

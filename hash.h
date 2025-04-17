@@ -76,11 +76,14 @@ struct Dict {
     u32 ncollisions;
     bool debug_print;
 };
+
 Dict InitDict(u32 nslots = 256, u32 sz_val = 0) {
     Dict dct = {};
     dct.nslots = nslots;
     dct.sz_val = sz_val;
-    dct.a_storage = ArenaCreateBootstrapped();
+
+    MArena a = ArenaCreate();
+    dct.a_storage = (MArena *) ArenaPush(&a, &a, sizeof(MArena));
     dct.slots = InitList<u64>(dct.a_storage, nslots);
     dct.slots.len = nslots;
 

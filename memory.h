@@ -35,7 +35,6 @@ struct MArena {
     u64 committed;
     u64 used;
     u64 fixed_size;
-    bool locked = false;
 };
 
 #define ARENA_RESERVE_SIZE GIGABYTE
@@ -67,8 +66,6 @@ void ArenaDestroy(MArena *a) {
 }
 inline
 void *ArenaAlloc(MArena *a, u64 len, bool zerod = true) {
-    assert(!a->locked && "ArenaAlloc: memory arena is open, use MArenaClose to allocate");
-
     if (a->fixed_size) {
         assert(a->fixed_size == a->committed && "ArenaAlloc: fixed_size misconfigured");
         assert(a->fixed_size <= a->used + len && "ArenaAlloc: fixed_size exceeded");
@@ -89,54 +86,22 @@ void *ArenaAlloc(MArena *a, u64 len, bool zerod = true) {
     return result;
 }
 inline
+void ArenaRelease(MArena *a, u64 len) {
+    assert(len <= a->used);
+
+    a->used -= len;
+}
+inline
 void *ArenaPush(MArena *a, void *data, u32 len) {
     void *dest = ArenaAlloc(a, len);
     _memcpy(dest, data, len);
     return dest;
-}
-MArena *ArenaCreateBootstrapped() {
-    MArena a = {};
-    a.used = 0;
-
-    a.mem = (u8*) MemoryReserve(ARENA_RESERVE_SIZE);
-    a.mapped = ARENA_RESERVE_SIZE;
-
-    MemoryProtect(a.mem, ARENA_COMMIT_CHUNK);
-    a.committed = ARENA_COMMIT_CHUNK;
-
-    // push an arena header onto the arena and copy the areana onto it
-    MArena *a_bs = (MArena*) ArenaPush(&a, &a, sizeof(MArena));
-    *a_bs = a;
-
-    return a_bs;
-}
-void *ArenaOpen(MArena *a, u32 max_len = SIXTEEN_MB) {
-    assert(!a->locked && "ArenaOpen: memory arena is alredy open");
-    
-    // ensure max_len bytes have been comitted
-    u64 used = a->used;
-    ArenaAlloc(a, max_len);
-    a->used = used;
-
-    // proceed
-    a->locked = true;
-    return a->mem + a->used;
-}
-void ArenaClose(MArena *a, u64 len) {
-    assert(a->locked && "ArenaClose: memory arena not open");
-
-    a->locked = false;
-    ArenaAlloc(a, len, false);
 }
 void ArenaPrint(MArena *a) {
     printf("Arena mapped/committed/used: %lu %lu %lu\n", a->mapped, a->committed, a->used);
 }
 void ArenaClear(MArena *a) {
     a->used = 0;
-}
-void ArenaClearBootstrap(MArena *a) {
-    a->used = 0;
-    ArenaPush(a, a, sizeof(MArena));
 }
 
 
@@ -427,17 +392,6 @@ List<T> InitList(MArena *a, u32 count, bool zerod = true) {
     return _lst;
 }
 template<class T>
-List<T> InitListOpen(MArena *a, u32 max_cnt) {
-    List<T> _lst = {};
-    _lst.len = 0;
-    _lst.lst = (T*) ArenaOpen(a, sizeof(T) * max_cnt);
-    return _lst;
-}
-template<class T>
-void InitListClose(MArena *a, u32 count) {
-    ArenaClose(a, sizeof(T) * count);
-}
-template<class T>
 void ArenaShedTail(MArena *a, List<T> lst, u32 diff_T) {
     assert(a->used >= diff_T * sizeof(T));
     assert(a->mem + a->used == (u8*) (lst.lst + lst.len + diff_T));
@@ -455,6 +409,9 @@ List<T> ListCopy(MArena *a_dest, List<T> src) {
 
 //
 //  Fixed-size arrays with overflow checks
+
+
+// TODO: override [] to be able to do the overflow check while using that operator
 
 
 template<typename T>
@@ -548,9 +505,6 @@ Array<T> InitArray(MArena *a, u32 max_len) {
     _arr.arr = (T*) ArenaAlloc(a, sizeof(T) * max_len);
     return _arr;
 }
-
-// TODO: override [] to be able to do the overflow check while using that operator
-
 
 
 //
