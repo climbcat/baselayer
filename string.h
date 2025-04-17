@@ -234,6 +234,8 @@ StrLst *StrSplitSpacesKeepQuoted(MArena *a_dest, Str base) {
     return first;
 }
 Str StrJoin(MArena *a, StrLst *strs) {
+    // TODO: we should just ArenaAlloc() every time there is a new string
+
     u32 amount_needed = 0;
     while (strs != NULL) {
         amount_needed += strs->len;
@@ -252,6 +254,8 @@ Str StrJoin(MArena *a, StrLst *strs) {
     return join;
 }
 Str StrJoinInsertChar(MArena *a, StrLst *strs, char insert) {
+    // TODO: we should just ArenaAlloc() every time there is a new string
+
     u32 amount_needed = 0;
     while (strs != NULL) {
         amount_needed += strs->len;
