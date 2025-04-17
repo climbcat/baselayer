@@ -18,10 +18,14 @@ int main (int argc, char **argv) {
     if (CLAContainsArg("--help", argc, argv)) {
         printf("Usage: ./baselayer <args>\n");
         printf("--help:         Display help (this text)\n");
+        printf("--version:      Print baselayer version\n");
         printf("--test:         Run test functions\n");
     }
     else if (CLAContainsArg("--test", argc, argv) || force_tests) {
         Test();
+    }
+    else if (CLAContainsArg("--version", argc, argv) || force_tests) {
+        BaselayerPrintVersion();
     }
     else {
         RunProgram();

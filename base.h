@@ -1,6 +1,14 @@
 #ifndef __BASE_H__
 #define __BASE_H__
 
+
+#pragma warning(push)
+#pragma warning(disable : 4200)
+#pragma warning(disable : 4477)
+#pragma warning(disable : 4996)
+#pragma warning(disable : 4530)
+
+
 #include <cstdio>
 #include <cstdint>
 #include <cassert>
