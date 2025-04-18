@@ -67,13 +67,320 @@ const char *getBuild() { // courtesy of S.O.
     #ifndef RPI
     #define RPI 0
     #endif
-    #include "plaf/plaf_linux.cpp"
+
+
+    //
+    //  plaf_lnx.cpp
+
+
+        #include <sys/mman.h>
+        #include <sys/stat.h>
+        #include <sys/time.h>
+        #include <sys/mman.h>
+        #include <dirent.h>
+        #include <unistd.h>
+        #include <cstdlib>
+
+        // TODO: experiment with <x86intrin.h> alongside <sys/time.h> for the straight up __rdtsc() call
+        // TODO: impl. LoadFile
+
+        //
+        //  memory.h
+
+        u64 MemoryProtect(void *from, u64 amount) {
+            mprotect(from, amount, PROT_READ | PROT_WRITE);
+            return amount;
+        }
+        void *MemoryReserve(u64 amount) {
+            void *result;
+
+            result = (u8*) mmap(NULL, amount, PROT_NONE, MAP_PRIVATE | MAP_ANON, -1, 0);
+            return result;
+        }
+        s32 MemoryUnmap(void *at, u64 amount_reserved) {
+            s32 ret = munmap(at, amount_reserved);
+            return ret;
+        }
+
+        //
+        // profile.c
+
+        u64 ReadSystemTimerMySec() {
+            u64 systime;
+            struct timeval tm;
+            gettimeofday(&tm, NULL);
+            systime = (u32) tm.tv_sec*1000000 + tm.tv_usec; // microsecs 
+
+            return systime;
+        }
+        u32 ReadSystemTimerMySec32() {
+            u32 systime;
+            struct timeval tm;
+            gettimeofday(&tm, NULL);
+            systime = (u32) tm.tv_sec*1000000 + tm.tv_usec; // microsecs 
+
+            return systime;
+        }
+        u64 ReadCPUTimer() {
+            u64 ticks = 0;
+            #ifndef __arm__
+            #ifndef __aarch64__
+            ticks = __builtin_ia32_rdtsc(); // gcc
+            #endif
+            #endif
+            // TODO: test __rdtsc(); with x86intrin.h ! (might increase compile time by a lot)
+            return ticks;
+        }
+
+        //
+        // utils.c
+
+        void XSleep(u32 ms) {
+            usleep(1000 * ms);
+        }
+
+        u8 *LoadFileMMAP(char *filepath, u64 *size_bytes) {
+            FILE *f = fopen(filepath, "rb");
+            if (f == NULL) {
+                printf("Could not open file: %s\n", filepath);
+                return NULL;
+            }
+
+            s32 fd = fileno(f);
+            struct stat sb;
+            if (fstat(fd, &sb) == -1) {
+                printf("Could not get file size: %s\n", filepath);
+                return NULL;
+            }
+
+            u8 *data = (u8*) mmap(NULL, sb.st_size + 1, PROT_READ, MAP_PRIVATE | MAP_SHARED, fd, 0);
+            if (size_bytes != NULL) {
+                *size_bytes = sb.st_size;
+            }
+            fclose(f);
+            return data;
+        }
+        StrLst *GetFilesInFolderPaths(MArena *unused, char *rootpath) {
+            StrLst *first = NULL;
+
+            struct dirent *dir;
+            DIR *d = opendir(rootpath);
+            if (d) {
+                d = opendir(rootpath);
+
+                Str path = StrLiteral(rootpath);
+                if (path.len == 1 && path.str[0] == '.') {
+                    path.len = 0;
+                }
+                else if (path.str[path.len-1] != '/') {
+                    path = StrCat(path, "/");
+                }
+
+                StrLst *lst = NULL;
+                while ((dir = readdir(d)) != NULL) {
+                    // omit "." and ".."
+                    if (!_strcmp(dir->d_name, ".") || !_strcmp(dir->d_name, "..")) {
+                        continue;
+                    }
+
+                    Str dname = StrCat( path, StrLiteral(dir->d_name) );
+                    lst = StrLstPut(dname, lst);
+                    if (first == NULL) {
+                        first = lst;
+                    }
+                    //Str StrCat( lst->GetStr(), StrLiteral(dir->d_name), );
+                }
+                closedir(d);
+            }
+            return first;
+        }
+        bool SaveFile(char *filepath, u8 *data, u32 len) {
+            FILE *f = fopen(filepath, "w");
+
+            if (f == NULL) {
+                printf("SaveFile: Could not open file %s\n", filepath);
+                return false;
+            }
+
+            fwrite(data, 1, len, f);
+            fclose(f);
+
+            return true;
+        }
+
 #else 
     #define LINUX 0
     #define WINDOWS 1
     #define RPI 0
 
-    #include "plaf/plaf_win.cpp"
+
+    //
+    //  plaf_win.cpp
+
+
+        #define WIN32_LEAN_AND_MEAN
+        #define NOMINMAX
+        #include <windows.h>
+        #include <fstream>
+        #include <fileapi.h>
+        #include <intrin.h>
+
+        // TODO: win impl. GetFilesInFolderPaths, LoadFile, LoadFileMMAP
+
+        //
+        // memory.h
+
+        u64 MemoryProtect(void *from, u64 amount) {
+            VirtualAlloc(from, amount, MEM_COMMIT, PAGE_READWRITE);
+            return amount;
+        }
+        void *MemoryReserve(u64 amount) {
+            void *result;
+            result = VirtualAlloc(NULL, amount, MEM_RESERVE, PAGE_NOACCESS);
+            return result;
+        }
+        s32 MemoryUnmap(void *at, u64 amount_reserved) {
+            bool ans = VirtualFree(at, 0, MEM_RELEASE);
+            if (ans == true) {
+                return 0;
+            }
+            else {
+                return 1;
+            }
+        }
+
+        //
+        // profile.h
+
+        u64 ReadSystemTimerMySec() {
+            // systime (via S.O. 10905892)
+
+            static const uint64_t EPOCH = ((uint64_t) 116444736000000000ULL);
+            SYSTEMTIME  system_time;
+            FILETIME    file_time;
+            uint64_t    time;
+            GetSystemTime( &system_time );
+            SystemTimeToFileTime( &system_time, &file_time );
+            time =  ((uint64_t)file_time.dwLowDateTime )      ;
+            time += ((uint64_t)file_time.dwHighDateTime) << 32;
+
+            long tv_sec  = (long) ((time - EPOCH) / 10000000L);
+            long tv_usec = (long) (system_time.wMilliseconds * 1000);
+            u64 systime = (u32) tv_sec*1000000 + tv_usec; // microsecs 
+            return systime;
+        }
+        u32 ReadSystemTimerMySec32() {
+            // systime (via S.O. 10905892)
+
+            static const uint64_t EPOCH = ((uint64_t) 116444736000000000ULL);
+            SYSTEMTIME  system_time;
+            FILETIME    file_time;
+            uint64_t    time;
+            GetSystemTime( &system_time );
+            SystemTimeToFileTime( &system_time, &file_time );
+            time =  ((uint64_t)file_time.dwLowDateTime )      ;
+            time += ((uint64_t)file_time.dwHighDateTime) << 32;
+
+            long tv_sec  = (long) ((time - EPOCH) / 10000000L);
+            long tv_usec = (long) (system_time.wMilliseconds * 1000);
+            u32 systime = (u32) tv_sec*1000000 + tv_usec; // microsecs 
+
+            return systime;
+        }
+        u64 ReadCPUTimer() {
+            u64 rd = __rdtsc();
+            return rd;
+        }
+
+        //
+        // utils.h
+
+        void XSleep(u32 ms) {
+            Sleep(ms);
+        }
+
+
+        u8 *LoadFileMMAP(char *filepath, u64 *size_bytes) {
+            HANDLE f, map;
+            LARGE_INTEGER fsz;
+
+            f = CreateFile(filepath, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+            if (f == INVALID_HANDLE_VALUE) {
+                printf("Could not open file: %s\n", filepath);
+                return NULL;
+            }
+
+            if (!GetFileSizeEx(f, &fsz)) {
+                fprintf(stderr, "GetFileSize failed with error %d\n", GetLastError());
+                CloseHandle(f);
+                return NULL;
+            }
+            if (size_bytes != NULL) {
+                *size_bytes = fsz.QuadPart;
+            }
+
+            map = CreateFileMapping(f, NULL, PAGE_READONLY, 0, 0, NULL);
+            u8 *data = (u8*) MapViewOfFile(map, FILE_MAP_READ, 0, 0, 0);
+            if (data == NULL) {
+                printf("Could not load file: %s\n", filepath);
+                return NULL;
+            }
+
+            return data;
+        }
+        StrLst *GetFilesInFolderPaths(MArena *a, char *rootpath) {
+            StrLst *first = NULL;
+
+
+            WIN32_FIND_DATA fd_file;
+            HANDLE h_find = FindFirstFile(rootpath, &fd_file);
+            if (h_find == INVALID_HANDLE_VALUE) {
+                printf("invalid: %s\n", rootpath);
+            }
+
+            char with_windows_star[200];
+            sprintf(with_windows_star, "%s/*", rootpath);
+            h_find = FindFirstFile(with_windows_star, &fd_file);
+            if (h_find != NULL) {
+                StrLst *lst = NULL;
+
+                Str path = StrLiteral(rootpath);
+                if (path.len == 1 && path.str[0] == '.') {
+                    path.len = 0;
+                }
+                else if (path.str[path.len-1] != '/') {
+                    path = StrCat(path, "/");
+                }
+
+                while (FindNextFile(h_find, &fd_file)) {
+                    // omit "." and ".."
+                    if (!_strcmp(fd_file.cFileName, ".") || !_strcmp(fd_file.cFileName, "..")) {
+                        continue;
+                    }
+
+                    // next strlst node
+                    lst = StrLstPut(a, rootpath, lst);
+
+                    Str dname = StrCat( path, StrLiteral(fd_file.cFileName) );
+                    lst = StrLstPut(dname, lst);
+                    if (first == NULL) {
+                        first = lst;
+                    }
+                }
+                FindClose(h_find);
+            }
+
+            return first;
+        }
+        bool SaveFile(char *filepath, u8 *data, u32 len) {
+            std::ofstream outstream(filepath, std::ios::out | std::ios::binary);
+            outstream.write((const char*) data, len);
+            bool result = outstream.good();
+            outstream.close();
+
+            return result;
+        }
+
 #endif
 
 
