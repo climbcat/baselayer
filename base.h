@@ -106,6 +106,9 @@ inline u32 _strcmp(const char *dest, const char *src) {
     return 0;
 }
 inline u32 _strlen(char *str) {
+    if (!str) {
+        return 0;
+    }
     u32 i = 0;
     while (str[i] != '\0') {
         ++i;
