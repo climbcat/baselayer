@@ -25,6 +25,10 @@ struct StrLst {
     Str GetStr() {
         return Str { str, len };
     }
+    void SetStr(char * s) {
+        str = s;
+        len = _strlen(s);
+    }
 };
 
 
@@ -97,10 +101,17 @@ Str StrCat(MArena *arena, Str a, Str b) {
 
     return cat;
 }
+void StrLstSetToFirst(StrLst **lst) {
+    if ((*lst)->first) {
+        *lst = (*lst)->first;
+    }
+}
 u32 StrListLen(StrLst *lst, u32 limit = -1) {
     if (lst == NULL) {
         return 0;
     }
+    StrLstSetToFirst(&lst);
+
     u32 cnt = 0;
     while (lst && cnt < limit) {
         cnt++;
@@ -300,17 +311,19 @@ Str StrTrim(MArena *a, Str s, char t) {
 // string list builder functions [another take]
 
 
-StrLst *StrLstPut(MArena *a, char *str, StrLst *after = NULL) {
+StrLst *StrLstPush(MArena *a, char *str, StrLst *after = NULL) {
     StrLst _ = {};
     StrLst *lst = (StrLst*) ArenaPush(a, &_, sizeof(StrLst));
     lst->len = _strlen(str);
-    lst->str = (char*) ArenaAlloc(a, lst->len);
+    lst->str = (char*) ArenaAlloc(a, lst->len + 1);
+    lst->str[lst->len] = 0;
 
     for (u32 i = 0; i < lst->len; ++i) {
         lst->str[i] = str[i];
     }
     if (after != NULL) {
-        assert(after->first != NULL && "don't allow first pointer to not be set during StrLstPut");
+        assert(after->first && "enforce first is set");
+
         after->next = lst;
         lst->first = after->first;
     }
@@ -318,6 +331,20 @@ StrLst *StrLstPut(MArena *a, char *str, StrLst *after = NULL) {
         lst->first = lst;
     }
     return lst;
+}
+StrLst *StrLstPush(MArena *a, StrLst *lst, char *str) {
+    
+    // USAGE: e.g.
+    //
+    //  StrLst lst = NULL;
+    //  lst = StrLstPush(lst, "hello strs");
+
+    return StrLstPush(a, str, lst);
+}
+char *StrLstNext(MArena *a, StrLst **lst) {
+    char *str = (*lst)->str;
+    *lst = (*lst)->next;
+    return str;
 }
 void StrLstPrint(StrLst lst) {
     StrLst *iter = &lst;
@@ -475,11 +502,19 @@ Str StrJoinInsertChar(StrLst *strs, char insert) {
     return StrJoinInsertChar(g_a_strings, strs, insert);
 }
 inline
-StrLst *StrLstPut(char *str, StrLst *after = NULL) {
-    return StrLstPut(g_a_strings, str, after);
+StrLst *StrLstPush(char *str, StrLst *after = NULL) {
+    return StrLstPush(g_a_strings, str, after);
 }
-StrLst *StrLstPut(Str str, StrLst *after = NULL) {
-    return StrLstPut(StrZeroTerm(str), after);
+inline
+StrLst *StrLstPush(Str str, StrLst *after = NULL) {
+    return StrLstPush(g_a_strings, StrZeroTerm(str), after);
+}
+inline
+char *StrLstNext(StrLst **lst) {
+    return StrLstNext(g_a_strings, lst);
+}
+StrLst *StrLstPush(StrLst *lst, char *str) {
+    return StrLstPush(g_a_strings, lst, str);
 }
 
 

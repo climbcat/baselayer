@@ -184,7 +184,7 @@ const char *getBuild() { // courtesy of S.O.
                     }
 
                     Str dname = StrCat( path, StrLiteral(dir->d_name) );
-                    lst = StrLstPut(dname, lst);
+                    lst = StrLstPush(dname, lst);
                     if (first == NULL) {
                         first = lst;
                     }

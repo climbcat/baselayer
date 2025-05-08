@@ -195,7 +195,7 @@ StrLst *GetFilesExt(const char *extension, const char *path = ".") {
         Str _ext = StrExtension(_fpath);
 
         if (StrEqual(_ext, ext)) {
-            filtered = StrLstPut(_fpath, filtered);
+            filtered = StrLstPush(_fpath, filtered);
             if (first == NULL) {
                 first = filtered;
             }
