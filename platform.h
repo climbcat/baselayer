@@ -194,6 +194,49 @@ const char *getBuild() { // courtesy of S.O.
             }
             return first;
         }
+        StrLst *GetFilesInFolderPaths_Rec(char *rootpath, StrLst *first = NULL, StrLst *last = NULL, const char *extension_filter = NULL, bool do_recurse = true) {
+
+            struct dirent *dir_entry;
+            if (DIR *dir = opendir(rootpath)) {
+                dir = opendir(rootpath);
+
+                Str path = StrLiteral(rootpath);
+                if (path.len == 1 && path.str[0] == '.') {
+                    path.len = 0;
+                }
+                else if (path.str[path.len-1] != '/') {
+                    path = StrCat(path, "/");
+                }
+
+                while ((dir_entry = readdir(dir)) != NULL) {
+                    if (!_strcmp(dir_entry->d_name, ".") || !_strcmp(dir_entry->d_name, "..")) {
+                        continue;
+                    }
+
+                    Str file_path = StrCat( path, StrLiteral(dir_entry->d_name) );
+                    if (first == NULL) {
+                        first = last;
+                    }
+
+                    if (dir_entry->d_type == 4) { // recurse into directory
+                        last = GetFilesInFolderPaths_Rec( StrZeroTerm(file_path), first, last, extension_filter, do_recurse);
+                    }
+                    else {
+                        if (extension_filter == NULL || StrEqual(StrExtension(StrL(dir_entry->d_name)), extension_filter)) {
+                            last = StrLstPush(file_path, last);
+                            if (false) { StrPrint("", file_path, "\n"); }
+                        }
+                    }
+                }
+                closedir(dir);
+            }
+
+            else if (FILE *f = fopen(rootpath, "r")) {
+                last = StrLstPush(rootpath, last);
+            }
+
+            return last;
+        }
         bool SaveFile(char *filepath, u8 *data, u32 len) {
             FILE *f = fopen(filepath, "w");
 
@@ -224,8 +267,6 @@ const char *getBuild() { // courtesy of S.O.
         #include <fstream>
         #include <fileapi.h>
         #include <intrin.h>
-
-        // TODO: win impl. GetFilesInFolderPaths, LoadFile, LoadFileMMAP
 
         //
         // memory.h
@@ -371,6 +412,9 @@ const char *getBuild() { // courtesy of S.O.
             }
 
             return first;
+        }
+        StrLst *GetFilesInFolderPaths_Rec(char *rootpath, StrLst *first = NULL, StrLst *last = NULL, const char *extension_filter = NULL, bool do_recurse = true) {
+            // TODO: impl.
         }
         bool SaveFile(char *filepath, u8 *data, u32 len) {
             std::ofstream outstream(filepath, std::ios::out | std::ios::binary);

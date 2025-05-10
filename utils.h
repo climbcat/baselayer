@@ -25,6 +25,7 @@ u8 *LoadFileMMAP(const char *filepath, u64 *size_bytes) {
     return LoadFileMMAP((char*) filepath, size_bytes);
 }
 StrLst *GetFilesInFolderPaths(MArena *a, char *rootpath);
+StrLst *GetFilesInFolderPaths_Rec(char *rootpath, StrLst *first = NULL, StrLst *last = NULL, const char *extension_filter = NULL, bool do_recurse = true);
 StrLst *GetFilesInFolderPaths(MArena *a, const char *rootpath) {
     return GetFilesInFolderPaths(a, (char*) rootpath);
 }
