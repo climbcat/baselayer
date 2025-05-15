@@ -200,6 +200,7 @@ u32 ParseInt(char *text) {
 
     return val;
 }
+
 u32 ParseInt(char *text, u32 len) {
     u32 val = 0;
     u32 multiplier = 1;
@@ -223,7 +224,6 @@ u32 ParseInt(char *text, u32 len) {
 
     return val;
 }
-
 
 f64 ParseDouble(char *str, u8 len) {
     f64 val = 0;

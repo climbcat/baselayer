@@ -26,6 +26,37 @@ u64 Hash64(u64 x) {
 #endif
 
 
+u32 Hash32(u32 x) {
+    x = ((x >> 16) ^ x) * 0x45d9f3b;
+    x = ((x >> 16) ^ x) * 0x45d9f3b;
+    x = ((x >> 16) ^ x);
+    return x;
+}
+u64 Hash64(u64 x) {
+    x = ((x >> 16) ^ x) * 0x45d9f3b;
+    x = ((x >> 16) ^ x) * 0x45d9f3b;
+    x = ((x >> 16) ^ x);
+    return x;
+}
+#ifdef __arm__
+    #warning "__arm__ detected: u64 typedef'd to 32bit"
+    #define Hash Hash32
+#else
+    #define Hash Hash64
+#endif
+
+
+u64 HashStringValue(Str skey) {
+    u32 key4 = 0;
+    for (u32 i = 0; i < skey.len; ++i) {
+        u32 val = skey.str[i] << i % 4;
+        key4 += val;
+    }
+
+    u64 hashval = Hash(key4);
+    return hashval;
+}
+
 u32 HashStringValue(Str key, u32 mod) {
     u32 key4 = 0;
     for (u32 i = 0; i < key.len; ++i) {
@@ -35,6 +66,7 @@ u32 HashStringValue(Str key, u32 mod) {
     u32 slot = Hash(key4) % mod;
     return slot;
 }
+
 u64 HashStringValue(const char *key) {
     u32 key4 = 0;
     u32 i = 0;
@@ -277,6 +309,36 @@ void MapClear(HashMap *map) {
     map->slots.len = nslots;
 }
 
+struct MapIter {
+    s32 slot_idx;
+    s32 coll_idx;
+
+    s32 occ_slots_cnt = 0;
+    s32 occ_colliders_cnt = 0;
+};
+
+u64 MapNextVal(HashMap *map, MapIter *iter) {
+    while (iter->slot_idx < map->slots.len) {
+        HashMapKeyVal kv = map->slots.lst[iter->slot_idx++];
+
+        if (kv.val) {
+            iter->occ_slots_cnt++;
+
+            return kv.val;
+        }
+
+    }
+    while (iter->coll_idx < map->colls.len) {
+        HashMapKeyVal kv = map->colls.lst[iter->coll_idx++];
+        if (kv.val) {
+            iter->occ_colliders_cnt++;
+
+            return kv.val;
+        }
+    }
+
+    return 0;
+}
 
 bool MapPut(HashMap *map, u64 key, u64 val) {
     assert(key != 0 && "null ptr can not be used as a key");
@@ -329,6 +391,11 @@ bool MapPut(HashMap *map, u64 key, void *val) {
     return MapPut(map, key, (u64) val);
 }
 
+inline
+bool MapPut(HashMap *map, Str skey, void *val) {
+    return MapPut(map, HashStringValue(skey), (u64) val);
+}
+
 u64 MapGet(HashMap *map, u64 key) {
     u32 slot = Hash(key) % map->slots.len;
     HashMapKeyVal kv_slot = map->slots.lst[slot];
@@ -347,6 +414,10 @@ u64 MapGet(HashMap *map, u64 key) {
     }
 
     return 0;
+}
+inline
+u64 MapGet(HashMap *map, Str skey) {
+    return MapGet(map, HashStringValue(skey));
 }
 
 bool MapRemove(HashMap *map, u64 key, void *val) {
@@ -375,6 +446,7 @@ bool MapRemove(HashMap *map, u64 key, void *val) {
 
     return false;
 }
+
 
 
 //

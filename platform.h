@@ -194,9 +194,9 @@ const char *getBuild() { // courtesy of S.O.
             }
             return first;
         }
-        StrLst *GetFilesInFolderPaths_Rec(char *rootpath, StrLst *first = NULL, StrLst *last = NULL, const char *extension_filter = NULL, bool do_recurse = true) {
-
+        StrLst *GetFilePaths_Rec(char *rootpath, StrLst *head = NULL, StrLst *tail = NULL, const char *extension_filter = NULL, bool do_recurse = true) {
             struct dirent *dir_entry;
+
             if (DIR *dir = opendir(rootpath)) {
                 dir = opendir(rootpath);
 
@@ -214,16 +214,18 @@ const char *getBuild() { // courtesy of S.O.
                     }
 
                     Str file_path = StrCat( path, StrLiteral(dir_entry->d_name) );
-                    if (first == NULL) {
-                        first = last;
+                    if (head == NULL) {
+                        head = tail;
                     }
 
                     if (dir_entry->d_type == 4) { // recurse into directory
-                        last = GetFilesInFolderPaths_Rec( StrZeroTerm(file_path), first, last, extension_filter, do_recurse);
+                        if (do_recurse) {
+                            tail = GetFilePaths_Rec( StrZeroTerm(file_path), head, tail, extension_filter, true);
+                        }
                     }
                     else {
                         if (extension_filter == NULL || StrEqual(StrExtension(StrL(dir_entry->d_name)), extension_filter)) {
-                            last = StrLstPush(file_path, last);
+                            tail = StrLstPush(file_path, tail);
                             if (false) { StrPrint("", file_path, "\n"); }
                         }
                     }
@@ -232,11 +234,22 @@ const char *getBuild() { // courtesy of S.O.
             }
 
             else if (FILE *f = fopen(rootpath, "r")) {
-                last = StrLstPush(rootpath, last);
+                tail = StrLstPush(rootpath, tail);
+                fclose(f);
             }
 
-            return last;
+            if (tail == NULL) {
+                tail = StrLstPush( Str {}, NULL );
+            }
+
+            return tail;
         }
+
+        StrLst *GetFiles(char *rootpath, const char *extension_filter = NULL, bool do_recurse = true) {
+            StrLst *fpaths = GetFilePaths_Rec(rootpath, NULL, NULL, extension_filter, do_recurse)->first;
+            return fpaths;
+        }
+
         bool SaveFile(char *filepath, u8 *data, u32 len) {
             FILE *f = fopen(filepath, "w");
 

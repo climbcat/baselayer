@@ -149,9 +149,10 @@ Str StrExtension(char *path) {
 
     Str s { NULL, 0 };
     StrLst *lst = StrSplit(StrLiteral(path), '.');
-    if (lst->next != NULL) {
-        s = lst->next->GetStr();
+    while (lst->next != NULL) {
+        lst = lst->next;
     }
+    s = lst->GetStr();
     return s;
 }
 Str StrExtension(Str path) {

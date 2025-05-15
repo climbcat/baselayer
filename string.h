@@ -308,7 +308,7 @@ Str StrTrim(MArena *a, Str s, char t) {
 
 
 //
-// string list builder functions [another take]
+// string list builder functions
 
 
 StrLst *StrLstPush(MArena *a, char *str, StrLst *after = NULL) {
@@ -332,6 +332,7 @@ StrLst *StrLstPush(MArena *a, char *str, StrLst *after = NULL) {
     }
     return lst;
 }
+
 StrLst *StrLstPush(MArena *a, StrLst *lst, char *str) {
     
     // USAGE: e.g.
@@ -341,11 +342,13 @@ StrLst *StrLstPush(MArena *a, StrLst *lst, char *str) {
 
     return StrLstPush(a, str, lst);
 }
+
 char *StrLstNext(MArena *a, StrLst **lst) {
     char *str = (*lst)->str;
     *lst = (*lst)->next;
     return str;
 }
+
 void StrLstPrint(StrLst lst) {
     StrLst *iter = &lst;
     do {
@@ -354,6 +357,7 @@ void StrLstPrint(StrLst lst) {
     }
     while ((iter = iter->next) != NULL);
 }
+
 StrLst *StrLstPop(StrLst *pop, StrLst *prev) {
     if (pop == NULL) {
         return NULL;
@@ -407,8 +411,8 @@ MArena *StringCreateArena() {
     }
     return g_a_strings;
 }
-void StringInit() {
-    StringCreateArena();
+MArena *StringInit() {
+    return StringCreateArena();
 }
 void StringSetGlobalArena(MArena *a) {
     g_a_strings = a;
