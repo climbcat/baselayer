@@ -26,26 +26,6 @@ u64 Hash64(u64 x) {
 #endif
 
 
-u32 Hash32(u32 x) {
-    x = ((x >> 16) ^ x) * 0x45d9f3b;
-    x = ((x >> 16) ^ x) * 0x45d9f3b;
-    x = ((x >> 16) ^ x);
-    return x;
-}
-u64 Hash64(u64 x) {
-    x = ((x >> 16) ^ x) * 0x45d9f3b;
-    x = ((x >> 16) ^ x) * 0x45d9f3b;
-    x = ((x >> 16) ^ x);
-    return x;
-}
-#ifdef __arm__
-    #warning "__arm__ detected: u64 typedef'd to 32bit"
-    #define Hash Hash32
-#else
-    #define Hash Hash64
-#endif
-
-
 u64 HashStringValue(Str skey) {
     u32 key4 = 0;
     for (u32 i = 0; i < skey.len; ++i) {
