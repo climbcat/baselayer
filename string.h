@@ -580,6 +580,10 @@ StrLst *StrLstPush(char *str, StrLst *after = NULL) {
     return StrLstPush(g_a_strings, str, after);
 }
 inline
+StrLst *StrLstPush(const char *str, StrLst *after = NULL) {
+    return StrLstPush(g_a_strings, (char*) str, after);
+}
+inline
 StrLst *StrLstPush(Str str, StrLst *after = NULL) {
     return StrLstPush(g_a_strings, StrZeroTerm(str), after);
 }

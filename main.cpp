@@ -4,18 +4,23 @@
 
 
 void RunProgram() {
-    printf("Usage:\n");
-    printf("./baselayer\n");
+    printf("Use:\n");
     printf("./baselayer --help\n");
-    printf("./baselayer --test\n");
 }
 
 
 Str LoadTextFile(MArena *a_files, const char *f_path) {
-    Str f_license = {};
-    f_license.str = (char*) LoadFileFSeek(a_files, f_path, &f_license.len);
+    Str f_str = {};
+    f_str.str = (char*) LoadFileFSeek(a_files, f_path, &f_str.len);
 
-    return f_license;
+    return f_str;
+}
+
+Str LoadTextFile(MArena *a_files, Str f_path) {
+    Str f_str = {};
+    f_str.str = (char*) LoadFileFSeek(a_files, StrZeroTerm(f_path), &f_str.len);
+
+    return f_str;
 }
 
 
@@ -26,8 +31,8 @@ int main (int argc, char **argv) {
     if (CLAContainsArg("--help", argc, argv)) {
         printf("Usage: ./baselayer <args>\n");
         printf("--help:         Display help (this text)\n");
-        printf("--release:      Combine source files into jg_baselayer.h\n");
         printf("--version:      Print baselayer version\n");
+        printf("--release:      Combine source files into jg_baselayer.h\n");
         printf("--test:         Run test functions\n");
         exit(0);
     }
@@ -42,66 +47,35 @@ int main (int argc, char **argv) {
 
         MArena *a_files = InitBaselayer()->a_life;
 
-        Str f_license = LoadTextFile(a_files, "../LICENSE");
-        Str f_base = LoadTextFile(a_files, "../base.h");
-        Str f_profile = LoadTextFile(a_files, "../profile.h");
-        Str f_memory = LoadTextFile(a_files, "../memory.h");
-        Str f_string = LoadTextFile(a_files, "../string.h");
-        Str f_hash = LoadTextFile(a_files, "../hash.h");
-        Str f_utils = LoadTextFile(a_files, "../utils.h");
-        Str f_platform = LoadTextFile(a_files, "../platform.h");
+        StrLst *f_sources = NULL;
+        f_sources = StrLstPush("../base.h", f_sources);
+        f_sources = StrLstPush("../profile.h", f_sources);
+        f_sources = StrLstPush("../memory.h", f_sources);
+        f_sources = StrLstPush("../string.h", f_sources);
+        f_sources = StrLstPush("../hash.h", f_sources);
+        f_sources = StrLstPush("../utils.h", f_sources);
+        f_sources = StrLstPush("../platform.h", f_sources);
+        f_sources = f_sources->first;
 
         StrBuff buff = StrBuffInit();
         StrBuffPrint1K(&buff, "/*\n", 0);
-        StrBuffAppend(&buff, f_license);
-        StrBuffPrint1K(&buff, "*/\n", 0);
-        StrBuffPrint1K(&buff, "\n", 0);
-        StrBuffPrint1K(&buff, "\n", 0);
+        StrBuffAppend(&buff, LoadTextFile(a_files, "../LICENSE"));
+        StrBuffPrint1K(&buff, "*/\n\n\n", 0);
         StrBuffPrint1K(&buff, "#ifndef __JG_BASELAYER_H__\n", 0);
-        StrBuffPrint1K(&buff, "#define __JG_BASELAYER_H__\n", 0);
-        StrBuffPrint1K(&buff, "\n", 0);
-        StrBuffPrint1K(&buff, "\n", 0);
+        StrBuffPrint1K(&buff, "#define __JG_BASELAYER_H__\n\n\n", 0);
         StrBuffPrint1K(&buff, "#define BASELAYER_VERSION_MAJOR %d\n", 1, BASELAYER_VERSION_MAJOR);
         StrBuffPrint1K(&buff, "#define BASELAYER_VERSION_MINOR %d\n", 1, BASELAYER_VERSION_MINOR);
         StrBuffPrint1K(&buff, "#define BASELAYER_VERSION_PATCH %d\n", 1, BASELAYER_VERSION_PATCH);
-        StrBuffPrint1K(&buff, "\n", 0);
-        StrBuffPrint1K(&buff, "\n", 0);
+        StrBuffPrint1K(&buff, "\n\n", 0);
 
-        StrBuffAppend(&buff, f_base);
+        while (f_sources) {
+            StrBuffAppend(&buff, LoadTextFile(a_files, f_sources->GetStr()));
+            StrBuffPrint1K(&buff, "\n\n", 0);
 
-        StrBuffPrint1K(&buff, "\n", 0);
-        StrBuffPrint1K(&buff, "\n", 0);
+            f_sources = f_sources->next;
+        }
 
-        StrBuffAppend(&buff, f_profile);
-
-        StrBuffPrint1K(&buff, "\n", 0);
-        StrBuffPrint1K(&buff, "\n", 0);
-
-        StrBuffAppend(&buff, f_memory);
-
-        StrBuffPrint1K(&buff, "\n", 0);
-        StrBuffPrint1K(&buff, "\n", 0);
-
-        StrBuffAppend(&buff, f_string);
-
-        StrBuffPrint1K(&buff, "\n", 0);
-        StrBuffPrint1K(&buff, "\n", 0);
-
-        StrBuffAppend(&buff, f_hash);
-
-        StrBuffPrint1K(&buff, "\n", 0);
-        StrBuffPrint1K(&buff, "\n", 0);
-
-        StrBuffAppend(&buff, f_utils);
-
-        StrBuffPrint1K(&buff, "\n", 0);
-        StrBuffPrint1K(&buff, "\n", 0);
-
-        StrBuffAppend(&buff, f_platform);
-
-        StrBuffPrint1K(&buff, "\n", 0);
-        StrBuffPrint1K(&buff, "\n", 0);
-        StrBuffPrint1K(&buff, "#endif\n", 0);
+        StrBuffPrint1K(&buff, "#endif // __JG_BASELAYER_H__\n", 0);
         SaveFile("jg_baselayer.h_OUT", buff.str, buff.len);
     }
     else {
