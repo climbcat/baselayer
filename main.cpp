@@ -45,7 +45,8 @@ int main (int argc, char **argv) {
     }
     else if (CLAContainsArg("--release", argc, argv) || force_tests) {
 
-        MArena *a_files = InitBaselayer()->a_life;
+        MArena *a_files = GetContext()->a_life;
+        InitStrings();
 
         StrLst *f_sources = NULL;
         f_sources = StrLstPush("../base.h", f_sources);
