@@ -454,13 +454,12 @@ void TestPoolAllocatorAgain()  {
 
 
 #include <stdarg.h>
-#define MAX_LINE_LEN 1024
 s32 PrintLineBuff(Str *buff, const char *format, s32 cnt, ...) {
 
     va_list args;
     va_start(args, cnt);
 
-    s32 len = vsnprintf(buff->str, MAX_LINE_LEN, format, args);
+    s32 len = vsprintf(buff->str, format, args);
     buff->str += len;
     sprintf(buff->str, "\n");
     buff->str += 1;
