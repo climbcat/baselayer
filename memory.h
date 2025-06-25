@@ -12,12 +12,10 @@
 // up alignment or compactness.
 // TODO: arena de-allocation that shrinks commited memory (useful when e.g. closing large files)
 // TODO: scratch arenas
-// TODO: be able to wrap a finite-sized arena around an array arg (could be a static array e.g.)
-// TODO: with arena_open/close, have a way to ensure enough commited space via some reserve param or such
 
 
 //
-// platform dependent impl.:
+// platform dependent:
 
 
 u64 MemoryProtect(void *from, u64 amount);
@@ -40,7 +38,6 @@ struct MArena {
 #define ARENA_RESERVE_SIZE GIGABYTE
 #define ARENA_COMMIT_CHUNK SIXTEEN_KB
 
-
 MArena ArenaCreate(u64 fixed_size = 0) {
     MArena a = {};
     a.used = 0;
@@ -60,10 +57,12 @@ MArena ArenaCreate(u64 fixed_size = 0) {
 
     return a;
 }
+
 void ArenaDestroy(MArena *a) {
     MemoryUnmap(a, a->committed);
     *a = {};
 }
+
 inline
 void *ArenaAlloc(MArena *a, u64 len, bool zerod = true) {
     if (a->fixed_size) {
@@ -85,23 +84,40 @@ void *ArenaAlloc(MArena *a, u64 len, bool zerod = true) {
 
     return result;
 }
+
 inline
 void ArenaRelease(MArena *a, u64 len) {
     assert(len <= a->used);
 
     a->used -= len;
 }
+
 inline
 void *ArenaPush(MArena *a, void *data, u32 len) {
     void *dest = ArenaAlloc(a, len);
     _memcpy(dest, data, len);
     return dest;
 }
+
 void ArenaPrint(MArena *a) {
     printf("Arena mapped/committed/used: %lu %lu %lu\n", a->mapped, a->committed, a->used);
 }
+
 void ArenaClear(MArena *a) {
     a->used = 0;
+}
+
+void ArenaEnsureSpace(MArena *a, s32 space_needed) {
+    assert(a->committed > a->used);
+
+    u64 used = a->used;
+    u64 diff = a->committed - a->used;
+
+    if (diff < space_needed) {
+        // expand committed space without marking it as used
+        ArenaAlloc(a, space_needed - diff);
+        a->used = used;
+    }
 }
 
 
@@ -271,6 +287,7 @@ struct MPoolT {
         PoolFree(&this->_p, el);
     }
 };
+
 template<class T>
 MPoolT<T> PoolCreate(u32 nblocks) {
     MPool pool_inner = PoolCreate(sizeof(T), nblocks);
@@ -384,6 +401,7 @@ struct List {
         lst[idx] = swap;
     }
 };
+
 template<class T>
 List<T> InitList(MArena *a, u32 count, bool zerod = true) {
     List<T> _lst = {};
@@ -391,6 +409,7 @@ List<T> InitList(MArena *a, u32 count, bool zerod = true) {
     _lst.lst = (T*) ArenaAlloc(a, sizeof(T) * count, zerod);
     return _lst;
 }
+
 template<class T>
 void ArenaShedTail(MArena *a, List<T> lst, u32 diff_T) {
     assert(a->used >= diff_T * sizeof(T));
@@ -398,6 +417,7 @@ void ArenaShedTail(MArena *a, List<T> lst, u32 diff_T) {
 
     a->mem -= diff_T * sizeof(T);
 }
+
 template<class T>
 List<T> ListCopy(MArena *a_dest, List<T> src) {
     List<T> dest = InitList<T>(a_dest, src.len);
@@ -532,6 +552,7 @@ struct Stack {
         }
     }
 };
+
 template<class T>
 Stack<T> InitStack(MArena *a, u32 cap) {
     Stack<T> stc;
@@ -540,6 +561,7 @@ Stack<T> InitStack(MArena *a, u32 cap) {
     stc.cap = cap;
     return stc;
 }
+
 template<class T>
 Stack<T> InitStackStatic(T *mem, u32 cap) {
     Stack<T> stc;
@@ -700,11 +722,9 @@ void SortBubbleU32(List<u32> arr) {
     }
 }
 
-
 void SortQuickU32() {
     // TODO: impl.
 }
-
 
 List<u32> SetIntersectionU32(MArena *a_dest, List<u32> arr_a, List<u32> arr_b) {
     List<u32> result = InitList<u32>(a_dest, 0);

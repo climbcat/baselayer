@@ -1,6 +1,6 @@
 #include <cstdio>
 #include <cassert>
-
+#include "baselayer.h"
 
 
 struct PoolTestEntity {
@@ -128,7 +128,7 @@ void TestVarious() {
 
 
 void TestMemoryPool() {
-    printf("TestMemoryPool\n");
+    printf("\nTestMemoryPool\n");
 
     u32 pool_size = 1001;
     u32 test_num_partial = 666;
@@ -180,8 +180,8 @@ void _PrintFlexArrayU32(u32 *arr) {
         printf("%u ", arr[i]);
     }
 }
-void TestSortingAlgs() {
-    printf("TestSortingAlgs\n");
+void TestSorting() {
+    printf("\nTestSorting\n");
 
     MContext *ctx = GetContext();
     RandInit();
@@ -236,7 +236,7 @@ void TestSortingAlgs() {
 
 
 void TestStringHelpers() {
-    printf("TestStringHelpers\n");
+    printf("\nTestStringHelpers\n");
 
     printf("\nlook for .h hiles in ../graphics:\n");
     StrLst *fs = GetFilesExt("h", "../graphics");
@@ -249,7 +249,7 @@ void TestStringHelpers() {
 
 
 void TestDict() {
-    printf("TestDict\n");
+    printf("\nTestDict\n");
     InitBaselayer();
     
     u32 nslots = 17;
@@ -318,7 +318,7 @@ void TestDict() {
 
 
 void TestPointerHashMap() {
-    printf("TestPointerHashMap\n");
+    printf("\nTestPointerHashMap\n");
     MContext *ctx = GetContext(1024 * 1024);
     RandInit();
 
@@ -356,7 +356,7 @@ void TestPointerHashMap() {
 
 
 void TestScritinizeFilename() {
-    printf("TestScritinizeFilename\n");
+    printf("\nTestScritinizeFilename\n");
     InitBaselayer();
 
     Str fname;
@@ -399,7 +399,7 @@ struct TestWidget {
     u64 key;
 };
 void TestPoolAllocatorAgain()  {
-    printf("TestPoolAllocatorAgain\n");
+    printf("\nTestPoolAllocatorAgain\n");
 
     MContext *ctx = InitBaselayer();
 
@@ -453,51 +453,45 @@ void TestPoolAllocatorAgain()  {
 }
 
 
-#include <stdarg.h>
-s32 PrintLineBuff(Str *buff, const char *format, s32 cnt, ...) {
-
-    va_list args;
-    va_start(args, cnt);
-
-    s32 len = vsprintf(buff->str, format, args);
-    buff->str += len;
-    sprintf(buff->str, "\n");
-    buff->str += 1;
-
-    va_end(args);
-    return len + 1;
-}
-
-void TestPrintToBuffer() {
-    printf("TestPrintToBuffer\n");
-
+void TestStrBuffer() {
+    printf("\nTestStrBuffer\n");
     StringInit();
 
-    MContext *ctx = GetContext();
-    Str base_buff = { (char*) ArenaAlloc(ctx->a_life, 1024), 0 };
-    Str buff = base_buff;
+    StrBuff buff = StrBuffInit();
+    StrBuffNewLine(&buff);
 
-    for (s32 i = 0; i < 20; ++i) {
-        base_buff.len += PrintLineBuff(&buff, "%d_%s,%d -> ", 3, i, "word", i*10);
+    s32 total_printed = 0;
+    s32 iters = 2 * 10;
+
+    for (s32 i = 0; i < iters; ++i) {
+        total_printed += StrBuffPrint1K(&buff, "%d_%u_%s ->\n", 3, i, i*2, "some_text");
     }
 
-    // test print the lines
-    StrPrint(base_buff);
+    // test StrBuffPut
+    Str put_str = { (char*) "an string appended at the end of the buffer", 0 };
+    put_str.len = strlen(put_str.str);
+    StrBuffAppend(&buff, put_str);
+    StrBuffNewLine(&buff);
+
+
+    StrPrint(buff.GetStr());
+    printf("\n");
+    printf("chars printed: %d, buff_len: %d\n", total_printed, buff.len);
+    ArenaPrint(&buff.a);
+    printf("\n");
 }
 
 
 void Test() {
     printf("Running baselayer tests ...\n\n");
 
-    /*
     TestVarious();
-    TestSortingAlgs();
+    TestSorting();
     TestStringHelpers();
     TestDict();
     TestPointerHashMap();
     TestScritinizeFilename();
     TestMemoryPool();
     TestPoolAllocatorAgain();
-    */
-    TestPrintToBuffer();
+    TestStrBuffer();
 }
