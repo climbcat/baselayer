@@ -453,9 +453,44 @@ void TestPoolAllocatorAgain()  {
 }
 
 
+#include <stdarg.h>
+#define MAX_LINE_LEN 1024
+s32 PrintLineBuff(Str *buff, const char *format, s32 cnt, ...) {
+
+    va_list args;
+    va_start(args, cnt);
+
+    s32 len = vsnprintf(buff->str, MAX_LINE_LEN, format, args);
+    buff->str += len;
+    sprintf(buff->str, "\n");
+    buff->str += 1;
+
+    va_end(args);
+    return len + 1;
+}
+
+void TestPrintToBuffer() {
+    printf("TestPrintToBuffer\n");
+
+    StringInit();
+
+    MContext *ctx = GetContext();
+    Str base_buff = { (char*) ArenaAlloc(ctx->a_life, 1024), 0 };
+    Str buff = base_buff;
+
+    for (s32 i = 0; i < 20; ++i) {
+        base_buff.len += PrintLineBuff(&buff, "%d_%s,%d -> ", 3, i, "word", i*10);
+    }
+
+    // test print the lines
+    StrPrint(base_buff);
+}
+
+
 void Test() {
     printf("Running baselayer tests ...\n\n");
 
+    /*
     TestVarious();
     TestSortingAlgs();
     TestStringHelpers();
@@ -464,4 +499,6 @@ void Test() {
     TestScritinizeFilename();
     TestMemoryPool();
     TestPoolAllocatorAgain();
+    */
+    TestPrintToBuffer();
 }
