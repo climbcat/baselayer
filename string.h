@@ -81,14 +81,12 @@ Str StrCat(MArena *arena, Str a, Str b) {
 }
 
 Str StrTrim(MArena *a, Str s, char t) {
-    if (s.len) {
-        if (s.str[0] == t) {
+    if (s.len && s.str[0] == t) {
             s.str++;
-            s.len -=1;
-        }
-        if (s.str[s.len-1] == t) {
-            s.len -=1;
-        }
+            s.len -= 1;
+    }
+    if (s.len && (s.str[s.len-1] == t)) {
+        s.len -= 1;
     }
     return s;
 }

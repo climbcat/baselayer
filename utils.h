@@ -10,22 +10,26 @@
 
 
 //
-// Other
+//  Other
 
 
 void XSleep(u32 ms);
 
 
 //
-// file I/O
+//  File I/O
 
 
 u8 *LoadFileMMAP(char *filepath, u64 *size_bytes);
+
 u8 *LoadFileMMAP(const char *filepath, u64 *size_bytes) {
     return LoadFileMMAP((char*) filepath, size_bytes);
 }
+
 StrLst *GetFilesInFolderPaths(MArena *a, char *rootpath);
+
 StrLst *GetFilesInFolderPaths_Rec(char *rootpath, StrLst *first = NULL, StrLst *last = NULL, const char *extension_filter = NULL, bool do_recurse = true);
+
 StrLst *GetFilesInFolderPaths(MArena *a, const char *rootpath) {
     return GetFilesInFolderPaths(a, (char*) rootpath);
 }
@@ -84,14 +88,17 @@ void *LoadFileFSeek(MArena *a_dest, const char *filepath, u32 *size = NULL) {
 }
 
 bool SaveFile(char *filepath, u8 *data, u32 len);
+
 bool SaveFile(const char *filepath, u8 *data, u32 len) {
     // const char star
     return SaveFile((char *)filepath, data, len);
 }
+
 bool SaveFile(char *filepath, void *data, u32 len) {
     // void star
     return SaveFile((char *)filepath, (u8*)data, len);
 }
+
 bool SaveFile(const char *filepath, void *data, u32 len) {
     // const char star and void star
     return SaveFile((char *)filepath, (u8*)data, len);
@@ -100,13 +107,14 @@ bool SaveFile(const char *filepath, void *data, u32 len) {
 bool ArenaSave(MArena *a, char *filename) {
     return SaveFile(filename, a->mem, (u32) a->used);
 }
+
 bool ArenaSave(MArena *a, const char *filename) {
     return ArenaSave(a, (char *) filename);
 }
 
 
 //
-// path / filename stuff
+//  Path / filename helpers
 
 
 Str StrBasename(char *path) {
@@ -121,6 +129,7 @@ Str StrBasename(char *path) {
     }
     return slashes->GetStr();
 }
+
 Str StrBasename(MArena *a, char *path) {
     assert(g_a_strings != NULL && "init strings first");
 
@@ -133,9 +142,11 @@ Str StrBasename(MArena *a, char *path) {
     }
     return slashes->GetStr();
 }
+
 Str StrBasename(Str path) {
     return StrBasename(StrZeroTerm(path));
 }
+
 Str StrExtension(MArena *a, char *path) {
     Str s { NULL, 0 };
     StrLst *lst = StrSplit(a, StrLiteral(a, path), '.');
@@ -144,6 +155,7 @@ Str StrExtension(MArena *a, char *path) {
     }
     return s;
 }
+
 Str StrExtension(char *path) {
     assert(g_a_strings != NULL && "init strings first");
 
@@ -155,9 +167,11 @@ Str StrExtension(char *path) {
     s = lst->GetStr();
     return s;
 }
+
 Str StrExtension(Str path) {
     return StrExtension(StrZeroTerm(path));
 }
+
 Str StrDirPath(Str path) {
     assert(g_a_strings != NULL && "init strings first");
 
@@ -172,21 +186,28 @@ Str StrDirPath(Str path) {
     }
     return cat;
 }
+
 Str StrPathBuild(Str dirname, Str basename, Str ext) {
     dirname = StrTrim(dirname, '/');
     basename = StrTrim(basename, '/');
 
-    Str path = StrCat(dirname, "/");
+    Str path = dirname;
+    if (dirname.len) {
+       path = StrCat(dirname, "/");
+    }
     path = StrCat(path, basename);
     path = StrCat(path, ".");
     path = StrCat(path, ext);
+
     return path;
 }
+
 Str StrPathJoin(Str path_1, Str path_2) {
     Str path = StrCat(path_1, "/");
     path = StrCat(path, path_2);
     return path;
 }
+
 StrLst *GetFilesExt(const char *extension, const char *path = ".") {
     StrLst *all = GetFilesInFolderPaths(InitStrings(), path);
     StrLst *filtered = NULL;
@@ -206,6 +227,10 @@ StrLst *GetFilesExt(const char *extension, const char *path = ".") {
     }
     return first;
 }
+
+
+//
+//  FInfo: file path info, construct file names / paths
 
 
 struct FInfo {
@@ -241,6 +266,7 @@ struct FInfo {
         StrPrint("rebuilt   : ", rebuilt, "\n");
     }
 };
+
 FInfo FInfoGet(Str pathname) {
     FInfo info;
     info.name = pathname;
@@ -249,9 +275,11 @@ FInfo FInfoGet(Str pathname) {
     info.dirname = StrDirPath(pathname);
     return info;
 }
+
 FInfo InitFInfo(Str pathname) {
     return FInfoGet(pathname);
 }
+
 inline
 FInfo FInfoGet(const char*pathname) {
     return FInfoGet(StrL(pathname));
@@ -284,7 +312,6 @@ MContext *InitBaselayer() {
     return GetContext();
 }
 
-
 void BaselayerAssertVersion(u32 major, u32 minor, u32 patch) {
     if (
         BASELAYER_VERSION_MAJOR != major ||
@@ -294,7 +321,6 @@ void BaselayerAssertVersion(u32 major, u32 minor, u32 patch) {
         assert(1 == 0 && "baselayer version check failed");
     }
 }
-
 
 void BaselayerPrintVersion() {
     printf("%d.%d.%d\n", BASELAYER_VERSION_MAJOR, BASELAYER_VERSION_MINOR, BASELAYER_VERSION_PATCH);
