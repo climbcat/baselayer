@@ -71,8 +71,11 @@ void *ArenaAlloc(MArena *a, u64 len, bool zerod = true) {
     }
 
     else if (a->committed < a->used + len) {
-        u64 amount = (len / ARENA_COMMIT_CHUNK + 1) * ARENA_COMMIT_CHUNK;
-        MemoryProtect(a->mem + a->committed, amount);
+        assert(a->committed >= a->used);
+        u64 diff = a->committed - a->used;
+        //u64 amount = (len / ARENA_COMMIT_CHUNK + 1) * ARENA_COMMIT_CHUNK;
+        u64 amount = ( (len - diff) / ARENA_COMMIT_CHUNK + 1) * ARENA_COMMIT_CHUNK;
+        MemoryProtect(a->mem + a->committed, amount );
         a->committed += amount;
     }
 
@@ -108,14 +111,12 @@ void ArenaClear(MArena *a) {
 }
 
 void ArenaEnsureSpace(MArena *a, s32 space_needed) {
-    assert(a->committed > a->used);
-
     u64 used = a->used;
     u64 diff = a->committed - a->used;
 
     if (diff < space_needed) {
         // expand committed space without marking it as used
-        ArenaAlloc(a, space_needed - diff);
+        ArenaAlloc(a, space_needed);
         a->used = used;
     }
 }
