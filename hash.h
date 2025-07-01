@@ -377,8 +377,13 @@ bool MapPut(HashMap *map, Str skey, void *val) {
 }
 
 u64 MapGet(HashMap *map, u64 key) {
-    u32 slot = Hash(key) % map->slots.len;
-    HashMapKeyVal kv_slot = map->slots.lst[slot];
+
+    HashMapKeyVal kv_slot = {};
+    if (map->slots.len) {
+
+        u32 slot = Hash(key) % map->slots.len;
+        kv_slot = map->slots.lst[slot];
+    }
 
     if (kv_slot.key == key) {
         return kv_slot.val;
