@@ -245,7 +245,7 @@ u32 PoolPtr2Idx(MPool *p, void *ptr) {
 
 inline
 void *PoolIdx2Ptr(MPool *p, u32 idx) {
-    assert(idx < p->block_size);
+    assert(idx < p->nblocks);
 
     if (idx == 0) {
         return NULL;
