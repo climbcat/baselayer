@@ -7,33 +7,68 @@
 
 
 //
+//  String allocation - defaults to being the tmp allocator
+
+
+static MArena _g_a_strings;
+static MArena *g_a_strings;
+MArena *StringCreateArena() {
+    if (g_a_strings == NULL) {
+        _g_a_strings = ArenaCreate();
+        g_a_strings = &_g_a_strings;
+    }
+    return g_a_strings;
+}
+MArena *StringInit() {
+    return StringCreateArena();
+}
+void StringSetGlobalArena(MArena *a) {
+    g_a_strings = a;
+}
+MArena *StringGetGlobalArena() {
+    return g_a_strings;
+}
+MArena *InitStrings() {
+    return StringCreateArena();
+}
+
+
+//
 //  Str; length-based strings
 //
 
 
 struct Str {
-    char *str = NULL;
-    u32 len = 0;
+    char *str;
+    u32 len;
 };
 
 
-char *StrZeroTerm(MArena *a, Str s) {
+char *StrZeroTerm(Str s) {
+    MArena *a = g_a_strings;
+
     char * result = (char*) ArenaAlloc(a, s.len + 1);
     _memcpy(result, s.str, s.len);
     result[s.len] = 0;
     return result;
 }
 
-Str StrLiteral(MArena *a, const char *lit) {
+Str StrL(const char *str) { // StrLiteral
+
+    // NOTE: This would push to the strings arena, we often don't need this. Might be a different function
+    /*
     Str s;
     s.len = 0;
     while (*(lit + s.len) != '\0') {
         ++s.len;
     }
-    s.str = (char*) ArenaAlloc(a, s.len);
+    s.str = (char*) ArenaAlloc(g_a_strings, s.len);
     _memcpy(s.str, lit, s.len);
 
     return s;
+    */
+
+    return Str { (char*) str, _strlen((char*) str) };
 }
 
 inline void StrPrint(Str s) {
@@ -46,6 +81,22 @@ inline void StrPrint(const char *aff, Str s, const char *suf) {
 
 inline void StrPrint(Str *s) {
     printf("%.*s", s->len, s->str);
+}
+
+Str StrSPrint(const char *format, s32 cnt, ...) {
+    ArenaEnsureSpace(g_a_strings, KILOBYTE);
+    Str s = {};
+    s.str = (char*) ArenaAlloc(g_a_strings, 0);
+
+    va_list args;
+    va_start(args, cnt);
+
+    s.len = vsnprintf(s.str, KILOBYTE, format, args);
+    ArenaAlloc(g_a_strings, s.len, false);
+
+    va_end(args);
+
+    return s;
 }
 
 bool StrEqual(Str a, Str b) {
@@ -70,17 +121,17 @@ bool StrContainsChar(Str s, char c) {
     return false;
 }
 
-Str StrCat(MArena *arena, Str a, Str b) {
+Str StrCat(Str a, Str b) {
     Str cat;
     cat.len = a.len + b.len;
-    cat.str = (char*) ArenaAlloc(arena, cat.len);
+    cat.str = (char*) ArenaAlloc(g_a_strings, cat.len);
     _memcpy(cat.str, a.str, a.len);
     _memcpy(cat.str + a.len, b.str, b.len);
 
     return cat;
 }
 
-Str StrTrim(MArena *a, Str s, char t) {
+Str StrTrim(Str s, char t) {
     if (s.len && s.str[0] == t) {
             s.str++;
             s.len -= 1;
@@ -155,15 +206,19 @@ void StrLstPrint(StrLst *lst, const char *sep = "\n") {
     }
 }
 
-StrLst *_StrLstAllocNext(MArena *a_dest) {
+StrLst *_StrLstAllocNext() {
+    MArena *a = g_a_strings;
+
     static StrLst def;
-    StrLst *lst = (StrLst*) ArenaPush(a_dest, &def, sizeof(StrLst));
-    lst->str = (char*) ArenaAlloc(a_dest, 0);
+    StrLst *lst = (StrLst*) ArenaPush(a, &def, sizeof(StrLst));
+    lst->str = (char*) ArenaAlloc(a, 0);
     return lst;
 }
 
-StrLst *StrSplit(MArena *a_dest, Str base, char split) {
-    StrLst *next = _StrLstAllocNext(a_dest);
+StrLst *StrSplit(Str base, char split) {
+    MArena *a = g_a_strings;
+
+    StrLst *next = _StrLstAllocNext();
     StrLst *first = next;
     StrLst *node = next;
 
@@ -179,14 +234,14 @@ StrLst *StrSplit(MArena *a_dest, Str base, char split) {
         // copy
         if (j > 0) {
             if (node->len > 0) {
-                next = _StrLstAllocNext(a_dest);
+                next = _StrLstAllocNext();
                 node->next = next;
                 node->first = first;
                 node = next;
             }
 
             node->len = j;
-            ArenaAlloc(a_dest, j);
+            ArenaAlloc(a, j);
             _memcpy(node->str, base.str + i, j);
         }
 
@@ -196,7 +251,9 @@ StrLst *StrSplit(MArena *a_dest, Str base, char split) {
     return first;
 }
 
-StrLst *StrSplitSpacesKeepQuoted(MArena *a_dest, Str base) {
+StrLst *StrSplitSpacesKeepQuoted(Str base) {
+    MArena *a = g_a_strings;
+
     char space = ' ';
     char quote = '"';
 
@@ -230,7 +287,7 @@ StrLst *StrSplitSpacesKeepQuoted(MArena *a_dest, Str base) {
     }
 
     char split = space;
-    StrLst *next = _StrLstAllocNext(a_dest);
+    StrLst *next = _StrLstAllocNext();
     StrLst *first = next;
     StrLst *node = next;
 
@@ -258,14 +315,14 @@ StrLst *StrSplitSpacesKeepQuoted(MArena *a_dest, Str base) {
         // copy
         if (j > 0) {
             if (node->len > 0) {
-                next = _StrLstAllocNext(a_dest);
+                next = _StrLstAllocNext();
                 node->next = next;
                 node->first = first;
                 node = next;
             }
 
             node->len = j;
-            ArenaAlloc(a_dest, j);
+            ArenaAlloc(a, j);
             _memcpy(node->str, base.str + i, j);
         }
 
@@ -332,7 +389,9 @@ Str StrJoinInsertChar(MArena *a, StrLst *strs, char insert) {
 // StrLst: string list builder functions
 
 
-StrLst *StrLstPush(MArena *a, char *str, StrLst *after = NULL) {
+StrLst *StrLstPush(char *str, StrLst *after = NULL) {
+    MArena *a = g_a_strings;
+
     StrLst _ = {};
     StrLst *lst = (StrLst*) ArenaPush(a, &_, sizeof(StrLst));
     lst->len = _strlen(str);
@@ -353,21 +412,14 @@ StrLst *StrLstPush(MArena *a, char *str, StrLst *after = NULL) {
     }
     return lst;
 }
-
-StrLst *StrLstPush(MArena *a, StrLst *lst, char *str) {
-    
-    // USAGE: e.g.
-    //
-    //  StrLst lst = NULL;
-    //  lst = StrLstPush(lst, "hello strs");
-
-    return StrLstPush(a, str, lst);
+StrLst *StrLstPush(Str str, StrLst *after = NULL) {
+    return StrLstPush(StrZeroTerm(str), after);
 }
 
-char *StrLstNext(MArena *a, StrLst **lst) {
-    char *str = (*lst)->str;
+Str StrLstNext(StrLst **lst) {
+    Str s = (*lst)->GetStr();
     *lst = (*lst)->next;
-    return str;
+    return s;
 }
 
 void StrLstPrint(StrLst lst) {
@@ -482,56 +534,12 @@ void StrBuffClear(StrBuff *buff) {
 
 
 //
-//  Automated arena signatures
+//  TODO: distribute these functions
 
 
-static MArena _g_a_strings;
-static MArena *g_a_strings;
-MArena *StringCreateArena() {
-    if (g_a_strings == NULL) {
-        _g_a_strings = ArenaCreate();
-        g_a_strings = &_g_a_strings;
-    }
-    return g_a_strings;
-}
-MArena *StringInit() {
-    return StringCreateArena();
-}
-void StringSetGlobalArena(MArena *a) {
-    g_a_strings = a;
-}
-MArena *StringGetGlobalArena() {
-    return g_a_strings;
-}
-MArena *InitStrings() {
-    return StringCreateArena();
-}
-
-
-//
-//  Wrappers without any arena arg, these just expand on the currently set arena
-
-
-inline
-char *StrZeroTerm(Str s) {
-    return StrZeroTerm(g_a_strings, s);
-}
-inline
-Str StrLiteral(const char *literal) {
-    return StrLiteral(g_a_strings, literal);
-}
-inline
-Str StrInline(const char *literal) {
-    return Str { (char*) literal, _strlen((char*) literal) };
-}
-inline
-Str StrLiteral(char *literal) {
-    return StrLiteral(g_a_strings, (const char*) literal);
-}
-#define StrL StrLiteral
 inline
 bool StrEqual(Str a, const char *lit) {
-    Str b = StrLiteral(lit);
+    Str b = StrL(lit);
     return StrEqual(a, b);
 }
 inline
@@ -543,69 +551,6 @@ inline
 Str StrAlloc(u32 len) {
     char *buff = (char*) ArenaAlloc(g_a_strings, len);
     return Str { buff, len };
-}
-inline
-Str StrCat(Str a, Str b) {
-    return StrCat(g_a_strings, a, b);
-}
-inline
-Str StrCat(Str a, char *b) {
-    return StrCat(g_a_strings, a, StrLiteral(b));
-}
-inline
-Str StrCat(Str a, const char *b) {
-    return StrCat(g_a_strings, a, StrLiteral(b));
-}
-inline
-Str StrCat(const char *a, Str b) {
-    return StrCat(g_a_strings, StrLiteral(a), b);
-}
-inline
-StrLst *StrSplit(Str base, char split) {
-    return StrSplit(g_a_strings, base, split);
-}
-inline
-StrLst *StrSplitSpacesKeepQuoted(Str base) {
-    return StrSplitSpacesKeepQuoted(g_a_strings, base);
-}
-inline
-StrLst *StrSplitLines(Str base) {
-    return StrSplit(g_a_strings, base, '\n');
-}
-inline
-StrLst *StrSplitWords(Str base) {
-    return StrSplit(g_a_strings, base, ' ');
-}
-inline
-Str StrJoin(StrLst *strs) {
-    return StrJoin(g_a_strings, strs);
-}
-inline
-Str StrTrim(Str s, char t) {
-    return StrTrim(g_a_strings, s, t);
-}
-inline
-Str StrJoinInsertChar(StrLst *strs, char insert) {
-    return StrJoinInsertChar(g_a_strings, strs, insert);
-}
-inline
-StrLst *StrLstPush(char *str, StrLst *after = NULL) {
-    return StrLstPush(g_a_strings, str, after);
-}
-inline
-StrLst *StrLstPush(const char *str, StrLst *after = NULL) {
-    return StrLstPush(g_a_strings, (char*) str, after);
-}
-inline
-StrLst *StrLstPush(Str str, StrLst *after = NULL) {
-    return StrLstPush(g_a_strings, StrZeroTerm(str), after);
-}
-inline
-char *StrLstNext(StrLst **lst) {
-    return StrLstNext(g_a_strings, lst);
-}
-StrLst *StrLstPush(StrLst *lst, char *str) {
-    return StrLstPush(g_a_strings, lst, str);
 }
 
 

@@ -83,6 +83,26 @@ void *LoadFileFSeek(MArena *a_dest, char *filepath, u32 *size = NULL) {
     return dest;
 }
 
+void *LoadFileFSeek(MArena *a_dest, Str filepath, u32 *size = NULL) {
+    assert(filepath.len < 1024);
+    char filepath_zt[1024];
+    sprintf(filepath_zt, "%.*s", filepath.len, filepath.str);
+    filepath_zt[filepath.len] = 0;
+
+    void *data = LoadFileFSeek(a_dest, filepath_zt, size);
+    return data;
+}
+
+Str LoadTextFileFSeek(MArena *a_dest, Str filepath) {
+    char filepath_zt[1024];
+    sprintf(filepath_zt, "%.*s", filepath.len, filepath.str);
+    filepath_zt[filepath.len] = 0;
+
+    u32 size;
+    void *data = LoadFileFSeek(a_dest, filepath_zt, &size);
+    return Str { (char*) data, size };
+}
+
 void *LoadFileFSeek(MArena *a_dest, const char *filepath, u32 *size = NULL) {
     return LoadFileFSeek(a_dest, (char*) filepath, size);
 }
@@ -122,7 +142,7 @@ Str StrBasename(char *path) {
 
     // TODO: shouldn't this fail?
 
-    Str before_ext = StrSplit(StrLiteral(path), '.')->GetStr();
+    Str before_ext = StrSplit(StrL(path), '.')->GetStr();
     StrLst* slashes = StrSplit(before_ext, '/');
     while (slashes->next) {
         slashes = slashes->next;
@@ -135,8 +155,8 @@ Str StrBasename(MArena *a, char *path) {
 
     // TODO: shouldn't this fail?
 
-    Str before_ext = StrSplit(a, StrLiteral(a, path), '.')->GetStr();
-    StrLst* slashes = StrSplit(a, before_ext, '/');
+    Str before_ext = StrSplit(StrL(path), '.')->GetStr();
+    StrLst* slashes = StrSplit(before_ext, '/');
     while (slashes->next) {
         slashes = slashes->next;
     }
@@ -149,7 +169,7 @@ Str StrBasename(Str path) {
 
 Str StrExtension(MArena *a, char *path) {
     Str s { NULL, 0 };
-    StrLst *lst = StrSplit(a, StrLiteral(a, path), '.');
+    StrLst *lst = StrSplit(StrL(path), '.');
     if (lst->next != NULL) {
         s = lst->next->GetStr();
     }
@@ -160,7 +180,7 @@ Str StrExtension(char *path) {
     assert(g_a_strings != NULL && "init strings first");
 
     Str s { NULL, 0 };
-    StrLst *lst = StrSplit(StrLiteral(path), '.');
+    StrLst *lst = StrSplit(StrL(path), '.');
     while (lst->next != NULL) {
         lst = lst->next;
     }
@@ -181,7 +201,7 @@ Str StrDirPath(Str path) {
     Str cat = StrL("");
     for (u32 i = 0; i < len - 1; ++i) {
         cat = StrCat(cat, slash->GetStr());
-        cat = StrCat(cat, "/");
+        cat = StrCat(cat, StrL("/"));
         slash = slash->next;
     }
     return cat;
@@ -193,17 +213,17 @@ Str StrPathBuild(Str dirname, Str basename, Str ext) {
 
     Str path = dirname;
     if (dirname.len) {
-       path = StrCat(dirname, "/");
+       path = StrCat(dirname, StrL("/"));
     }
     path = StrCat(path, basename);
-    path = StrCat(path, ".");
+    path = StrCat(path, StrL("."));
     path = StrCat(path, ext);
 
     return path;
 }
 
 Str StrPathJoin(Str path_1, Str path_2) {
-    Str path = StrCat(path_1, "/");
+    Str path = StrCat(path_1, StrL("/"));
     path = StrCat(path, path_2);
     return path;
 }
@@ -212,7 +232,7 @@ StrLst *GetFilesExt(const char *extension, const char *path = ".") {
     StrLst *all = GetFilesInFolderPaths(InitStrings(), path);
     StrLst *filtered = NULL;
     StrLst *first = NULL;
-    Str ext = StrLiteral(extension);
+    Str ext = StrL(extension);
     while (all != NULL) {
         Str _fpath = all->GetStr();
         Str _ext = StrExtension(_fpath);
@@ -243,7 +263,7 @@ struct FInfo {
     Str BuildName(const char *prefix, const char *suffix, const char *ext) {
         Str bn_new = StrL(prefix);
         bn_new = StrCat(bn_new, basename);
-        bn_new = StrCat(bn_new, suffix);
+        bn_new = StrCat(bn_new, StrL(suffix));
         Str rebuilt = StrPathBuild(dirname, bn_new, StrL(ext));
         return rebuilt;
     }
@@ -253,7 +273,7 @@ struct FInfo {
     Str StripDirname() {
         Str filename = StrL("");
         filename = StrCat(filename, basename);
-        filename = StrCat(filename, ".");
+        filename = StrCat(filename, StrL("."));
         filename = StrCat(filename, ext);
         return filename;
     }
@@ -299,31 +319,6 @@ Str GetYYMMDD() {
     printf("%s\n", buff);
 
     return s;
-}
-
-
-//
-// Baselayer initialization
-
-
-MContext *InitBaselayer() {
-    RandInit();
-    StringInit();
-    return GetContext();
-}
-
-void BaselayerAssertVersion(u32 major, u32 minor, u32 patch) {
-    if (
-        BASELAYER_VERSION_MAJOR != major ||
-        BASELAYER_VERSION_MINOR != minor ||
-        BASELAYER_VERSION_PATCH != patch
-    ) {
-        assert(1 == 0 && "baselayer version check failed");
-    }
-}
-
-void BaselayerPrintVersion() {
-    printf("%d.%d.%d\n", BASELAYER_VERSION_MAJOR, BASELAYER_VERSION_MINOR, BASELAYER_VERSION_PATCH);
 }
 
 

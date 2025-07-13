@@ -168,12 +168,12 @@ const char *getBuild() { // courtesy of S.O.
             if (d) {
                 d = opendir(rootpath);
 
-                Str path = StrLiteral(rootpath);
+                Str path = StrL(rootpath);
                 if (path.len == 1 && path.str[0] == '.') {
                     path.len = 0;
                 }
                 else if (path.str[path.len-1] != '/') {
-                    path = StrCat(path, "/");
+                    path = StrCat(path, StrL("/"));
                 }
 
                 StrLst *lst = NULL;
@@ -183,7 +183,7 @@ const char *getBuild() { // courtesy of S.O.
                         continue;
                     }
 
-                    Str dname = StrCat( path, StrLiteral(dir->d_name) );
+                    Str dname = StrCat(path, StrL(dir->d_name));
                     lst = StrLstPush(dname, lst);
                     if (first == NULL) {
                         first = lst;
@@ -200,12 +200,12 @@ const char *getBuild() { // courtesy of S.O.
             if (DIR *dir = opendir(rootpath)) {
                 dir = opendir(rootpath);
 
-                Str path = StrLiteral(rootpath);
+                Str path = StrL(rootpath);
                 if (path.len == 1 && path.str[0] == '.') {
                     path.len = 0;
                 }
                 else if (path.str[path.len-1] != '/') {
-                    path = StrCat(path, "/");
+                    path = StrCat(path, StrL("/"));
                 }
 
                 while ((dir_entry = readdir(dir)) != NULL) {
@@ -213,7 +213,7 @@ const char *getBuild() { // courtesy of S.O.
                         continue;
                     }
 
-                    Str file_path = StrCat( path, StrLiteral(dir_entry->d_name) );
+                    Str file_path = StrCat( path, StrL(dir_entry->d_name) );
                     if (head == NULL) {
                         head = tail;
                     }
