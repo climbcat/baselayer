@@ -80,41 +80,6 @@ inline f32 MaxF32(f32 a, f32 b) { return (a > b) ? a : b; }
 inline f64 MaxF64(f64 a, f64 b) { return (a > b) ? a : b; }
 
 
-//
-// qol
-
-
-inline void _memcpy(void *dest, const void *src, size_t size) {
-    memcpy(dest, src, size);
-    /*
-    u8 *s = (u8*) src;
-    u8 *d = (u8*) dest;
-
-    for (u32 i = 0; i < size; ++i) {
-        d[i] = s[i];
-    }
-    */
-}
-inline u32 _strcmp(const char *dest, const char *src) {
-    u32 i = 0;
-    while (dest[i] != '\0' || src[i] != '\0') {
-        if (dest[i] != src[i]) {
-            return 1;
-        }
-        ++i;
-    }
-    return 0;
-}
-inline u32 _strlen(char *str) {
-    if (!str) {
-        return 0;
-    }
-    u32 i = 0;
-    while (str[i] != '\0') {
-        ++i;
-    }
-    return i;
-}
 inline void _memzero(void *dest, size_t n) {
     u8 *d = (u8*) dest;
     for (u32 i = 0; i < n; ++i) {
@@ -185,7 +150,7 @@ u32 ParseInt(char *text) {
     if (sgned) {
         ++text;
     }
-    u32 len = _strlen(text);
+    u32 len = (u32) strlen(text);
 
     // decimals before dot
     for (u32 i = 0; i < len; ++i) {
@@ -285,7 +250,7 @@ void CLAInit(s32 argc, char **argv) {
 bool CLAContainsArg(const char *search, int argc, char **argv, int *idx = NULL) {
     for (int i = 0; i < argc; ++i) {
         char *arg = argv[i];
-        if (!_strcmp(argv[i], search)) {
+        if (!strcmp(argv[i], search)) {
             if (idx != NULL) {
                 *idx = i;
             }
@@ -299,10 +264,10 @@ bool CLAContainsArgs(const char *search_a, const char *search_b, int argc, char 
     bool found_a = false;
     bool found_b = false;
     for (int i = 0; i < argc; ++i) {
-        if (!_strcmp(argv[i], search_a)) {
+        if (!strcmp(argv[i], search_a)) {
             found_a = true;
         }
-        if (!_strcmp(argv[i], search_b)) {
+        if (!strcmp(argv[i], search_b)) {
             found_b = true;
         }
     }
@@ -314,7 +279,7 @@ char *CLAGetArgValue(const char *key, int argc, char **argv) {
     bool error = !CLAContainsArg(key, argc, argv, &i) || i == argc - 1;;
     if (error == false) {
         char *val = argv[i+1];
-        error = _strlen(val) > 1 && val[0] == '-' && val[1] == '-';
+        error = strlen(val) > 1 && val[0] == '-' && val[1] == '-';
     }
     if (error == true) {
         printf("KW arg %s must be followed by a value arg\n", key);

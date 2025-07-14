@@ -179,7 +179,7 @@ const char *getBuild() { // courtesy of S.O.
                 StrLst *lst = NULL;
                 while ((dir = readdir(d)) != NULL) {
                     // omit "." and ".."
-                    if (!_strcmp(dir->d_name, ".") || !_strcmp(dir->d_name, "..")) {
+                    if (!strcmp(dir->d_name, ".") || !strcmp(dir->d_name, "..")) {
                         continue;
                     }
 
@@ -209,7 +209,7 @@ const char *getBuild() { // courtesy of S.O.
                 }
 
                 while ((dir_entry = readdir(dir)) != NULL) {
-                    if (!_strcmp(dir_entry->d_name, ".") || !_strcmp(dir_entry->d_name, "..")) {
+                    if (!strcmp(dir_entry->d_name, ".") || !strcmp(dir_entry->d_name, "..")) {
                         continue;
                     }
 
@@ -220,7 +220,7 @@ const char *getBuild() { // courtesy of S.O.
 
                     if (dir_entry->d_type == 4) { // recurse into directory
                         if (do_recurse) {
-                            tail = GetFilePaths_Rec( StrZeroTerm(file_path), head, tail, extension_filter, true);
+                            tail = GetFilePaths_Rec( StrZ(file_path), head, tail, extension_filter, true);
                         }
                     }
                     else {

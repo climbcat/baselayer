@@ -3,27 +3,6 @@
 #include "test.cpp"
 
 
-void RunProgram() {
-    printf("Use:\n");
-    printf("./baselayer --help\n");
-}
-
-
-Str LoadTextFile(MArena *a_files, const char *f_path) {
-    Str f_str = {};
-    f_str.str = (char*) LoadFileFSeek(a_files, f_path, &f_str.len);
-
-    return f_str;
-}
-
-Str LoadTextFile(MArena *a_files, Str f_path) {
-    Str f_str = {};
-    f_str.str = (char*) LoadFileFSeek(a_files, StrZeroTerm(f_path), &f_str.len);
-
-    return f_str;
-}
-
-
 int main (int argc, char **argv) {
     TimeProgram;
     bool force_tests = false;
@@ -36,17 +15,20 @@ int main (int argc, char **argv) {
         printf("--test:         Run test functions\n");
         exit(0);
     }
+
     else if (CLAContainsArg("--test", argc, argv) || force_tests) {
         Test();
     }
+
     else if (CLAContainsArg("--version", argc, argv) || force_tests) {
         BaselayerPrintVersion();
         exit(0);
     }
+
     else if (CLAContainsArg("--release", argc, argv) || force_tests) {
 
         MArena *a_files = GetContext()->a_life;
-        InitStrings();
+        StrInit();
 
         StrLst *f_sources = NULL;
         f_sources = StrLstPush("../base.h", f_sources);
@@ -56,6 +38,7 @@ int main (int argc, char **argv) {
         f_sources = StrLstPush("../hash.h", f_sources);
         f_sources = StrLstPush("../utils.h", f_sources);
         f_sources = StrLstPush("../platform.h", f_sources);
+        f_sources = StrLstPush("../init.h", f_sources);
         f_sources = f_sources->first;
 
         StrBuff buff = StrBuffInit();
@@ -79,7 +62,9 @@ int main (int argc, char **argv) {
         StrBuffPrint1K(&buff, "#endif // __JG_BASELAYER_H__\n", 0);
         SaveFile("jg_baselayer.h_OUT", buff.str, buff.len);
     }
+
     else {
-        RunProgram();
+        printf("Use:\n");
+        printf("./baselayer --help\n");
     }
 }

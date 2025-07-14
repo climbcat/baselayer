@@ -455,7 +455,7 @@ void TestPoolAllocatorAgain()  {
 
 void TestStrBuffer() {
     printf("\nTestStrBuffer\n");
-    StringInit();
+    StrInit();
 
     StrBuff buff = StrBuffInit();
     StrBuffNewLine(&buff);

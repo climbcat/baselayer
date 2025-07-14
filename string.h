@@ -7,35 +7,51 @@
 
 
 //
-//  String allocation - defaults to being the tmp allocator
+//  Init
 
 
 static MArena _g_a_strings;
 static MArena *g_a_strings;
-MArena *StringCreateArena() {
+static MArena _g_a_string_interns;
+static MArena *g_a_string_interns;
+
+static MArena *g_a_strings_cached;
+static MArena *g_a_string_interns_cached;
+
+void StrSetArenas(MArena *a_tmp, MArena *a_intern) {
+    g_a_strings_cached = g_a_strings;
+    g_a_string_interns_cached = g_a_string_interns;
+
+    g_a_strings = a_tmp;
+    g_a_string_interns = a_intern;
+}
+void StrPopArenas() {
+    g_a_strings = g_a_strings_cached;
+    g_a_string_interns = g_a_string_interns_cached;
+}
+
+void StrInit() {
     if (g_a_strings == NULL) {
         _g_a_strings = ArenaCreate();
         g_a_strings = &_g_a_strings;
     }
+    if (g_a_string_interns == NULL) {
+        _g_a_string_interns = ArenaCreate();
+        g_a_string_interns = &_g_a_strings;
+    }
+}
+
+MArena *StrGetTmpArena() {
     return g_a_strings;
 }
-MArena *StringInit() {
-    return StringCreateArena();
-}
-void StringSetGlobalArena(MArena *a) {
-    g_a_strings = a;
-}
-MArena *StringGetGlobalArena() {
-    return g_a_strings;
-}
-MArena *InitStrings() {
-    return StringCreateArena();
+
+MArena *StrGetInternArena() {
+    return g_a_string_interns;
 }
 
 
 //
-//  Str; length-based strings
-//
+//  Str
 
 
 struct Str {
@@ -44,42 +60,78 @@ struct Str {
 };
 
 
-char *StrZeroTerm(Str s) {
-    MArena *a = g_a_strings;
-
-    char * result = (char*) ArenaAlloc(a, s.len + 1);
-    _memcpy(result, s.str, s.len);
-    result[s.len] = 0;
-    return result;
+inline
+Str StrAlloc(MArena *a_dest, u32 len) {
+    char *buff = (char*) ArenaAlloc(a_dest, len);
+    return Str { buff, len };
 }
 
-Str StrL(const char *str) { // StrLiteral
+inline
+Str StrAlloc(u32 len) {
+    char *buff = (char*) ArenaAlloc(g_a_strings, len);
+    return Str { buff, len };
+}
 
-    // NOTE: This would push to the strings arena, we often don't need this. Might be a different function
-    /*
+Str StrIntern(Str s) { // NOTE: not an actual interna at this time, but just pushes the string to a the current lifetime arena
+    Str s_dest = {};
+    if (s.len) {
+        s_dest = StrAlloc(g_a_string_interns, s.len);
+        memcpy(s_dest.str, s.str, s.len);
+    }
+    return s_dest;
+}
+
+char *StrZ(Str s, bool check_unsafe = false) {
+    if (check_unsafe && s.str[s.len] == '\0') {
+        return s.str;
+    }
+    else {
+        char * zt = (char*) ArenaAlloc(g_a_strings, s.len + 1);
+        memcpy(zt, s.str, s.len);
+        zt[s.len] = 0;
+        return zt;
+    }
+}
+
+inline
+char *StrZU(Str s) {
+    return StrZ(s, true);
+}
+
+inline
+Str StrL(const char *str) { // StrLiteral
+    return Str { (char*) str, (u32) strlen((char*) str) };
+}
+
+Str StrL(char *str) {
     Str s;
     s.len = 0;
-    while (*(lit + s.len) != '\0') {
+    while (*(str + s.len) != '\0') {
         ++s.len;
     }
     s.str = (char*) ArenaAlloc(g_a_strings, s.len);
-    _memcpy(s.str, lit, s.len);
+    memcpy(s.str, str, s.len);
 
     return s;
-    */
-
-    return Str { (char*) str, _strlen((char*) str) };
 }
 
-inline void StrPrint(Str s) {
+
+//
+//  String API
+
+
+inline
+void StrPrint(Str s) {
     printf("%.*s", s.len, s.str);
 }
 
-inline void StrPrint(const char *aff, Str s, const char *suf) {
+inline
+void StrPrint(const char *aff, Str s, const char *suf) {
     printf("%s%.*s%s", aff, s.len, s.str, suf);
 }
 
-inline void StrPrint(Str *s) {
+inline
+void StrPrint(Str *s) {
     printf("%.*s", s->len, s->str);
 }
 
@@ -112,6 +164,11 @@ bool StrEqual(Str a, Str b) {
     return a.len == b.len;
 }
 
+inline
+bool StrEqual(Str a, const char *b) {
+    return StrEqual(a, StrL(b));
+}
+
 bool StrContainsChar(Str s, char c) {
     for (u32 i = 0; i < s.len; ++i) {
         if (c == s.str[i]) {
@@ -125,10 +182,14 @@ Str StrCat(Str a, Str b) {
     Str cat;
     cat.len = a.len + b.len;
     cat.str = (char*) ArenaAlloc(g_a_strings, cat.len);
-    _memcpy(cat.str, a.str, a.len);
-    _memcpy(cat.str + a.len, b.str, b.len);
+    memcpy(cat.str, a.str, a.len);
+    memcpy(cat.str + a.len, b.str, b.len);
 
     return cat;
+}
+
+Str StrCat(Str a, const char *b) {
+    return StrCat(a, StrL(b));
 }
 
 Str StrTrim(Str s, char t) {
@@ -150,10 +211,19 @@ void StrCopy(Str src, Str dest) {
     }
 }
 
-Str ToStr(char *s) {
-    Str result = {};
-    result.str = s;
-    result.len = _strlen(s);
+Str StrInsertReplace(Str src, Str amend, Str at) {
+    Str before = src;
+    before.len = (at.str - src.str);
+
+    Str after = {};
+    after.len = src.len - before.len - at.len;
+    after.str = (src.str + src.len) - after.len;
+
+    s32 len = src.len - at.len + amend.len;
+    Str result = StrAlloc(len);
+    result = StrCat(before, amend);
+    result = StrCat(result, after);
+
     return result;
 }
 
@@ -173,7 +243,7 @@ struct StrLst {
     }
     void SetStr(char * s) {
         str = s;
-        len = _strlen(s);
+        len = (u32) strlen(s);
     }
 };
 
@@ -242,7 +312,7 @@ StrLst *StrSplit(Str base, char split) {
 
             node->len = j;
             ArenaAlloc(a, j);
-            _memcpy(node->str, base.str + i, j);
+            memcpy(node->str, base.str + i, j);
         }
 
         // iter
@@ -323,7 +393,7 @@ StrLst *StrSplitSpacesKeepQuoted(Str base) {
 
             node->len = j;
             ArenaAlloc(a, j);
-            _memcpy(node->str, base.str + i, j);
+            memcpy(node->str, base.str + i, j);
         }
 
         // iter
@@ -346,7 +416,7 @@ Str StrJoin(MArena *a, StrLst *strs) {
     join.str = (char*) ArenaAlloc(a, amount_needed);
     join.len = 0;
     while (strs != NULL) {
-        _memcpy(join.str + join.len, strs->str, strs->len);
+        memcpy(join.str + join.len, strs->str, strs->len);
         join.len += strs->len;
         strs = strs->next;
     }
@@ -371,7 +441,7 @@ Str StrJoinInsertChar(MArena *a, StrLst *strs, char insert) {
     join.str = (char*) ArenaAlloc(a, amount_needed);
     join.len = 0;
     while (strs != NULL) {
-        _memcpy(join.str + join.len, strs->str, strs->len);
+        memcpy(join.str + join.len, strs->str, strs->len);
         join.len += strs->len;
         strs = strs->next;
 
@@ -386,7 +456,7 @@ Str StrJoinInsertChar(MArena *a, StrLst *strs, char insert) {
 
 
 //
-// StrLst: string list builder functions
+//  StrLst: string list builder functions
 
 
 StrLst *StrLstPush(char *str, StrLst *after = NULL) {
@@ -394,15 +464,14 @@ StrLst *StrLstPush(char *str, StrLst *after = NULL) {
 
     StrLst _ = {};
     StrLst *lst = (StrLst*) ArenaPush(a, &_, sizeof(StrLst));
-    lst->len = _strlen(str);
+    lst->len = (u32) strlen(str);
     lst->str = (char*) ArenaAlloc(a, lst->len + 1);
     lst->str[lst->len] = 0;
 
-    for (u32 i = 0; i < lst->len; ++i) {
-        lst->str[i] = str[i];
-    }
+    memcpy(lst->str, str, lst->len);
+
     if (after != NULL) {
-        assert(after->first && "enforce first is set");
+        assert(after->first && "ensure first is set");
 
         after->next = lst;
         lst->first = after->first;
@@ -412,8 +481,13 @@ StrLst *StrLstPush(char *str, StrLst *after = NULL) {
     }
     return lst;
 }
+
+StrLst *StrLstPush(const char *str, StrLst *after = NULL) {
+    return StrLstPush((char*) str, after);
+}
+
 StrLst *StrLstPush(Str str, StrLst *after = NULL) {
-    return StrLstPush(StrZeroTerm(str), after);
+    return StrLstPush(StrZ(str), after);
 }
 
 Str StrLstNext(StrLst **lst) {
@@ -472,7 +546,102 @@ StrLst *StrLstPop(StrLst *pop, StrLst *prev) {
 
 
 //
-// StrBuff: A log or similar output buffer that just extends
+//  Path / filename helpers
+
+
+Str StrBasename(char *path) {
+    // TODO: re-impl. using StrLst navigation, e.g. StrLstLast(); StrLstLen(); StrLstAtIdx(len - 2);
+    //      To robustly find the basename.
+
+    StrLst *before_ext = StrSplit(StrL(path), '.');
+    StrLst *iter = before_ext;
+    while (iter->next) {
+        iter = iter->next;
+        if (iter->next == NULL) {
+            break;
+        }
+        else {
+            before_ext = iter;
+        }
+    }
+
+    StrLst* slashes = StrSplit(before_ext->GetStr(), '/');
+    while (slashes->next) {
+        slashes = slashes->next;
+    }
+
+    return slashes->GetStr();
+}
+
+inline
+Str StrBasename(Str path) {
+    return StrBasename( StrZ(path) );
+}
+
+Str StrExtension(MArena *a, char *path) {
+    Str s { NULL, 0 };
+    StrLst *lst = StrSplit(StrL(path), '.');
+    if (lst->next != NULL) {
+        s = lst->next->GetStr();
+    }
+    return s;
+}
+
+Str StrExtension(char *path) {
+    assert(g_a_strings != NULL && "init strings first");
+
+    Str s { NULL, 0 };
+    StrLst *lst = StrSplit(StrL(path), '.');
+    while (lst->next != NULL) {
+        lst = lst->next;
+    }
+    s = lst->GetStr();
+    return s;
+}
+
+Str StrExtension(Str path) {
+    return StrExtension(StrZ(path));
+}
+
+Str StrDirPath(Str path) {
+    assert(g_a_strings != NULL && "init strings first");
+
+    StrLst *slash = StrSplit(path, '/');
+    u32 len = StrListLen(slash);
+
+    Str cat = StrL("");
+    for (u32 i = 0; i < len - 1; ++i) {
+        cat = StrCat(cat, slash->GetStr());
+        cat = StrCat(cat, StrL("/"));
+        slash = slash->next;
+    }
+    return cat;
+}
+
+Str StrPathBuild(Str dirname, Str basename, Str ext) {
+    dirname = StrTrim(dirname, '/');
+    basename = StrTrim(basename, '/');
+
+    Str path = dirname;
+    if (dirname.len) {
+       path = StrCat(dirname, StrL("/"));
+    }
+    path = StrCat(path, basename);
+    path = StrCat(path, StrL("."));
+    path = StrCat(path, ext);
+
+    return path;
+}
+
+Str StrPathJoin(Str path_1, Str path_2) {
+    Str path = StrCat(path_1, StrL("/"));
+    path = StrCat(path, path_2);
+    return path;
+}
+
+
+//
+//  StrBuff
 
 
 struct StrBuff {
@@ -530,27 +699,6 @@ void StrBuffClear(StrBuff *buff) {
     ArenaClear(&buff->a);
     buff->str = (char*) ArenaAlloc(&buff->a, 0);
     buff->len = 0;
-}
-
-
-//
-//  TODO: distribute these functions
-
-
-inline
-bool StrEqual(Str a, const char *lit) {
-    Str b = StrL(lit);
-    return StrEqual(a, b);
-}
-inline
-Str StrAlloc(MArena *a_dest, u32 len) {
-    char *buff = (char*) ArenaAlloc(a_dest, len);
-    return Str { buff, len };
-}
-inline
-Str StrAlloc(u32 len) {
-    char *buff = (char*) ArenaAlloc(g_a_strings, len);
-    return Str { buff, len };
 }
 
 

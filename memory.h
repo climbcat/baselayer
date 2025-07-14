@@ -98,7 +98,7 @@ void ArenaRelease(MArena *a, u64 len) {
 inline
 void *ArenaPush(MArena *a, void *data, u32 len) {
     void *dest = ArenaAlloc(a, len);
-    _memcpy(dest, data, len);
+    memcpy(dest, data, len);
     return dest;
 }
 

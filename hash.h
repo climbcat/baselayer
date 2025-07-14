@@ -164,7 +164,7 @@ u64 DictStoragePush(Dict *dct, Str key, void *val, u32 sz_val, u64 slot_ptr) {
     // save key and value
     if (is_resetval) {
         assert(sz_val == collider->sz_val && "demand the same size for reset-vals");
-        _memcpy(collider->val, val, sz_val);
+        memcpy(collider->val, val, sz_val);
     }
     else {
         hdr->sz_val = sz_val;
@@ -189,7 +189,7 @@ u64 DictStoragePush(Dict *dct, Str key, void *val, u32 sz_val, u64 slot_ptr) {
 void DictStorageWalk(Dict *dct) {
     DictKeyVal *kv = dct->head;
     while (kv != NULL) {
-        printf("%s : %u\n", StrZeroTerm(kv->key), *((u32*) kv->val));
+        printf("%s : %u\n", StrZ(kv->key), *((u32*) kv->val));
 
         kv = kv->nxt;
     }
@@ -212,11 +212,11 @@ void DictPut(Dict *dct, Str key, void *val, u32 sz = 0) {
 }
 inline
 void DictPut(Dict *dct, char *key, void *val, u32 sz = 0) {
-    return DictPut(dct, Str { key, _strlen(key) }, val, sz);
+    return DictPut(dct, Str { key, (u32) strlen(key) }, val, sz);
 }
 inline
 void DictPut(Dict *dct, const char *key, void *val, u32 sz = 0) {
-    return DictPut(dct, Str { (char*) key, _strlen( (char*) key) }, val, sz);
+    return DictPut(dct, Str { (char*) key, (u32) strlen( (char*) key) }, val, sz);
 }
 
 void *DictGet(Dict *dct, Str key) {
@@ -233,11 +233,11 @@ void *DictGet(Dict *dct, Str key) {
 }
 inline
 void *DictGet(Dict *dct, char *key) {
-    return DictGet(dct, Str { key, _strlen(key) } );
+    return DictGet(dct, Str { key, (u32) strlen(key) } );
 }
 inline
 void *DictGet(Dict *dct, const char *key) {
-    return DictGet(dct, Str { (char*) key, _strlen((char*) key) } );
+    return DictGet(dct, Str { (char*) key, (u32) strlen((char*) key) } );
 }
 
 

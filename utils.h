@@ -107,6 +107,20 @@ void *LoadFileFSeek(MArena *a_dest, const char *filepath, u32 *size = NULL) {
     return LoadFileFSeek(a_dest, (char*) filepath, size);
 }
 
+Str LoadTextFile(MArena *a_files, const char *f_path) {
+    Str f_str = {};
+    f_str.str = (char*) LoadFileFSeek(a_files, f_path, &f_str.len);
+
+    return f_str;
+}
+
+Str LoadTextFile(MArena *a_files, Str f_path) {
+    Str f_str = {};
+    f_str.str = (char*) LoadFileFSeek(a_files, StrZ(f_path), &f_str.len);
+
+    return f_str;
+}
+
 bool SaveFile(char *filepath, u8 *data, u32 len);
 
 bool SaveFile(const char *filepath, u8 *data, u32 len) {
@@ -132,104 +146,8 @@ bool ArenaSave(MArena *a, const char *filename) {
     return ArenaSave(a, (char *) filename);
 }
 
-
-//
-//  Path / filename helpers
-
-
-Str StrBasename(char *path) {
-    assert(g_a_strings != NULL && "init strings first");
-
-    // TODO: shouldn't this fail?
-
-    Str before_ext = StrSplit(StrL(path), '.')->GetStr();
-    StrLst* slashes = StrSplit(before_ext, '/');
-    while (slashes->next) {
-        slashes = slashes->next;
-    }
-    return slashes->GetStr();
-}
-
-Str StrBasename(MArena *a, char *path) {
-    assert(g_a_strings != NULL && "init strings first");
-
-    // TODO: shouldn't this fail?
-
-    Str before_ext = StrSplit(StrL(path), '.')->GetStr();
-    StrLst* slashes = StrSplit(before_ext, '/');
-    while (slashes->next) {
-        slashes = slashes->next;
-    }
-    return slashes->GetStr();
-}
-
-Str StrBasename(Str path) {
-    return StrBasename(StrZeroTerm(path));
-}
-
-Str StrExtension(MArena *a, char *path) {
-    Str s { NULL, 0 };
-    StrLst *lst = StrSplit(StrL(path), '.');
-    if (lst->next != NULL) {
-        s = lst->next->GetStr();
-    }
-    return s;
-}
-
-Str StrExtension(char *path) {
-    assert(g_a_strings != NULL && "init strings first");
-
-    Str s { NULL, 0 };
-    StrLst *lst = StrSplit(StrL(path), '.');
-    while (lst->next != NULL) {
-        lst = lst->next;
-    }
-    s = lst->GetStr();
-    return s;
-}
-
-Str StrExtension(Str path) {
-    return StrExtension(StrZeroTerm(path));
-}
-
-Str StrDirPath(Str path) {
-    assert(g_a_strings != NULL && "init strings first");
-
-    StrLst *slash = StrSplit(path, '/');
-    u32 len = StrListLen(slash);
-
-    Str cat = StrL("");
-    for (u32 i = 0; i < len - 1; ++i) {
-        cat = StrCat(cat, slash->GetStr());
-        cat = StrCat(cat, StrL("/"));
-        slash = slash->next;
-    }
-    return cat;
-}
-
-Str StrPathBuild(Str dirname, Str basename, Str ext) {
-    dirname = StrTrim(dirname, '/');
-    basename = StrTrim(basename, '/');
-
-    Str path = dirname;
-    if (dirname.len) {
-       path = StrCat(dirname, StrL("/"));
-    }
-    path = StrCat(path, basename);
-    path = StrCat(path, StrL("."));
-    path = StrCat(path, ext);
-
-    return path;
-}
-
-Str StrPathJoin(Str path_1, Str path_2) {
-    Str path = StrCat(path_1, StrL("/"));
-    path = StrCat(path, path_2);
-    return path;
-}
-
-StrLst *GetFilesExt(const char *extension, const char *path = ".") {
-    StrLst *all = GetFilesInFolderPaths(InitStrings(), path);
+StrLst *GetFilesExt(const char *extension, const char *path = ".") { // filter files in a string list by extension
+    StrLst *all = GetFilesInFolderPaths(StrGetTmpArena(), path);
     StrLst *filtered = NULL;
     StrLst *first = NULL;
     Str ext = StrL(extension);
@@ -268,7 +186,7 @@ struct FInfo {
         return rebuilt;
     }
     char *BuildNameZ(const char *prefix, const char *suffix, const char *ext) {
-        return StrZeroTerm( this->BuildName(prefix, suffix, ext) );
+        return StrZ( this->BuildName(prefix, suffix, ext) );
     }
     Str StripDirname() {
         Str filename = StrL("");
