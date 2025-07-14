@@ -851,7 +851,7 @@ template<class T>
 List<T> ListCopy(MArena *a_dest, List<T> src) {
     List<T> dest = InitList<T>(a_dest, src.len);
     dest.len = src.len;
-    _memcpy(dest.lst, src.lst, sizeof(T) * src.len);
+    memcpy(dest.lst, src.lst, sizeof(T) * src.len);
     return dest;
 }
 
