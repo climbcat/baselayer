@@ -26,13 +26,7 @@ u8 *LoadFileMMAP(const char *filepath, u64 *size_bytes) {
     return LoadFileMMAP((char*) filepath, size_bytes);
 }
 
-StrLst *GetFilesInFolderPaths(MArena *a, char *rootpath);
-
-StrLst *GetFilesInFolderPaths_Rec(char *rootpath, StrLst *first = NULL, StrLst *last = NULL, const char *extension_filter = NULL, bool do_recurse = true);
-
-StrLst *GetFilesInFolderPaths(MArena *a, const char *rootpath) {
-    return GetFilesInFolderPaths(a, (char*) rootpath);
-}
+StrLst *GetFiles(char *rootpath, const char *extension_filter = NULL, bool do_recurse = true);
 
 u32 LoadFileGetSize(char* filepath) {
     FILE * f = fopen(filepath, "r");
@@ -144,83 +138,6 @@ bool ArenaSave(MArena *a, char *filename) {
 
 bool ArenaSave(MArena *a, const char *filename) {
     return ArenaSave(a, (char *) filename);
-}
-
-StrLst *GetFilesExt(const char *extension, const char *path = ".") { // filter files in a string list by extension
-    StrLst *all = GetFilesInFolderPaths(StrGetTmpArena(), path);
-    StrLst *filtered = NULL;
-    StrLst *first = NULL;
-    Str ext = StrL(extension);
-    while (all != NULL) {
-        Str _fpath = all->GetStr();
-        Str _ext = StrExtension(_fpath);
-
-        if (StrEqual(_ext, ext)) {
-            filtered = StrLstPush(_fpath, filtered);
-            if (first == NULL) {
-                first = filtered;
-            }
-        }
-        all = all->next;
-    }
-    return first;
-}
-
-
-//
-//  FInfo: file path info, construct file names / paths
-
-
-struct FInfo {
-    Str name;
-    Str ext;
-    Str basename;
-    Str path;
-    Str dirname;
-
-    Str BuildName(const char *prefix, const char *suffix, const char *ext) {
-        Str bn_new = StrL(prefix);
-        bn_new = StrCat(bn_new, basename);
-        bn_new = StrCat(bn_new, StrL(suffix));
-        Str rebuilt = StrPathBuild(dirname, bn_new, StrL(ext));
-        return rebuilt;
-    }
-    char *BuildNameZ(const char *prefix, const char *suffix, const char *ext) {
-        return StrZ( this->BuildName(prefix, suffix, ext) );
-    }
-    Str StripDirname() {
-        Str filename = StrL("");
-        filename = StrCat(filename, basename);
-        filename = StrCat(filename, StrL("."));
-        filename = StrCat(filename, ext);
-        return filename;
-    }
-    void Print() {
-        StrPrint("name      : ", name, "\n");
-        StrPrint("extension : ", ext, "\n");
-        StrPrint("basename  : ", basename, "\n");
-        StrPrint("dirname   : ", dirname, "\n");
-        Str rebuilt = StrPathBuild(dirname, basename, ext);
-        StrPrint("rebuilt   : ", rebuilt, "\n");
-    }
-};
-
-FInfo FInfoGet(Str pathname) {
-    FInfo info;
-    info.name = pathname;
-    info.ext = StrExtension(pathname);
-    info.basename = StrBasename(pathname);
-    info.dirname = StrDirPath(pathname);
-    return info;
-}
-
-FInfo InitFInfo(Str pathname) {
-    return FInfoGet(pathname);
-}
-
-inline
-FInfo FInfoGet(const char*pathname) {
-    return FInfoGet(StrL(pathname));
 }
 
 

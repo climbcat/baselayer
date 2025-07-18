@@ -10,8 +10,7 @@ struct PoolTestEntity {
 };
 
 
-void TestVarious() {
-    // Init first
+void TestStringBasics() {
     InitBaselayer();
 
     MArena arena = ArenaCreate();
@@ -53,77 +52,6 @@ void TestVarious() {
         printf("OK");
     }
     printf("\n");
-
-    //
-    // StrLst & get files in folder
-
-    printf("files in folder '.': \n");
-    StrLst *files = GetFilesInFolderPaths(a, (char*) ".");
-    StrLstPrint(files);
-
-    return;
-
-    //
-    // templated list
-
-    ListX<u32> lst_T;
-    lst_T.Add(14);
-    lst_T.Add(222);
-    lst_T.Get(1);
-    lst_T.GetPtr(1);
-
-
-    //
-    // stretchy buffer
-
-    printf("\nstretchy buffer:\n");
-    s32 *elst = NULL;
-    for (int i = 0; i < 10000; ++i) {
-        lst_push(elst, i);
-        if (i > 10000 - 5) {
-            printf("%d\n", elst[i]);
-        }
-    }
-    lst_free(elst);
-
-
-    //
-    // random numbers
-
-    RandInit();
-    for (int i = 0; i < 10; ++i)  {
-        f64 r = Rand01();
-        printf("Rand01: %f\n", r);
-    }
-    printf("RandDice: %u\n\n", RandDice(20));
-
-
-    //
-    // save binary data
-
-    u32 num_chars = 1024*1024 + 1;
-    static char data[1024*1024 + 1];
-    WriteRandomHexStr(data, num_chars, true);
-    char *filepath = (char*) "hexdata.txt";
-    SaveFile(filepath, (u8*) data, num_chars);
-    printf("Saved binary hex chars to file hexdata.txt\n\n");
- 
-    //
-    // load using C-lib fseek
-
-    u8* dest = (u8*) malloc(num_chars);
-    u32 nbytesloaded = LoadFileFSeek(filepath, dest);
-    assert(num_chars == nbytesloaded);
-    printf("Loaded %d bytes back in using fseek\n\n", nbytesloaded);
-
-
-    //
-    // memory mapped load
-
-    u64 num_chars_64 = (u64) num_chars;
-    u8 *data_mmapped = LoadFileMMAP(filepath, &num_chars_64);
-    printf("Memory mapped load %ld nbytes:\n", num_chars_64);
-    printf("%.1000s\n\n", (char*) data_mmapped);
 }
 
 
@@ -238,12 +166,12 @@ void TestSorting() {
 void TestStringHelpers() {
     printf("\nTestStringHelpers\n");
 
-    printf("\nlook for .h hiles in ../graphics:\n");
-    StrLst *fs = GetFilesExt("h", "../graphics");
+    printf("\nlook for .h hiles in ../:\n");
+    StrLst *fs = GetFiles((char*) "../", "h");
     StrLstPrint(fs);
 
     printf("\nlook for .cmake file in .:\n");
-    StrLst *fs2 = GetFilesExt("cmake", ".");
+    StrLst *fs2 = GetFiles((char*) ".", "cmake");
     StrLstPrint(fs2);
 }
 
@@ -355,43 +283,6 @@ void TestPointerHashMap() {
 }
 
 
-void TestScritinizeFilename() {
-    printf("\nTestScritinizeFilename\n");
-    InitBaselayer();
-
-    Str fname;
-    FInfo info;
-
-    printf("\n");
-    fname = StrL( "./data/123456_sumfile.ext" );
-    info = FInfoGet(fname);
-    info.Print();
-
-    printf("\n");
-    fname = StrL( "/home/user/data/123456_sumfile.ext" );
-    info = FInfoGet(fname);
-    info.Print();
-
-    printf("\n");
-    fname = StrL( "12345/6789/user/data/123456_sumfile.longfileextention" );
-    info = FInfoGet(fname);
-    info.Print();
-
-    Str mod = info.BuildName("", "_suffixed", "extaltered");
-    printf("\n");
-    StrPrint(mod);
-    printf("\n");
-
-    Str stripped = info.StripDirname();
-    printf("\n");
-    StrPrint(stripped);
-    printf("\n");
-
-    printf("\n");
-    GetYYMMDD();
-}
-
-
 struct TestWidget {
     TestWidget *next;
     TestWidget *first;
@@ -485,12 +376,11 @@ void TestStrBuffer() {
 void Test() {
     printf("Running baselayer tests ...\n\n");
 
-    TestVarious();
+    TestStringBasics();
     TestSorting();
     TestStringHelpers();
     TestDict();
     TestPointerHashMap();
-    TestScritinizeFilename();
     TestMemoryPool();
     TestPoolAllocatorAgain();
     TestStrBuffer();

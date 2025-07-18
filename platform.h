@@ -160,40 +160,7 @@ const char *getBuild() { // courtesy of S.O.
             fclose(f);
             return data;
         }
-        StrLst *GetFilesInFolderPaths(MArena *unused, char *rootpath) {
-            StrLst *first = NULL;
 
-            struct dirent *dir;
-            DIR *d = opendir(rootpath);
-            if (d) {
-                d = opendir(rootpath);
-
-                Str path = StrL(rootpath);
-                if (path.len == 1 && path.str[0] == '.') {
-                    path.len = 0;
-                }
-                else if (path.str[path.len-1] != '/') {
-                    path = StrCat(path, StrL("/"));
-                }
-
-                StrLst *lst = NULL;
-                while ((dir = readdir(d)) != NULL) {
-                    // omit "." and ".."
-                    if (!strcmp(dir->d_name, ".") || !strcmp(dir->d_name, "..")) {
-                        continue;
-                    }
-
-                    Str dname = StrCat(path, StrL(dir->d_name));
-                    lst = StrLstPush(dname, lst);
-                    if (first == NULL) {
-                        first = lst;
-                    }
-                    //Str StrCat( lst->GetStr(), StrLiteral(dir->d_name), );
-                }
-                closedir(d);
-            }
-            return first;
-        }
         StrLst *GetFilePaths_Rec(char *rootpath, StrLst *head = NULL, StrLst *tail = NULL, const char *extension_filter = NULL, bool do_recurse = true) {
             struct dirent *dir_entry;
 
@@ -201,10 +168,8 @@ const char *getBuild() { // courtesy of S.O.
                 dir = opendir(rootpath);
 
                 Str path = StrL(rootpath);
-                if (path.len == 1 && path.str[0] == '.') {
-                    path.len = 0;
-                }
-                else if (path.str[path.len-1] != '/') {
+                if (path.str[path.len-1] != '/') {
+                    // ensure trailing slash
                     path = StrCat(path, StrL("/"));
                 }
 
@@ -238,15 +203,16 @@ const char *getBuild() { // courtesy of S.O.
                 fclose(f);
             }
 
-            if (tail == NULL) {
-                tail = StrLstPush( Str {}, NULL );
-            }
-
             return tail;
         }
 
-        StrLst *GetFiles(char *rootpath, const char *extension_filter = NULL, bool do_recurse = true) {
+        StrLst *GetFiles(char *rootpath, const char *extension_filter, bool do_recurse) {
             StrLst *fpaths = GetFilePaths_Rec(rootpath, NULL, NULL, extension_filter, do_recurse)->first;
+
+            if (fpaths == NULL) {
+                fpaths = StrLstPush( Str {}, NULL );
+            }
+
             return fpaths;
         }
 

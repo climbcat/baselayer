@@ -578,33 +578,42 @@ Str StrBasename(Str path) {
     return StrBasename( StrZ(path) );
 }
 
-Str StrExtension(MArena *a, char *path) {
-    Str s { NULL, 0 };
-    StrLst *lst = StrSplit(StrL(path), '.');
-    if (lst->next != NULL) {
-        s = lst->next->GetStr();
-    }
-    return s;
-}
-
-Str StrExtension(char *path) {
+Str StrExtension(Str path) {
     assert(g_a_strings != NULL && "init strings first");
 
-    Str s { NULL, 0 };
-    StrLst *lst = StrSplit(StrL(path), '.');
+    Str result { NULL, 0 };
+    StrLst *lst = StrSplit(path, '.');
+    bool has_extension = (lst->next != NULL);
+
     while (lst->next != NULL) {
         lst = lst->next;
     }
-    s = lst->GetStr();
-    return s;
+
+    if (has_extension) {
+        result = lst->GetStr();
+    }
+    else {
+        result = {};
+    }
+
+    return result;
 }
 
-Str StrExtension(Str path) {
-    return StrExtension(StrZ(path));
+Str StrExtension(char *path) {
+    return StrExtension(StrL(path));
+}
+
+Str StrExtension(const char *path) {
+    return StrExtension(StrL(path));
 }
 
 Str StrDirPath(Str path) {
     assert(g_a_strings != NULL && "init strings first");
+
+    // with no extension, we assume dir
+    if (StrExtension(path).len == 0) {
+        return path;
+    }
 
     StrLst *slash = StrSplit(path, '/');
     u32 len = StrListLen(slash);
