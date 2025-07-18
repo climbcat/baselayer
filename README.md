@@ -2,19 +2,11 @@
 
 Written in C-style C++
 
-- Memory allocation & List
-- Random number generator
-- Length-based string utilities
-- Types, functions, macros
-- Performance profiler
-- Utils: file I/O, cmd-line args
-- Platforms: Linux, Windows
-
-## dependencies:
-
-cmake, g++/msvc
-
-## test
+- Custom allocators (arena, pool)
+- Basic data structures
+- Length-based strings
+- Built-in profiler
+- Utils, RNG
 
 <pre>
 git clone https://github.com/climbcat/baselayer/
