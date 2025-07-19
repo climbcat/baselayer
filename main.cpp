@@ -20,6 +20,7 @@ int main (int argc, char **argv) {
     }
 
     else if (CLAContainsArg("--version", argc, argv) || force_tests) {
+        printf("dev: ");
         BaselayerPrintVersion();
         exit(0);
     }
@@ -65,5 +66,7 @@ int main (int argc, char **argv) {
     else {
         printf("Use:\n");
         printf("./baselayer --help\n");
+
+        exit(0);
     }
 }
