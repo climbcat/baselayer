@@ -298,7 +298,7 @@ struct MapIter {
 };
 
 u64 MapNextVal(HashMap *map, MapIter *iter) {
-    while (iter->slot_idx < map->slots.len) {
+    while (iter->slot_idx < (s32) map->slots.len) {
         HashMapKeyVal kv = map->slots.lst[iter->slot_idx++];
 
         if (kv.val) {
@@ -308,7 +308,7 @@ u64 MapNextVal(HashMap *map, MapIter *iter) {
         }
 
     }
-    while (iter->coll_idx < map->colls.len) {
+    while (iter->coll_idx < (s32) map->colls.len) {
         HashMapKeyVal kv = map->colls.lst[iter->coll_idx++];
         if (kv.val) {
             iter->occ_colliders_cnt++;

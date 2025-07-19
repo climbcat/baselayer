@@ -142,7 +142,7 @@ bool ArenaSave(MArena *a, const char *filename) {
 
 
 Str GetYYMMDD() {
-    Str s;
+    Str s = {};
 
     time_t t = time(NULL);
     struct tm loc = *localtime(&t);

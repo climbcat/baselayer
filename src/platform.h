@@ -351,7 +351,6 @@ const char *getBuild() { // courtesy of S.O.
         StrLst *GetFilesInFolderPaths(MArena *a, char *rootpath) {
             StrLst *first = NULL;
 
-
             WIN32_FIND_DATA fd_file;
             HANDLE h_find = FindFirstFile(rootpath, &fd_file);
             if (h_find == INVALID_HANDLE_VALUE) {
@@ -364,7 +363,7 @@ const char *getBuild() { // courtesy of S.O.
             if (h_find != NULL) {
                 StrLst *lst = NULL;
 
-                Str path = StrLiteral(rootpath);
+                Str path = StrL(rootpath);
                 if (path.len == 1 && path.str[0] == '.') {
                     path.len = 0;
                 }
@@ -374,15 +373,15 @@ const char *getBuild() { // courtesy of S.O.
 
                 while (FindNextFile(h_find, &fd_file)) {
                     // omit "." and ".."
-                    if (!_strcmp(fd_file.cFileName, ".") || !_strcmp(fd_file.cFileName, "..")) {
+                    if (!strcmp(fd_file.cFileName, ".") || !strcmp(fd_file.cFileName, "..")) {
                         continue;
                     }
 
                     // next strlst node
-                    lst = StrLstPut(a, rootpath, lst);
+                    lst = StrLstPush(rootpath, lst);
 
-                    Str dname = StrCat( path, StrLiteral(fd_file.cFileName) );
-                    lst = StrLstPut(dname, lst);
+                    Str dname = StrCat( path, StrL(fd_file.cFileName) );
+                    lst = StrLstPush(dname, lst);
                     if (first == NULL) {
                         first = lst;
                     }
@@ -392,9 +391,23 @@ const char *getBuild() { // courtesy of S.O.
 
             return first;
         }
-        StrLst *GetFilesInFolderPaths_Rec(char *rootpath, StrLst *first = NULL, StrLst *last = NULL, const char *extension_filter = NULL, bool do_recurse = true) {
+
+        StrLst *GetFilePaths_Rec(char *rootpath, StrLst *head = NULL, StrLst *tail = NULL, const char *extension_filter = NULL, bool do_recurse = true) {
             // TODO: impl.
+
+            return NULL;
         }
+
+        StrLst *GetFiles(char *rootpath, const char *extension_filter, bool do_recurse) {
+            StrLst *fpaths = GetFilePaths_Rec(rootpath, NULL, NULL, extension_filter, do_recurse)->first;
+
+            if (fpaths == NULL) {
+                fpaths = StrLstPush( Str {}, NULL );
+            }
+
+            return fpaths;
+        }
+
         bool SaveFile(char *filepath, u8 *data, u32 len) {
             std::ofstream outstream(filepath, std::ios::out | std::ios::binary);
             outstream.write((const char*) data, len);

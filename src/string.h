@@ -213,7 +213,7 @@ void StrCopy(Str src, Str dest) {
 
 Str StrInsertReplace(Str src, Str amend, Str at) {
     Str before = src;
-    before.len = (at.str - src.str);
+    before.len = (u32) (at.str - src.str);
 
     Str after = {};
     after.len = src.len - before.len - at.len;
@@ -695,9 +695,9 @@ s32 StrBuffAppend(StrBuff *buff, Str put) {
 }
 
 s32 StrBuffAppendConst(StrBuff *buff, const char* text) {
-    s32 len = strlen(text);
-    StrBuffAppend(buff, Str { (char*) text, (u32) len } );
-    return len;
+    u32 len = (u32) strlen(text);
+    StrBuffAppend(buff, Str { (char*) text, len } );
+    return (s32) len;
 }
 
 s32 StrBuffNewLine(StrBuff *buff) {

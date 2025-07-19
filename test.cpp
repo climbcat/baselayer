@@ -360,7 +360,7 @@ void TestStrBuffer() {
 
     // test StrBuffPut
     Str put_str = { (char*) "an string appended at the end of the buffer", 0 };
-    put_str.len = strlen(put_str.str);
+    put_str.len = (u32) strlen(put_str.str);
     StrBuffAppend(&buff, put_str);
     StrBuffNewLine(&buff);
 
