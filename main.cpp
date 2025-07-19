@@ -31,14 +31,14 @@ int main (int argc, char **argv) {
         StrInit();
 
         StrLst *f_sources = NULL;
-        f_sources = StrLstPush("../base.h", f_sources);
-        f_sources = StrLstPush("../profile.h", f_sources);
-        f_sources = StrLstPush("../memory.h", f_sources);
-        f_sources = StrLstPush("../string.h", f_sources);
-        f_sources = StrLstPush("../hash.h", f_sources);
-        f_sources = StrLstPush("../utils.h", f_sources);
-        f_sources = StrLstPush("../platform.h", f_sources);
-        f_sources = StrLstPush("../init.h", f_sources);
+        f_sources = StrLstPush("../src/base.h", f_sources);
+        f_sources = StrLstPush("../src/profile.h", f_sources);
+        f_sources = StrLstPush("../src/memory.h", f_sources);
+        f_sources = StrLstPush("../src/string.h", f_sources);
+        f_sources = StrLstPush("../src/hash.h", f_sources);
+        f_sources = StrLstPush("../src/utils.h", f_sources);
+        f_sources = StrLstPush("../src/platform.h", f_sources);
+        f_sources = StrLstPush("../src/init.h", f_sources);
         f_sources = f_sources->first;
 
         StrBuff buff = StrBuffInit();
