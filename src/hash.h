@@ -465,14 +465,14 @@ u64 Kiss_Random(u64 state[7]) {
     state[4] = state[5] >> 30;
     return state[0] + state[1] + state[3];
 }
-u64 g_state[7];
-#define McRandom() Kiss_Random(g_state)
+u64 g_kiss_randstate[7];
+#define McRandom() Kiss_Random(g_kiss_randstate)
 u32 RandInit(u32 seed = 0) {
     if (seed == 0) {
         seed = (u32) Hash(ReadSystemTimerMySec());
     }
-    Kiss_SRandom(g_state, seed);
-    Kiss_Random(g_state); // flush the first one
+    Kiss_SRandom(g_kiss_randstate, seed);
+    Kiss_Random(g_kiss_randstate); // flush the first one
 
     return seed;
 }
