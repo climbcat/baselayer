@@ -81,10 +81,7 @@ inline f64 MaxF64(f64 a, f64 b) { return (a > b) ? a : b; }
 
 
 inline void _memzero(void *dest, size_t n) {
-    u8 *d = (u8*) dest;
-    for (u32 i = 0; i < n; ++i) {
-        d[i] = 0;
-    }
+    memset(dest, 0, n);
 }
 
 
