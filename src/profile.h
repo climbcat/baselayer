@@ -52,7 +52,7 @@ void ProfilerPrint(Profiler *p) {
     printf("\n");
     printf("Total time: %lu ms", p->total_systime / 1000);
     printf(" (tsc: %lu,", p->total_tsc);
-    printf(" freq [tsc/mys]: %f)\n", p->cpu_freq);
+    printf(" freq [tsc/mys]: %.2f GHz)\n", p->cpu_freq / 1000);
 
     float pct_sum = 0;
     ProfilerBlock *current;
@@ -62,12 +62,18 @@ void ProfilerPrint(Profiler *p) {
 
         u64 self_tsc = current->elapsed_tsc - current->elapsed_children_tsc;
         u64 self_ms = (u64) ((f32) self_tsc / p->cpu_freq / 1000.0f);
+        u64 self_mys_perhit = (u64) ((f32) self_tsc / p->cpu_freq / current->hits);
         f32 self_pct = (f32) self_tsc / p->total_tsc * 100;
         u64 total_tsc = current->elapsed_atroot_tsc;
         f32 total_pct = (f32) total_tsc / p->total_tsc * 100;
 
         u32 hits = current->hits;
-        printf("%lu tsc %lu ms (%.2f%%) self, %lu (%.2f%%) tot %u hits)\n", self_tsc, self_ms, self_pct, total_tsc, total_pct, hits);
+
+        // including tsc
+        //printf("%lu tsc %lu ms (%.2f%% self), %lu (%.2f%% total) %u hits)\n", self_tsc, self_ms, self_pct, total_tsc, total_pct, hits);
+
+        // dont print tsc
+        printf("%lu µs/hit || %lu ms %.2f%% || %.2f%% total || %u hits\n", self_mys_perhit, self_ms, self_pct, total_pct, hits);
     }
 }
 

@@ -81,6 +81,15 @@ Str StrIntern(Str s) { // NOTE: not an actual interna at this time, but just pus
     return s_dest;
 }
 
+Str StrPush(MArena *a_dest, Str s) {
+    Str s_dest = {};
+    if (s.len) {
+        s_dest = StrAlloc(a_dest, s.len);
+        memcpy(s_dest.str, s.str, s.len);
+    }
+    return s_dest;
+}
+
 char *StrZ(Str s, bool check_unsafe = false) {
     if (check_unsafe && s.str[s.len] == '\0') {
         return s.str;
