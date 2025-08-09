@@ -94,7 +94,12 @@ Str LoadTextFileFSeek(MArena *a_dest, Str filepath) {
 
     u32 size;
     void *data = LoadFileFSeek(a_dest, filepath_zt, &size);
-    return Str { (char*) data, size };
+
+    Str result = {};
+    if (size && data) {
+        result = { (char*) data, size };
+    }
+    return result;
 }
 
 void *LoadFileFSeek(MArena *a_dest, const char *filepath, u32 *size = NULL) {

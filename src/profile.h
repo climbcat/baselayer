@@ -50,9 +50,8 @@ float ProfilerGetCPUFreq(u32 measured_over_interval_ms) {
 }
 void ProfilerPrint(Profiler *p) {
     printf("\n");
-    printf("Total time: %lu ms", p->total_systime / 1000);
-    printf(" (tsc: %lu,", p->total_tsc);
-    printf(" freq [tsc/mys]: %.2f GHz)\n", p->cpu_freq / 1000);
+    printf("Total time: %lu ms ", p->total_systime / 1000);
+    printf("(freq [tsc/t]: %.2f GHz)\n", p->cpu_freq / 1000);
 
     float pct_sum = 0;
     ProfilerBlock *current;
@@ -73,7 +72,7 @@ void ProfilerPrint(Profiler *p) {
         //printf("%lu tsc %lu ms (%.2f%% self), %lu (%.2f%% total) %u hits)\n", self_tsc, self_ms, self_pct, total_tsc, total_pct, hits);
 
         // dont print tsc
-        printf("%lu µs/hit || %lu ms %.2f%% || %.2f%% total || %u hits\n", self_mys_perhit, self_ms, self_pct, total_pct, hits);
+        printf("%lu µs/hit || %lu ms %.2f%% self || %.2f%% total || %u hits\n", self_mys_perhit, self_ms, self_pct, total_pct, hits);
     }
 }
 

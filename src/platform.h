@@ -207,10 +207,13 @@ const char *getBuild() { // courtesy of S.O.
         }
 
         StrLst *GetFiles(char *rootpath, const char *extension_filter, bool do_recurse) {
-            StrLst *fpaths = GetFilePaths_Rec(rootpath, NULL, NULL, extension_filter, do_recurse)->first;
+            StrLst *fpaths = GetFilePaths_Rec(rootpath, NULL, NULL, extension_filter, do_recurse);
 
             if (fpaths == NULL) {
                 fpaths = StrLstPush( Str {}, NULL );
+            }
+            else {
+                fpaths = fpaths->first;
             }
 
             return fpaths;
