@@ -40,19 +40,5 @@ MContext *InitBaselayer() {
     return ctx;
 }
 
-void BaselayerAssertVersion(u32 major, u32 minor, u32 patch) {
-    if (
-        BASELAYER_VERSION_MAJOR != major ||
-        BASELAYER_VERSION_MINOR != minor ||
-        BASELAYER_VERSION_PATCH != patch
-    ) {
-        assert(1 == 0 && "baselayer version check failed");
-    }
-}
-
-void BaselayerPrintVersion() {
-    printf("%d.%d.%d\n", BASELAYER_VERSION_MAJOR, BASELAYER_VERSION_MINOR, BASELAYER_VERSION_PATCH);
-}
-
 
 #endif
