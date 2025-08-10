@@ -39,6 +39,7 @@ int main (int argc, char **argv) {
         f_sources = StrLstPush("../src/utils.h", f_sources);
         f_sources = StrLstPush("../src/platform.h", f_sources);
         f_sources = StrLstPush("../src/init.h", f_sources);
+        f_sources = StrLstPush("../src/baselayer.h", f_sources);
         f_sources = f_sources->first;
 
         StrBuff buff = StrBuffInit();
@@ -47,9 +48,6 @@ int main (int argc, char **argv) {
         StrBuffPrint1K(&buff, "*/\n\n\n", 0);
         StrBuffPrint1K(&buff, "#ifndef __JG_BASELAYER_H__\n", 0);
         StrBuffPrint1K(&buff, "#define __JG_BASELAYER_H__\n\n\n", 0);
-        StrBuffPrint1K(&buff, "#define BASELAYER_VERSION_MAJOR %d\n", 1, BASELAYER_VERSION_MAJOR);
-        StrBuffPrint1K(&buff, "#define BASELAYER_VERSION_MINOR %d\n", 1, BASELAYER_VERSION_MINOR);
-        StrBuffPrint1K(&buff, "#define BASELAYER_VERSION_PATCH %d\n", 1, BASELAYER_VERSION_PATCH);
         StrBuffPrint1K(&buff, "\n\n", 0);
 
         while (f_sources) {
@@ -60,6 +58,8 @@ int main (int argc, char **argv) {
         }
 
         StrBuffPrint1K(&buff, "#endif // __JG_BASELAYER_H__\n", 0);
+
+        printf("Generated: jg_baselayer.h_OUT\n");
         SaveFile("jg_baselayer.h_OUT", buff.str, buff.len);
     }
 
